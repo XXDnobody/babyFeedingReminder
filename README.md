@@ -45,7 +45,7 @@
 ### 后端技术栈
 | 技术 | 版本 | 说明 |
 |------|------|------|
-| Java | 25 | 开发语言 |
+| Java | 17 | 开发语言（LTS版本） |
 | Spring Boot | 3.4.0 | 后端框架 |
 | MyBatis Plus | 3.5.5 | ORM框架 |
 | MySQL | 8.0 | 关系型数据库 |
@@ -121,11 +121,28 @@ babyFeedingReminder/
 ## 快速开始
 
 ### 环境要求
-- JDK 25+
+- JDK 17+（推荐使用 Eclipse Temurin 或 Azul Zulu）
 - Maven 3.9+
 - MySQL 8.0+
 - Redis 7.x
+- Docker 和 Docker Compose（可选，用于容器化部署）
 - Xcode 15+ (iOS开发)
+
+### macOS 环境安装
+```bash
+# 安装 Homebrew（如未安装）
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 安装 Java 17 和 Maven
+brew install openjdk@17 maven
+
+# 配置 Java 17 环境变量（添加到 ~/.zshrc 或 ~/.bash_profile）
+export JAVA_HOME=$(/usr/libexec/java_home -v 17 2>/dev/null || echo "/opt/homebrew/opt/openjdk@17")
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# 安装 Docker Desktop
+brew install --cask docker
+```
 
 ### 后端开发环境
 

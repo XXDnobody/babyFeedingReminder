@@ -19,7 +19,7 @@
     <description>婴儿喂养提醒后端服务</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>17</java.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <jwt.version>0.12.3</jwt.version>
     </properties>

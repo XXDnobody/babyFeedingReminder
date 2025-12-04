@@ -30,7 +30,7 @@ services:
     image: mysql:8.0
     container_name: baby-feeding-mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"  # 使用 3307 端口避免与本地MySQL冲突
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root123}
       - MYSQL_DATABASE=baby_feeding
