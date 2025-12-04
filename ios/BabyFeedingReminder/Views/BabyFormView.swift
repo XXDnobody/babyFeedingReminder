@@ -1,0 +1,283 @@
+import SwiftUI
+
+/// 保存宝宝信息请求
+struct SaveBabyRequest: Encodable {
+    let nickname: String
+    let birthDate: String
+    let gender: Int
+    let gestationalAge: Int  // 胎龄总天数
+    let height: Double?
+    let weight: Double?
+    let headCircumference: Double?
+}
+
+struct BabyFormView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appState: AppState
+    
+    var baby: Baby?
+    
+    @State private var nickname = ""
+    @State private var birthDate = Date()
+    @State private var gender = 1
+    @State private var gestationalWeeks = 40  // 胎龄周数
+    @State private var gestationalDays = 0    // 胎龄天数 (0-6)
+    @State private var height: Double?
+    @State private var weight: Double?
+    @State private var headCircumference: Double?
+    
+    @State private var heightText = ""
+    @State private var weightText = ""
+    @State private var headCircumferenceText = ""
+    
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    private let network = NetworkService.shared
+    
+    var isEditing: Bool { baby != nil }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("基本信息") {
+                    TextField("宝宝昵称", text: $nickname)
+                        .font(.body)
+                    
+                    Picker("性别", selection: $gender) {
+                        Text("男宝宝").tag(1)
+                        Text("女宝宝").tag(0)
+                    }
+                }
+                
+                Section("出生日期") {
+                    DatePicker("选择日期", selection: $birthDate, displayedComponents: .date)
+                        .datePickerStyle(.wheel)
+                        .environment(\.locale, Locale(identifier: "zh_CN"))
+                        .labelsHidden()
+                        .frame(height: 150)
+                }
+                
+                Section("出生胎龄") {
+                    // 周数调节
+                    VStack(spacing: 4) {
+                        Text("周数")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        HStack {
+                            Button {
+                                if gestationalWeeks > 24 { gestationalWeeks -= 1 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.pink)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Spacer()
+                            Text("\(gestationalWeeks) 周")
+                                .font(.system(size: 28, weight: .bold))
+                                .monospacedDigit()
+                            Spacer()
+                            
+                            Button {
+                                if gestationalWeeks < 44 { gestationalWeeks += 1 }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.pink)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    
+                    // 天数调节
+                    VStack(spacing: 4) {
+                        Text("天数")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        HStack {
+                            Button {
+                                if gestationalDays > 0 { gestationalDays -= 1 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Spacer()
+                            Text("+ \(gestationalDays) 天")
+                                .font(.system(size: 28, weight: .bold))
+                                .monospacedDigit()
+                            Spacer()
+                            
+                            Button {
+                                if gestationalDays < 6 { gestationalDays += 1 }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    
+                    // 显示完整胎龄
+                    Text("出生胎龄：\(gestationalWeeks)周\(gestationalDays > 0 ? "+\(gestationalDays)天" : "")")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                
+                Section("生长指标（可选）") {
+                    HStack {
+                        Text("身高")
+                        Spacer()
+                        TextField("cm", text: $heightText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("cm")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("体重")
+                        Spacer()
+                        TextField("kg", text: $weightText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("kg")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("头围")
+                        Spacer()
+                        TextField("cm", text: $headCircumferenceText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("cm")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if let error = errorMessage {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .navigationTitle(isEditing ? "编辑宝宝信息" : "添加宝宝")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isEditing ? "保存" : "添加") {
+                        Task {
+                            await saveBaby()
+                        }
+                    }
+                    .disabled(nickname.isEmpty || isLoading)
+                }
+            }
+            .onAppear {
+                if let baby = baby {
+                    nickname = baby.nickname
+                    birthDate = baby.birthDate
+                    gender = baby.gender
+                    // 胎龄转换：存储的是总天数，转换为周+天
+                    let totalDays = baby.gestationalAge ?? 280
+                    gestationalWeeks = totalDays / 7
+                    gestationalDays = totalDays % 7
+                    if let h = baby.height {
+                        heightText = String(format: "%.1f", h)
+                    }
+                    if let w = baby.weight {
+                        weightText = String(format: "%.2f", w)
+                    }
+                    if let hc = baby.headCircumference {
+                        headCircumferenceText = String(format: "%.1f", hc)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func saveBaby() async {
+        isLoading = true
+        errorMessage = nil
+        
+        // 胎龄转换为总天数保存
+        let gestationalAgeDays = gestationalWeeks * 7 + gestationalDays
+        
+        let request = SaveBabyRequest(
+            nickname: nickname,
+            birthDate: ISO8601DateFormatter().string(from: birthDate),
+            gender: gender,
+            gestationalAge: gestationalAgeDays,
+            height: Double(heightText),
+            weight: Double(weightText),
+            headCircumference: Double(headCircumferenceText)
+        )
+        
+        do {
+            if isEditing, let babyId = baby?.id {
+                // 更新
+                let updatedBaby: Baby = try await network.request(
+                    endpoint: "/baby/\(babyId)",
+                    method: "PUT",
+                    body: request
+                )
+                appState.selectedBaby = updatedBaby
+            } else {
+                // 创建
+                let newBaby: Baby = try await network.request(
+                    endpoint: "/baby",
+                    method: "POST",
+                    body: request,
+                    userId: appState.userId
+                )
+                appState.selectedBaby = newBaby
+            }
+            dismiss()
+        } catch {
+            // 使用本地模拟
+            let mockBaby = Baby(
+                id: Int64(Date().timeIntervalSince1970),
+                userId: appState.userId ?? 1,
+                nickname: nickname,
+                birthDate: birthDate,
+                gender: gender,
+                gestationalAge: gestationalAgeDays,
+                height: Double(heightText),
+                weight: Double(weightText),
+                headCircumference: Double(headCircumferenceText),
+                avatarUrl: nil,
+                createTime: Date(),
+                updateTime: Date()
+            )
+            appState.selectedBaby = mockBaby
+            dismiss()
+        }
+        
+        isLoading = false
+    }
+}
+
+#Preview {
+    BabyFormView()
+        .environmentObject(AppState())
+}

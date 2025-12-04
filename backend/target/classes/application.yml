@@ -1,0 +1,97 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: baby-feeding-reminder
+  
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/baby_feeding?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: root123
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.baby.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT配置
+jwt:
+  secret: babyFeedingReminderSecretKey2025VeryLongSecureKey
+  expiration: 604800000  # 7天
+
+# APNs配置
+apns:
+  enabled: false
+  production: false
+  certificate-path: classpath:apns/apns-dev.p12
+  certificate-password: your-password
+  topic: com.baby.feedingreminder
+
+# 喂养指南配置（基于2025年国家卫生健康委婴幼儿营养喂养评估服务指南）
+feeding:
+  guide:
+    # 0-6个月纯母乳或配方奶
+    stage1:
+      age-range: "0-6"
+      daily-times: 8-12
+      per-time-ml: 60-120
+      interval-hours: 2-3
+    # 6-12个月
+    stage2:
+      age-range: "6-12"
+      daily-times: 4-6
+      per-time-ml: 180-240
+      interval-hours: 3-4
+    # 12-24个月
+    stage3:
+      age-range: "12-24"
+      daily-times: 3-4
+      per-time-ml: 200-300
+      interval-hours: 4-5
+
+# 睡眠指南配置（基于国家卫健委《0岁～5岁儿童睡眠卫生指南》）
+sleep:
+  guide:
+    # 0-3个月：每天睡眠13-18小时
+    stage1:
+      age-range: "0-3"
+      total-hours: 13-18
+      nap-times: 3-5
+      nap-duration-hours: 1-2
+    # 4-12个月：每天睡眠12-16小时
+    stage2:
+      age-range: "4-12"
+      total-hours: 12-16
+      nap-times: 2-3
+      nap-duration-hours: 1-2
+    # 1-2岁：每天睡眠11-14小时
+    stage3:
+      age-range: "12-24"
+      total-hours: 11-14
+      nap-times: 1-2
+      nap-duration-hours: 1-2.5
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
