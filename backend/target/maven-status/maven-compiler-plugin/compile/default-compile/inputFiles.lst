@@ -4,10 +4,13 @@
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/config/SecurityConfig.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/BabyController.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/FeedingRecordController.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/ReminderController.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/SettingController.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/SleepRecordController.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/controller/StatisticsController.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/BabyDTO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/FeedingRecordDTO.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/ReminderDTO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/SleepRecordDTO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/entity/Baby.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/entity/FeedingRecord.java

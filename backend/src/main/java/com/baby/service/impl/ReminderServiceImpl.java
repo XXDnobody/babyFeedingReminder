@@ -3,6 +3,7 @@ package com.baby.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baby.dto.ReminderDTO;
 import com.baby.entity.*;
 import com.baby.mapper.BabyMapper;
 import com.baby.mapper.ReminderMapper;
@@ -49,9 +50,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         reminder.setUserId(baby.getUserId());
         reminder.setReminderType(1); // 喂奶提醒
         reminder.setTitle("喂奶提醒");
-        reminder.setContent(String.format("%s该喝奶啦！预计时间：%s", 
-                baby.getNickname(), 
-                feedingRecord.getNextFeedingTime().format(TIME_FORMATTER)));
+        reminder.setContent(String.format("%s该喝奶啦！", baby.getNickname()));
         reminder.setScheduledTime(feedingRecord.getNextFeedingTime());
         reminder.setSent(0);
         reminder.setStatus(0);
@@ -87,10 +86,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         reminder.setUserId(baby.getUserId());
         reminder.setReminderType(2); // 解冻提醒
         reminder.setTitle("母乳解冻提醒");
-        reminder.setContent(String.format("请提前准备%s解冻加热，%s将在%s喝奶", 
-                milkType,
-                baby.getNickname(),
-                feedingRecord.getNextFeedingTime().format(TIME_FORMATTER)));
+        reminder.setContent(String.format("请提前准备%s解冻加热", milkType));
         reminder.setScheduledTime(thawTime);
         reminder.setSent(0);
         reminder.setStatus(0);
@@ -169,6 +165,18 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     }
     
     @Override
+    public List<Reminder> getUpcomingReminders(Long babyId) {
+        // 获取宝宝未发送且未取消的提醒，按时间排序
+        return list(new LambdaQueryWrapper<Reminder>()
+                .eq(Reminder::getBabyId, babyId)
+                .eq(Reminder::getStatus, 0)  // 待发送
+                .eq(Reminder::getSent, 0)    // 未发送
+                .ge(Reminder::getScheduledTime, LocalDateTime.now())  // 未来的时间
+                .orderByAsc(Reminder::getScheduledTime)
+                .last("LIMIT 10"));  // 限制数量
+    }
+    
+    @Override
     public List<Reminder> getPendingReminders() {
         return reminderMapper.getPendingReminders(LocalDateTime.now());
     }
@@ -216,6 +224,59 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
                 .set(Reminder::getStatus, 2));
     }
     
+    @Override
+    @Transactional
+    public Reminder createCustomReminder(ReminderDTO dto) {
+        Reminder reminder = new Reminder();
+        reminder.setBabyId(dto.getBabyId());
+        reminder.setUserId(dto.getUserId());
+        reminder.setReminderType(dto.getReminderType() != null ? dto.getReminderType() : 5); // 默认自定义类型
+        reminder.setTitle(dto.getTitle());
+        reminder.setContent(dto.getContent());
+        reminder.setScheduledTime(dto.getScheduledTime());
+        reminder.setSent(0);
+        reminder.setStatus(0);
+        
+        save(reminder);
+        return reminder;
+    }
+    
+    @Override
+    @Transactional
+    public Reminder updateReminder(Long id, ReminderDTO dto) {
+        Reminder reminder = getById(id);
+        if (reminder == null) {
+            throw new RuntimeException("提醒不存在");
+        }
+        
+        if (dto.getTitle() != null) {
+            reminder.setTitle(dto.getTitle());
+        }
+        if (dto.getContent() != null) {
+            reminder.setContent(dto.getContent());
+        }
+        if (dto.getScheduledTime() != null) {
+            reminder.setScheduledTime(dto.getScheduledTime());
+        }
+        
+        updateById(reminder);
+        return reminder;
+    }
+    
+    @Override
+    @Transactional
+    public void cleanupExpiredReminders() {
+        // 删除已发送或已取消且超过24小时的提醒
+        LocalDateTime cutoffTime = LocalDateTime.now().minusHours(24);
+        
+        update(new LambdaUpdateWrapper<Reminder>()
+                .in(Reminder::getStatus, 1, 2)  // 已发送或已取消
+                .lt(Reminder::getScheduledTime, cutoffTime)
+                .set(Reminder::getDeleted, 1));
+        
+        log.info("清理过期提醒完成");
+    }
+    
     /**
      * 定时任务：每分钟检查并发送待发送的提醒
      */
@@ -225,5 +286,13 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         for (Reminder reminder : pendingReminders) {
             sendReminder(reminder);
         }
+    }
+    
+    /**
+     * 定时任务：每小时清理过期提醒
+     */
+    @Scheduled(fixedRate = 3600000)
+    public void cleanupTask() {
+        cleanupExpiredReminders();
     }
 }

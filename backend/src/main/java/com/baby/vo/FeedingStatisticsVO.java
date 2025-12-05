@@ -65,10 +65,21 @@ public class FeedingStatisticsVO {
      */
     private List<DailyFeedingData> dailyData;
     
+    /**
+     * 喂奶时间分布（按时段统计）
+     */
+    private List<TimeDistributionData> timeDistribution;
+    
     @Data
     public static class DailyFeedingData {
         private String date;
         private Integer count;
         private Integer totalAmount;
+    }
+    
+    @Data
+    public static class TimeDistributionData {
+        private String label;   // 时段标签，如"0-3时"
+        private Integer count;  // 该时段喂奶次数
     }
 }

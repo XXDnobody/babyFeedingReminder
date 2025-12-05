@@ -14,6 +14,7 @@ struct AddFeedingRequest: Encodable {
 
 /// 更新喂养记录请求
 struct UpdateFeedingRequest: Encodable {
+    let babyId: Int64  // 后端DTO需要
     let feedingType: Int
     let milkSource: Int?
     let startTime: String
@@ -49,6 +50,14 @@ class FeedingViewModel: ObservableObject {
     var breastMilkCount: Int { allRecords.filter { $0.feedingType == 1 }.count }
     var formulaCount: Int { allRecords.filter { $0.feedingType == 2 }.count }
     var mixedCount: Int { allRecords.filter { $0.feedingType == 3 }.count }
+    
+    /// 日期格式化器 - 用于后端API
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        return formatter
+    }
     
     func loadTodayRecords(babyId: Int64?) async {
         guard let babyId = babyId else { return }
@@ -101,7 +110,7 @@ class FeedingViewModel: ObservableObject {
             babyId: babyId,
             feedingType: feedingType,
             milkSource: feedingType == 2 ? nil : milkSource,
-            startTime: ISO8601DateFormatter().string(from: startTime),
+            startTime: dateFormatter.string(from: startTime),
             amount: amount,
             duration: duration,
             nextMilkSource: nextMilkSource,
@@ -146,10 +155,13 @@ class FeedingViewModel: ObservableObject {
         duration: Int,
         remark: String
     ) async {
+        guard let babyId = babyId else { return }
+        
         let request = UpdateFeedingRequest(
+            babyId: babyId,
             feedingType: feedingType,
             milkSource: feedingType == 2 ? nil : milkSource,
-            startTime: ISO8601DateFormatter().string(from: startTime),
+            startTime: dateFormatter.string(from: startTime),
             amount: amount,
             duration: duration,
             remark: remark.isEmpty ? nil : remark
@@ -161,9 +173,8 @@ class FeedingViewModel: ObservableObject {
                 method: "PUT",
                 body: request
             )
-            if let babyId = babyId {
-                await loadTodayRecords(babyId: babyId)
-            }
+            // babyId 已经在 guard 中解包，直接使用
+            await loadTodayRecords(babyId: babyId)
         } catch {
             // 本地模拟更新
             if let index = allRecords.firstIndex(where: { $0.id == id }) {
@@ -190,7 +201,7 @@ class FeedingViewModel: ObservableObject {
     /// 删除喂养记录
     func deleteRecord(id: Int64) async {
         do {
-            let _: EmptyResponse = try await network.request(
+            try await network.requestVoid(
                 endpoint: "/feeding/\(id)",
                 method: "DELETE"
             )

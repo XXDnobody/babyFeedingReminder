@@ -34,6 +34,7 @@ struct HomeView: View {
                         
                         // 即将到来的提醒
                         UpcomingRemindersSection(viewModel: viewModel)
+                            .environmentObject(appState)
                         
                         // 快捷操作
                         QuickActionsSection(appState: appState)
@@ -63,15 +64,29 @@ struct HomeView: View {
                     babyToEdit = nil
                 }
         }
-        .onChange(of: appState.selectedBaby?.id) { _ in
+        .onChange(of: appState.selectedBaby?.id) { oldValue, newValue in
             // 宝宝变化时重新加载数据
-            Task {
-                await viewModel.loadData(babyId: appState.selectedBaby?.id)
+            print("👶 selectedBaby 变化: \(String(describing: oldValue)) -> \(String(describing: newValue))")
+            if newValue != nil {
+                Task {
+                    await viewModel.loadData(babyId: newValue)
+                }
+            }
+        }
+        .onChange(of: appState.isLoadingBabies) { oldValue, newValue in
+            // 加载完成时重新加载提醒
+            if oldValue && !newValue && appState.selectedBaby != nil {
+                Task {
+                    await viewModel.loadData(babyId: appState.selectedBaby?.id)
+                }
             }
         }
         .onAppear {
-            Task {
-                await viewModel.loadData(babyId: appState.selectedBaby?.id)
+            print("🏠 HomeView onAppear, selectedBaby: \(String(describing: appState.selectedBaby?.id))")
+            if appState.selectedBaby != nil {
+                Task {
+                    await viewModel.loadData(babyId: appState.selectedBaby?.id)
+                }
             }
         }
     }
@@ -253,12 +268,24 @@ struct OverviewCard: View {
 
 // MARK: - 即将到来的提醒
 struct UpcomingRemindersSection: View {
+    @EnvironmentObject var appState: AppState
     @ObservedObject var viewModel: HomeViewModel
+    @State private var showAddReminder = false
+    @State private var reminderToEdit: Reminder?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("即将提醒")
-                .font(.headline)
+            HStack {
+                Text("即将提醒")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    showAddReminder = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.pink)
+                }
+            }
             
             if viewModel.upcomingReminders.isEmpty {
                 Text("暂无待发送的提醒")
@@ -267,10 +294,21 @@ struct UpcomingRemindersSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding()
             } else {
-                ForEach(viewModel.upcomingReminders.prefix(3)) { reminder in
-                    ReminderRow(reminder: reminder)
+                ForEach(viewModel.upcomingReminders.prefix(5)) { reminder in
+                    ReminderRow(reminder: reminder, viewModel: viewModel)
+                        .onTapGesture {
+                            reminderToEdit = reminder
+                        }
                 }
             }
+        }
+        .sheet(isPresented: $showAddReminder) {
+            ReminderFormView(babyId: appState.selectedBaby?.id, viewModel: viewModel)
+                .environment(\.locale, Locale(identifier: "zh_CN"))
+        }
+        .sheet(item: $reminderToEdit) { reminder in
+            ReminderFormView(babyId: appState.selectedBaby?.id, reminder: reminder, viewModel: viewModel)
+                .environment(\.locale, Locale(identifier: "zh_CN"))
         }
     }
 }
@@ -278,33 +316,67 @@ struct UpcomingRemindersSection: View {
 // MARK: - 提醒行
 struct ReminderRow: View {
     let reminder: Reminder
+    @ObservedObject var viewModel: HomeViewModel
+    @State private var showDeleteAlert = false
     
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 12) {
+            // 图标
             Image(systemName: reminderIcon)
+                .font(.title2)
                 .foregroundColor(reminderColor)
-                .frame(width: 30)
+                .frame(width: 36, height: 36)
+                .background(reminderColor.opacity(0.15))
+                .clipShape(Circle())
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(reminder.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+            // 内容
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(reminder.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text(timeString)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(reminderColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(reminderColor.opacity(0.1))
+                        .cornerRadius(4)
+                }
                 
                 Text(reminder.content)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)  // 允许2行显示
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
-            Spacer()
-            
-            Text(timeString)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            // 删除按钮
+            Button {
+                showDeleteAlert = true
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary.opacity(0.5))
+                    .font(.title3)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .alert("确认删除", isPresented: $showDeleteAlert) {
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
+                Task {
+                    await viewModel.cancelReminder(id: reminder.id)
+                }
+            }
+        } message: {
+            Text("确定要删除这条提醒吗？")
+        }
     }
     
     private var reminderIcon: String {
@@ -313,6 +385,7 @@ struct ReminderRow: View {
         case 2: return "thermometer.snowflake"
         case 3: return "moon.fill"
         case 4: return "bed.double.fill"
+        case 5: return "bell.fill"  // 自定义提醒
         default: return "bell.fill"
         }
     }
@@ -323,14 +396,157 @@ struct ReminderRow: View {
         case 2: return .cyan
         case 3: return .purple
         case 4: return .indigo
+        case 5: return .pink  // 自定义提醒
         default: return .gray
         }
     }
     
     private var timeString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        let calendar = Calendar.current
+        
+        // 判断是否是今天
+        if calendar.isDateInToday(reminder.scheduledTime) {
+            formatter.dateFormat = "今天 HH:mm"
+        } else if calendar.isDateInTomorrow(reminder.scheduledTime) {
+            formatter.dateFormat = "明天 HH:mm"
+        } else {
+            formatter.dateFormat = "MM-dd HH:mm"
+        }
         return formatter.string(from: reminder.scheduledTime)
+    }
+}
+
+// MARK: - 提醒编辑/新增表单
+struct ReminderFormView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appState: AppState
+    let babyId: Int64?
+    var reminder: Reminder?
+    @ObservedObject var viewModel: HomeViewModel
+    
+    @State private var title: String = ""
+    @State private var content: String = ""
+    @State private var scheduledTime: Date = Date().addingTimeInterval(3600) // 默认1小时后
+    @State private var reminderType: Int = 5  // 默认自定义类型
+    @State private var isSaving = false
+    
+    private var isEditMode: Bool { reminder != nil }
+    
+    // 根据类型获取默认标题
+    private func defaultTitle(for type: Int) -> String {
+        switch type {
+        case 1: return "喂奶提醒"
+        case 2: return "母乳解冻提醒"
+        case 3: return "小睡时间到"
+        case 4: return "准备哄睡"
+        default: return ""
+        }
+    }
+    
+    // 根据类型获取默认内容
+    private func defaultContent(for type: Int) -> String {
+        let babyName = appState.selectedBaby?.nickname ?? "宝宝"
+        switch type {
+        case 1: return "\(babyName)该喝奶啦！"
+        case 2: return "请提前准备母乳解冻加热"
+        case 3: return "\(babyName)该小睡啦！"
+        case 4: return "请准备哄\(babyName)入睡"
+        default: return ""
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("提醒信息") {
+                    if !isEditMode {
+                        Picker("类型", selection: $reminderType) {
+                            Text("喂奶提醒").tag(1)
+                            Text("解冻提醒").tag(2)
+                            Text("小睡提醒").tag(3)
+                            Text("哄睡提醒").tag(4)
+                            Text("自定义").tag(5)
+                        }
+                        .onChange(of: reminderType) { _, newValue in
+                            // 切换类型时自动填充默认值
+                            if newValue != 5 {
+                                title = defaultTitle(for: newValue)
+                                content = defaultContent(for: newValue)
+                            } else {
+                                title = ""
+                                content = ""
+                            }
+                        }
+                    }
+                    
+                    TextField("标题", text: $title)
+                    
+                    TextField("内容", text: $content, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+                
+                Section("提醒时间") {
+                    DatePicker(
+                        "时间",
+                        selection: $scheduledTime,
+                        in: Date()...,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                    .environment(\.locale, Locale(identifier: "zh_CN"))
+                }
+            }
+            .navigationTitle(isEditMode ? "编辑提醒" : "新增提醒")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("保存") {
+                        saveReminder()
+                    }
+                    .disabled(title.isEmpty || isSaving)
+                }
+            }
+            .onAppear {
+                if let r = reminder {
+                    title = r.title
+                    content = r.content
+                    scheduledTime = r.scheduledTime
+                    reminderType = r.reminderType
+                }
+            }
+        }
+    }
+    
+    private func saveReminder() {
+        guard let babyId = babyId else { return }
+        isSaving = true
+        
+        Task {
+            if let r = reminder {
+                // 编辑模式：更新提醒
+                await viewModel.updateReminder(
+                    id: r.id,
+                    title: title,
+                    content: content,
+                    scheduledTime: scheduledTime
+                )
+            } else {
+                // 新增模式
+                await viewModel.createReminder(
+                    babyId: babyId,
+                    reminderType: reminderType,
+                    title: title,
+                    content: content,
+                    scheduledTime: scheduledTime
+                )
+            }
+            isSaving = false
+            dismiss()
+        }
     }
 }
 
@@ -411,36 +627,43 @@ struct BabyManagerView: View {
                 // 宝宝列表
                 Section {
                     ForEach(appState.babies, id: \.id) { baby in
-                        BabyListRow(baby: baby, isSelected: baby.id == appState.selectedBaby?.id)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                appState.switchBaby(to: baby)
+                        BabyListRow(
+                            baby: baby,
+                            isSelected: baby.id == appState.selectedBaby?.id,
+                            onDelete: {
+                                babyToDelete = baby
+                                showDeleteAlert = true
+                            }
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            appState.switchBaby(to: baby)
+                            dismiss()
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                babyToDelete = baby
+                                showDeleteAlert = true
+                            } label: {
+                                Label("删除", systemImage: "trash")
+                            }
+                            
+                            Button {
+                                babyToEdit = baby
                                 dismiss()
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    babyToDelete = baby
-                                    showDeleteAlert = true
-                                } label: {
-                                    Label("删除", systemImage: "trash")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    showAddBaby = true
                                 }
-                                
-                                Button {
-                                    babyToEdit = baby
-                                    dismiss()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                        showAddBaby = true
-                                    }
-                                } label: {
-                                    Label("编辑", systemImage: "pencil")
-                                }
-                                .tint(.blue)
+                            } label: {
+                                Label("编辑", systemImage: "pencil")
                             }
+                            .tint(.blue)
+                        }
                     }
                 } header: {
                     Text("我的宝宝")
                 } footer: {
-                    Text("点击选择宝宝，左滑可编辑或删除")
+                    Text("点击选择宝宝，点击垃圾桶图标或左滑可删除")
                 }
                 
                 // 添加宝宝按钮
@@ -492,6 +715,7 @@ struct BabyManagerView: View {
 struct BabyListRow: View {
     let baby: Baby
     let isSelected: Bool
+    let onDelete: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -521,6 +745,16 @@ struct BabyListRow: View {
             }
             
             Spacer()
+            
+            // 删除按钮
+            Button {
+                onDelete()
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundColor(.red.opacity(0.7))
+                    .font(.body)
+            }
+            .buttonStyle(.plain)
             
             // 选中标识
             if isSelected {

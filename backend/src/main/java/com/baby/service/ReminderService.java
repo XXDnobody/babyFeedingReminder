@@ -1,6 +1,7 @@
 package com.baby.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baby.dto.ReminderDTO;
 import com.baby.entity.FeedingRecord;
 import com.baby.entity.Reminder;
 import com.baby.entity.SleepRecord;
@@ -32,9 +33,24 @@ public interface ReminderService extends IService<Reminder> {
     Reminder createSoothingReminder(SleepRecord sleepRecord);
     
     /**
+     * 创建自定义提醒
+     */
+    Reminder createCustomReminder(ReminderDTO dto);
+    
+    /**
+     * 更新提醒
+     */
+    Reminder updateReminder(Long id, ReminderDTO dto);
+    
+    /**
      * 获取用户今日的提醒
      */
     List<Reminder> getTodayReminders(Long userId);
+    
+    /**
+     * 获取宝宝即将到来的提醒（未发送的）
+     */
+    List<Reminder> getUpcomingReminders(Long babyId);
     
     /**
      * 获取待发送的提醒
@@ -55,4 +71,9 @@ public interface ReminderService extends IService<Reminder> {
      * 批量取消关联记录的提醒
      */
     void cancelRemindersByRelatedRecord(Long relatedRecordId, Integer reminderType);
+    
+    /**
+     * 清理过期提醒
+     */
+    void cleanupExpiredReminders();
 }

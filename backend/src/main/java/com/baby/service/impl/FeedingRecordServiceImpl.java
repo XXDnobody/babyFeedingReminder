@@ -97,6 +97,8 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
             throw new RuntimeException("喂养记录不存在");
         }
         
+        LocalDateTime oldStartTime = record.getStartTime();
+        
         record.setFeedingType(dto.getFeedingType());
         record.setMilkSource(dto.getMilkSource());
         record.setStartTime(dto.getStartTime());
@@ -109,7 +111,27 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
             record.setDuration((int) minutes);
         }
         
-        updateById(record);
+        // 检查是否是最新的喂养记录，仅最新记录需要更新提醒
+        FeedingRecord lastRecord = getLastRecord(record.getBabyId());
+        boolean isLatestRecord = (lastRecord != null && lastRecord.getId().equals(id));
+        
+        // 如果是最新记录且时间发生了变化，重新计算下次喂奶时间并更新提醒
+        if (isLatestRecord && !oldStartTime.equals(dto.getStartTime())) {
+            // 取消旧的喂奶提醒（类型1）和解冻提醒（类型2）
+            reminderService.cancelRemindersByRelatedRecord(id, 1);
+            reminderService.cancelRemindersByRelatedRecord(id, 2);
+            
+            // 重新计算下次喂奶时间
+            LocalDateTime nextFeedingTime = calculateNextFeedingTime(record.getBabyId(), dto.getStartTime());
+            record.setNextFeedingTime(nextFeedingTime);
+            
+            // 更新记录后创建新提醒
+            updateById(record);
+            reminderService.createFeedingReminder(record);
+        } else {
+            updateById(record);
+        }
+        
         return record;
     }
     
@@ -184,6 +206,39 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
             typeRatio.put("混合", (double) mixed / records.size() * 100);
         }
         vo.setFeedingTypeRatio(typeRatio);
+        
+        // 每日统计数据
+        Map<LocalDate, List<FeedingRecord>> recordsByDate = records.stream()
+                .collect(java.util.stream.Collectors.groupingBy(r -> r.getStartTime().toLocalDate()));
+        List<FeedingStatisticsVO.DailyFeedingData> dailyDataList = new java.util.ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            List<FeedingRecord> dayRecords = recordsByDate.getOrDefault(date, java.util.Collections.emptyList());
+            FeedingStatisticsVO.DailyFeedingData dailyData = new FeedingStatisticsVO.DailyFeedingData();
+            dailyData.setDate(date.toString());
+            dailyData.setCount(dayRecords.size());
+            dailyData.setTotalAmount(dayRecords.stream().mapToInt(r -> r.getAmount() != null ? r.getAmount() : 0).sum());
+            dailyDataList.add(dailyData);
+        }
+        vo.setDailyData(dailyDataList);
+        
+        // 喂奶时间分布（按时段统计）
+        int[] hourCounts = new int[8]; // 8个时段
+        String[] labels = {"0-3时", "3-6时", "6-9时", "9-12时", "12-15时", "15-18时", "18-21时", "21-24时"};
+        for (FeedingRecord record : records) {
+            if (record.getStartTime() != null) {
+                int hour = record.getStartTime().getHour();
+                int slot = hour / 3;
+                hourCounts[slot]++;
+            }
+        }
+        List<FeedingStatisticsVO.TimeDistributionData> timeDistList = new java.util.ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            FeedingStatisticsVO.TimeDistributionData td = new FeedingStatisticsVO.TimeDistributionData();
+            td.setLabel(labels[i]);
+            td.setCount(hourCounts[i]);
+            timeDistList.add(td);
+        }
+        vo.setTimeDistribution(timeDistList);
         
         return vo;
     }

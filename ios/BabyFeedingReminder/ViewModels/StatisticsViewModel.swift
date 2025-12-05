@@ -1,6 +1,50 @@
 import SwiftUI
 import Foundation
 
+// MARK: - API响应模型
+struct FeedingStatisticsResponse: Codable {
+    let dateRange: String?
+    let totalCount: Int?
+    let totalAmount: Int?
+    let dailyAverageAmount: Double?
+    let dailyAverageCount: Double?
+    let averagePerFeeding: Double?
+    let recommendedDailyAmount: Int?
+    let recommendedDailyCount: String?
+    let comparisonWithRecommended: String?
+    let feedingTypeRatio: [String: Double]?
+    let dailyData: [DailyFeedingDataResponse]?
+    let timeDistribution: [TimeDistributionResponse]?
+}
+
+struct DailyFeedingDataResponse: Codable {
+    let date: String
+    let count: Int?
+    let totalAmount: Int?
+}
+
+struct TimeDistributionResponse: Codable {
+    let label: String
+    let count: Int?
+}
+
+struct SleepStatisticsResponse: Codable {
+    let dateRange: String?
+    let totalDuration: Int?
+    let napCount: Int?
+    let dailyAverageHours: Double?
+    let dailyAverageNapCount: Double?
+    let recommendedDailyHours: String?
+    let comparisonWithRecommended: String?
+    let qualityDistribution: QualityDistributionData?
+}
+
+struct QualityDistributionData: Codable {
+    let goodPercent: Double?
+    let normalPercent: Double?
+    let poorPercent: Double?
+}
+
 // MARK: - 图表数据模型
 struct DailyFeedingData: Identifiable {
     let id = UUID()
@@ -70,6 +114,10 @@ class StatisticsViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentDays: Int = 7  // 当前选择的天数
     
+    // 原始响应数据（用于生成图表）
+    private var feedingDailyDataResponse: [DailyFeedingDataResponse] = []
+    private var feedingTimeDistResponse: [TimeDistributionResponse] = []
+    
     private let network = NetworkService.shared
     
     var feedingComparisonColor: Color {
@@ -98,41 +146,116 @@ class StatisticsViewModel: ObservableObject {
         errorMessage = nil
         currentDays = days
         
-        // 使用模拟数据
-        loadMockData(days: days)
+        // 并行加载所有数据
+        async let overviewTask: () = loadOverview(babyId: babyId)
+        async let feedingStatsTask: () = loadFeedingStatistics(babyId: babyId, days: days)
+        async let sleepStatsTask: () = loadSleepStatistics(babyId: babyId, days: days)
+        async let insightsTask: () = loadInsights(babyId: babyId)
+        
+        _ = await (overviewTask, feedingStatsTask, sleepStatsTask, insightsTask)
+        
+        // 生成图表数据
+        generateChartData(days: days)
         
         isLoading = false
     }
     
-    private func loadMockData(days: Int) {
-        // 今日数据
-        todayFeedingAmount = 480
-        todaySleepHours = "13.5小时"
-        feedingCount = 4
-        todayNapCount = 3
+    /// 加载今日概览
+    private func loadOverview(babyId: Int64) async {
+        do {
+            let overview: OverviewResponse = try await network.request(
+                endpoint: "/statistics/overview/\(babyId)"
+            )
+            
+            if let feeding = overview.feeding {
+                todayFeedingAmount = feeding.totalAmount ?? 0
+                feedingCount = feeding.count ?? 0
+            }
+            
+            if let sleep = overview.sleep {
+                if let hours = sleep.totalHours {
+                    todaySleepHours = "\(hours)小时"
+                } else if let minutes = sleep.totalMinutes {
+                    let hours = Double(minutes) / 60.0
+                    todaySleepHours = String(format: "%.1f小时", hours)
+                }
+                todayNapCount = sleep.napCount ?? 0
+            }
+        } catch {
+            print("⚠️ 加载概览失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 加载喂养统计
+    private func loadFeedingStatistics(babyId: Int64, days: Int) async {
+        let endDate = formatDate(Date())
+        let startDate = formatDate(Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date())
         
-        // 喂养统计
-        dailyAverageFeedingAmount = 650
-        recommendedDailyAmount = 720
-        feedingComparisonText = "日均奶量略低于推荐值，建议适当增加"
-        feedingTypeRatio = ["母乳": 60.0, "奶粉": 30.0, "混合": 10.0]
+        do {
+            let stats: FeedingStatisticsResponse = try await network.request(
+                endpoint: "/statistics/feeding/\(babyId)?startDate=\(startDate)&endDate=\(endDate)"
+            )
+            
+            dailyAverageFeedingAmount = Int(stats.dailyAverageAmount ?? 0)
+            recommendedDailyAmount = stats.recommendedDailyAmount ?? 720
+            feedingComparisonText = stats.comparisonWithRecommended ?? ""
+            feedingTypeRatio = stats.feedingTypeRatio ?? [:]
+            
+            // 保存原始数据用于图表
+            feedingDailyDataResponse = stats.dailyData ?? []
+            feedingTimeDistResponse = stats.timeDistribution ?? []
+        } catch {
+            print("⚠️ 加载喂养统计失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 加载睡眠统计
+    private func loadSleepStatistics(babyId: Int64, days: Int) async {
+        let endDate = formatDate(Date())
+        let startDate = formatDate(Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date())
         
-        // 睡眠统计
-        dailyAverageSleepHours = "13.5小时"
-        dailyAverageNapCount = 3.2
-        recommendedSleepHours = "12-16小时"
-        sleepComparisonText = "睡眠时间正常，继续保持"
-        goodSleepPercent = 70.0
-        normalSleepPercent = 25.0
-        poorSleepPercent = 5.0
-        
-        // 智能洞察
-        feedingInsight = "过去\(days)天日均奶量650ml，与推荐值相比略低"
-        sleepInsight = "过去\(days)天日均睡眠13.5小时，睡眠质量良好"
-        suggestion = "宝宝处于4-6个月阶段，建议按需喂养，保持良好的作息规律"
-        
-        // 生成图表数据
-        generateChartData(days: days)
+        do {
+            let stats: SleepStatisticsResponse = try await network.request(
+                endpoint: "/statistics/sleep/\(babyId)?startDate=\(startDate)&endDate=\(endDate)"
+            )
+            
+            if let hours = stats.dailyAverageHours {
+                dailyAverageSleepHours = String(format: "%.1f小时", hours)
+            }
+            recommendedSleepHours = stats.recommendedDailyHours ?? "12-16小时"
+            sleepComparisonText = stats.comparisonWithRecommended ?? ""
+            
+            // 解析嵌套的质量分布
+            if let quality = stats.qualityDistribution {
+                goodSleepPercent = quality.goodPercent ?? 0
+                normalSleepPercent = quality.normalPercent ?? 0
+                poorSleepPercent = quality.poorPercent ?? 0
+            }
+        } catch {
+            print("⚠️ 加载睡眠统计失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 加载智能洞察
+    private func loadInsights(babyId: Int64) async {
+        do {
+            let insights: InsightsResponse = try await network.request(
+                endpoint: "/statistics/insights/\(babyId)"
+            )
+            
+            feedingInsight = insights.feedingInsight ?? ""
+            sleepInsight = insights.sleepInsight ?? ""
+            suggestion = insights.suggestion ?? ""
+        } catch {
+            print("⚠️ 加载洞察失败: \(error.localizedDescription)")
+        }
+    }
+    
+    /// 日期格式化
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     private func generateChartData(days: Int) {
@@ -142,40 +265,40 @@ class StatisticsViewModel: ObservableObject {
         dateFormatter.locale = Locale(identifier: "zh_CN")
         dateFormatter.dateFormat = "M/d"
         
-        // 生成每日喂养数据
-        var feedingData: [DailyFeedingData] = []
-        for i in (0..<days).reversed() {
-            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                let amount = Int.random(in: 550...750)
-                let count = Int.random(in: 4...7)
-                feedingData.append(DailyFeedingData(
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd"
+        
+        // 使用后端返回的真实每日喂养数据
+        if !feedingDailyDataResponse.isEmpty {
+            dailyFeedingData = feedingDailyDataResponse.compactMap { item in
+                guard let date = inputFormatter.date(from: item.date) else { return nil }
+                return DailyFeedingData(
                     date: date,
                     dateLabel: dateFormatter.string(from: date),
-                    amount: amount,
-                    count: count
-                ))
+                    amount: item.totalAmount ?? 0,
+                    count: item.count ?? 0
+                )
             }
-        }
-        dailyFeedingData = feedingData
-        
-        // 生成喂奶时间分布数据（按时段统计）
-        let timeSlots = [
-            (0, "0-3时"),
-            (3, "3-6时"),
-            (6, "6-9时"),
-            (9, "9-12时"),
-            (12, "12-15时"),
-            (15, "15-18时"),
-            (18, "18-21时"),
-            (21, "21-24时")
-        ]
-        feedingTimeData = timeSlots.map { hour, label in
-            // 白天喂奶次数更多
-            let baseCount = (hour >= 6 && hour < 21) ? 8 : 3
-            return FeedingTimeData(hour: hour, label: label, count: Int.random(in: baseCount...(baseCount + 5)) * days / 7)
+        } else {
+            // 无数据时显示空图表
+            dailyFeedingData = []
         }
         
-        // 生成每日睡眠数据
+        // 使用后端返回的真实时间分布数据
+        if !feedingTimeDistResponse.isEmpty {
+            feedingTimeData = feedingTimeDistResponse.enumerated().map { index, item in
+                FeedingTimeData(
+                    hour: index * 3,
+                    label: item.label,
+                    count: item.count ?? 0
+                )
+            }
+        } else {
+            // 无数据时显示空图表
+            feedingTimeData = []
+        }
+        
+        // 生成每日睡眠数据（待后端支持后替换）
         var sleepData: [DailySleepData] = []
         for i in (0..<days).reversed() {
             if let date = calendar.date(byAdding: .day, value: -i, to: today) {

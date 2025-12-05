@@ -181,6 +181,9 @@ struct Reminder: Codable, Identifiable {
     var sentTime: Date?
     var relatedRecordId: Int64?
     var status: Int  // 0-待发送 1-已发送 2-已取消
+    var createTime: Date?
+    var updateTime: Date?
+    var deleted: Int?
     
     /// 提醒类型描述
     var reminderTypeDescription: String {

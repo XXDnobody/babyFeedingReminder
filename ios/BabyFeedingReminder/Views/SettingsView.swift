@@ -204,12 +204,18 @@ struct LargeStepperView: View {
 
 // MARK: - 喂养设置视图
 struct FeedingSettingsView: View {
+    @EnvironmentObject var appState: AppState
     @State private var defaultFeedingType = 1
     @State private var defaultAmount = 120
     @State private var defaultDuration = 20
     @State private var defaultInterval = 180
     @State private var refrigeratedThawMinutes = 15
     @State private var frozenThawMinutes = 30
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var showSaveSuccess = false
+    
+    private let network = NetworkService.shared
     
     var body: some View {
         Form {
@@ -234,6 +240,23 @@ struct FeedingSettingsView: View {
             }
             
             Section {
+                Button(action: saveSettings) {
+                    HStack {
+                        Spacer()
+                        if isSaving {
+                            ProgressView()
+                                .padding(.trailing, 8)
+                        }
+                        Text(showSaveSuccess ? "✓ 已保存" : "保存设置")
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                }
+                .disabled(isSaving)
+                .foregroundColor(showSaveSuccess ? .green : .blue)
+            }
+            
+            Section {
                 Text("以上设置将作为记录喂养时的默认值，您可以在每次记录时根据实际情况调整。")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -241,7 +264,86 @@ struct FeedingSettingsView: View {
         }
         .navigationTitle("喂养偏好")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadSettings()
+        }
     }
+    
+    private func loadSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                let setting: FeedingSetting = try await network.request(
+                    endpoint: "/setting/feeding/\(babyId)"
+                )
+                await MainActor.run {
+                    defaultFeedingType = setting.defaultFeedingType
+                    defaultAmount = setting.defaultAmount
+                    defaultDuration = setting.defaultDuration
+                    defaultInterval = setting.defaultInterval
+                    refrigeratedThawMinutes = setting.refrigeratedThawMinutes ?? 15
+                    frozenThawMinutes = setting.frozenThawMinutes ?? 30
+                    isLoading = false
+                }
+            } catch {
+                print("⚠️ 加载喂养设置失败: \(error)")
+                isLoading = false
+            }
+        }
+    }
+    
+    private func saveSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isSaving = true
+        showSaveSuccess = false
+        
+        Task {
+            do {
+                let setting = SaveFeedingSettingRequest(
+                    babyId: babyId,
+                    defaultFeedingType: defaultFeedingType,
+                    defaultAmount: defaultAmount,
+                    defaultDuration: defaultDuration,
+                    defaultInterval: defaultInterval,
+                    refrigeratedThawMinutes: refrigeratedThawMinutes,
+                    frozenThawMinutes: frozenThawMinutes,
+                    reminderEnabled: 1
+                )
+                
+                let _: FeedingSetting = try await network.request(
+                    endpoint: "/setting/feeding",
+                    method: "POST",
+                    body: setting
+                )
+                
+                await MainActor.run {
+                    isSaving = false
+                    showSaveSuccess = true
+                    // 2秒后恢复按钮文字
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                }
+            } catch {
+                print("❌ 保存喂养设置失败: \(error)")
+                isSaving = false
+            }
+        }
+    }
+}
+
+/// 保存喂养设置请求
+struct SaveFeedingSettingRequest: Encodable {
+    let babyId: Int64
+    let defaultFeedingType: Int
+    let defaultAmount: Int
+    let defaultDuration: Int
+    let defaultInterval: Int
+    let refrigeratedThawMinutes: Int
+    let frozenThawMinutes: Int
+    let reminderEnabled: Int
 }
 
 // MARK: - 睡眠设置视图
