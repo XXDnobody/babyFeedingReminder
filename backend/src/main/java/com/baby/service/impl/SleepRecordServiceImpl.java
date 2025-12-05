@@ -233,6 +233,22 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         }
         vo.setQualityDistribution(quality);
         
+        // 每日睡眠统计数据
+        Map<LocalDate, List<SleepRecord>> recordsByDate = records.stream()
+                .collect(java.util.stream.Collectors.groupingBy(r -> r.getStartTime().toLocalDate()));
+        List<SleepStatisticsVO.DailySleepData> dailyDataList = new java.util.ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            List<SleepRecord> dayRecords = recordsByDate.getOrDefault(date, java.util.Collections.emptyList());
+            SleepStatisticsVO.DailySleepData dailyData = new SleepStatisticsVO.DailySleepData();
+            dailyData.setDate(date.toString());
+            dailyData.setNapCount((int) dayRecords.stream().filter(r -> r.getSleepType() == 1).count());
+            int dayTotalMinutes = dayRecords.stream().mapToInt(r -> r.getDuration() != null ? r.getDuration() : 0).sum();
+            dailyData.setTotalMinutes(dayTotalMinutes);
+            dailyData.setTotalHours((double) dayTotalMinutes / 60);
+            dailyDataList.add(dailyData);
+        }
+        vo.setDailyData(dailyDataList);
+        
         return vo;
     }
     

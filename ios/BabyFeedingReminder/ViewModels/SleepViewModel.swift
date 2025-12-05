@@ -206,7 +206,10 @@ class SleepViewModel: ObservableObject {
     ) async {
         let duration = Int(endTime.timeIntervalSince(startTime) / 60)
         
+        guard let babyId = babyId else { return }
+        
         let request = UpdateSleepRecordRequest(
+            babyId: babyId,
             sleepType: sleepType,
             startTime: startTime,
             endTime: endTime,
@@ -222,9 +225,7 @@ class SleepViewModel: ObservableObject {
                 body: request
             )
             
-            if let babyId = babyId {
-                await loadTodayRecords(babyId: babyId)
-            }
+            await loadTodayRecords(babyId: babyId)
             
         } catch {
             // 本地模拟更新
@@ -251,7 +252,7 @@ class SleepViewModel: ObservableObject {
     /// 删除睡眠记录
     func deleteSleepRecord(id: Int64) async {
         do {
-            let _: EmptyResponse = try await network.request(
+            try await network.requestVoid(
                 endpoint: "/sleep/\(id)",
                 method: "DELETE"
             )
@@ -287,6 +288,7 @@ struct AddSleepRecordRequest: Encodable {
 
 /// 更新睡眠记录请求
 struct UpdateSleepRecordRequest: Encodable {
+    let babyId: Int64  // 后端DTO要求babyId必填
     let sleepType: Int
     let startTime: Date
     let endTime: Date

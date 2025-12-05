@@ -8,7 +8,7 @@ struct AddFeedingRequest: Encodable {
     let startTime: String
     let amount: Int
     let duration: Int
-    let nextMilkSource: Int
+    let nextMilkSource: Int?  // nil或0表示不提醒
     let remark: String?
 }
 
@@ -113,7 +113,7 @@ class FeedingViewModel: ObservableObject {
             startTime: dateFormatter.string(from: startTime),
             amount: amount,
             duration: duration,
-            nextMilkSource: nextMilkSource,
+            nextMilkSource: nextMilkSource == 0 ? nil : nextMilkSource,  // 0表示不提醒，传nil
             remark: remark.isEmpty ? nil : remark
         )
         

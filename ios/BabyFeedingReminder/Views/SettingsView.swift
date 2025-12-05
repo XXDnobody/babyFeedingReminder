@@ -348,11 +348,17 @@ struct SaveFeedingSettingRequest: Encodable {
 
 // MARK: - 睡眠设置视图
 struct SleepSettingsView: View {
+    @EnvironmentObject var appState: AppState
     @State private var defaultNapInterval = 120
     @State private var defaultNapDuration = 90
     @State private var soothingReminderMinutes = 15
-    @State private var bedtimeTarget = Date()
-    @State private var wakeTimeTarget = Date()
+    @State private var bedtimeTarget = Calendar.current.date(from: DateComponents(hour: 20, minute: 0))!
+    @State private var wakeTimeTarget = Calendar.current.date(from: DateComponents(hour: 7, minute: 0))!
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var showSaveSuccess = false
+    
+    private let network = NetworkService.shared
     
     var body: some View {
         Form {
@@ -366,14 +372,29 @@ struct SleepSettingsView: View {
             
             Section("作息目标") {
                 DatePicker("晚间入睡时间", selection: $bedtimeTarget, displayedComponents: .hourAndMinute)
-                    .datePickerStyle(.wheel)
+                    .datePickerStyle(.compact)
                     .environment(\.locale, Locale(identifier: "zh_CN"))
-                    .frame(height: 120)
                 
                 DatePicker("早晨起床时间", selection: $wakeTimeTarget, displayedComponents: .hourAndMinute)
-                    .datePickerStyle(.wheel)
+                    .datePickerStyle(.compact)
                     .environment(\.locale, Locale(identifier: "zh_CN"))
-                    .frame(height: 120)
+            }
+            
+            Section {
+                Button(action: saveSettings) {
+                    HStack {
+                        Spacer()
+                        if isSaving {
+                            ProgressView()
+                                .padding(.trailing, 8)
+                        }
+                        Text(showSaveSuccess ? "✓ 已保存" : "保存设置")
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                }
+                .disabled(isSaving)
+                .foregroundColor(showSaveSuccess ? .green : .purple)
             }
             
             Section {
@@ -384,7 +405,101 @@ struct SleepSettingsView: View {
         }
         .navigationTitle("睡眠偏好")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadSettings()
+        }
     }
+    
+    private func loadSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                let setting: SleepSetting = try await network.request(
+                    endpoint: "/setting/sleep/\(babyId)"
+                )
+                await MainActor.run {
+                    defaultNapInterval = setting.defaultNapInterval ?? 120
+                    defaultNapDuration = setting.defaultNapDuration ?? 90
+                    soothingReminderMinutes = setting.defaultSoothingReminderMinutes ?? 15
+                    
+                    // 解析作息目标时间
+                    if let bedtime = setting.bedtimeTarget {
+                        bedtimeTarget = parseTimeString(bedtime) ?? bedtimeTarget
+                    }
+                    if let wakeTime = setting.wakeTimeTarget {
+                        wakeTimeTarget = parseTimeString(wakeTime) ?? wakeTimeTarget
+                    }
+                    
+                    isLoading = false
+                }
+            } catch {
+                print("⚠️ 加载睡眠设置失败: \(error)")
+                isLoading = false
+            }
+        }
+    }
+    
+    private func saveSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isSaving = true
+        showSaveSuccess = false
+        
+        Task {
+            do {
+                let setting = SaveSleepSettingRequest(
+                    babyId: babyId,
+                    defaultNapInterval: defaultNapInterval,
+                    defaultNapDuration: defaultNapDuration,
+                    defaultSoothingReminderMinutes: soothingReminderMinutes,
+                    bedtimeTarget: formatTime(bedtimeTarget),
+                    wakeTimeTarget: formatTime(wakeTimeTarget),
+                    reminderEnabled: 1
+                )
+                
+                let _: SleepSetting = try await network.request(
+                    endpoint: "/setting/sleep",
+                    method: "POST",
+                    body: setting
+                )
+                
+                await MainActor.run {
+                    isSaving = false
+                    showSaveSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                }
+            } catch {
+                print("❌ 保存睡眠设置失败: \(error)")
+                isSaving = false
+            }
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+    
+    private func parseTimeString(_ timeString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.date(from: timeString)
+    }
+}
+
+/// 保存睡眠设置请求
+struct SaveSleepSettingRequest: Encodable {
+    let babyId: Int64
+    let defaultNapInterval: Int
+    let defaultNapDuration: Int
+    let defaultSoothingReminderMinutes: Int
+    let bedtimeTarget: String
+    let wakeTimeTarget: String
+    let reminderEnabled: Int
 }
 
 // MARK: - 提醒设置视图
@@ -408,16 +523,13 @@ struct ReminderSettingsView: View {
             if reminderEnabled {
                 Section("提醒时段") {
                     DatePicker("开始时间", selection: $startTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
+                        .datePickerStyle(.compact)
                         .environment(\.locale, Locale(identifier: "zh_CN"))
-                        .frame(height: 120)
+                    
                     DatePicker("结束时间", selection: $endTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
+                        .datePickerStyle(.compact)
                         .environment(\.locale, Locale(identifier: "zh_CN"))
-                        .frame(height: 120)
-                }
-                
-                Section {
+                    
                     Text("在设定的时段外，系统不会发送\(type == .feeding ? "喂养" : "睡眠")提醒通知。")
                         .font(.caption)
                         .foregroundColor(.secondary)

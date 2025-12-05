@@ -37,12 +37,20 @@ struct SleepStatisticsResponse: Codable {
     let recommendedDailyHours: String?
     let comparisonWithRecommended: String?
     let qualityDistribution: QualityDistributionData?
+    let dailyData: [DailySleepDataResponse]?  // 每日睡眠数据
 }
 
 struct QualityDistributionData: Codable {
     let goodPercent: Double?
     let normalPercent: Double?
     let poorPercent: Double?
+}
+
+struct DailySleepDataResponse: Codable {
+    let date: String
+    let napCount: Int?
+    let totalMinutes: Int?
+    let totalHours: Double?
 }
 
 // MARK: - 图表数据模型
@@ -117,6 +125,7 @@ class StatisticsViewModel: ObservableObject {
     // 原始响应数据（用于生成图表）
     private var feedingDailyDataResponse: [DailyFeedingDataResponse] = []
     private var feedingTimeDistResponse: [TimeDistributionResponse] = []
+    private var sleepDailyDataResponse: [DailySleepDataResponse] = []  // 睡眠每日数据
     
     private let network = NetworkService.shared
     
@@ -231,6 +240,9 @@ class StatisticsViewModel: ObservableObject {
                 normalSleepPercent = quality.normalPercent ?? 0
                 poorSleepPercent = quality.poorPercent ?? 0
             }
+            
+            // 保存每日睡眠数据用于图表
+            sleepDailyDataResponse = stats.dailyData ?? []
         } catch {
             print("⚠️ 加载睡眠统计失败: \(error.localizedDescription)")
         }
@@ -298,21 +310,21 @@ class StatisticsViewModel: ObservableObject {
             feedingTimeData = []
         }
         
-        // 生成每日睡眠数据（待后端支持后替换）
-        var sleepData: [DailySleepData] = []
-        for i in (0..<days).reversed() {
-            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                let hours = Double.random(in: 12.0...15.0)
-                let napCount = Int.random(in: 2...4)
-                sleepData.append(DailySleepData(
+        // 使用后端返回的真实每日睡眠数据
+        if !sleepDailyDataResponse.isEmpty {
+            dailySleepData = sleepDailyDataResponse.compactMap { item in
+                guard let date = inputFormatter.date(from: item.date) else { return nil }
+                return DailySleepData(
                     date: date,
                     dateLabel: dateFormatter.string(from: date),
-                    hours: hours,
-                    napCount: napCount
-                ))
+                    hours: item.totalHours ?? 0,
+                    napCount: item.napCount ?? 0
+                )
             }
+        } else {
+            // 无数据时显示空图表
+            dailySleepData = []
         }
-        dailySleepData = sleepData
         
         // 生成睡眠质量分布数据
         sleepQualityData = [

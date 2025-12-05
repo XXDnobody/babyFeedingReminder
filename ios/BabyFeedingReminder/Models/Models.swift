@@ -157,15 +157,15 @@ struct FeedingSetting: Codable {
 /// 睡眠设置模型
 struct SleepSetting: Codable {
     var id: Int64?
-    var babyId: Int64
-    var defaultNapInterval: Int
-    var defaultNapDuration: Int
-    var defaultSoothingReminderMinutes: Int
-    var reminderStartTime: String
-    var reminderEndTime: String
-    var reminderEnabled: Int
-    var bedtimeTarget: String
-    var wakeTimeTarget: String
+    var babyId: Int64?
+    var defaultNapInterval: Int?
+    var defaultNapDuration: Int?
+    var defaultSoothingReminderMinutes: Int?
+    var reminderStartTime: String?
+    var reminderEndTime: String?
+    var reminderEnabled: Int?
+    var bedtimeTarget: String?
+    var wakeTimeTarget: String?
 }
 
 /// 提醒模型

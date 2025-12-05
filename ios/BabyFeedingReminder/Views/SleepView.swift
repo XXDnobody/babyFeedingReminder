@@ -380,7 +380,7 @@ struct EditSleepRecordView: View {
                             dismiss()
                         }
                     }
-                    .disabled(duration <= 0)
+                    .disabled(duration <= 0 && !isEditMode)  // 编辑模式始终可保存
                 }
             }
             .onAppear {

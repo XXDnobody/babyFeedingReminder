@@ -83,8 +83,10 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
         
         save(record);
         
-        // 创建喂奶提醒
-        reminderService.createFeedingReminder(record);
+        // 创建喂奶提醒（仅当nextMilkSource不为null且大于0时）
+        if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
+            reminderService.createFeedingReminder(record);
+        }
         
         return record;
     }

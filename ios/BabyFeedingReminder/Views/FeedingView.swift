@@ -199,7 +199,7 @@ struct EditFeedingRecordView: View {
     @State private var startTime = Date()
     @State private var amount = 120
     @State private var duration = 20
-    @State private var nextMilkSource = 1
+    @State private var nextMilkSource = 0  // 0-不提醒 1-亲喂/现冲 2-冷藏母乳 3-冷冻母乳
     @State private var remark = ""
     @State private var showDeleteAlert = false
     
@@ -317,12 +317,17 @@ struct EditFeedingRecordView: View {
                 if !isEditMode {
                     Section("下一顿安排") {
                         Picker("下一顿奶源", selection: $nextMilkSource) {
+                            Text("不提醒").tag(0)
                             Text("亲喂/现冲").tag(1)
                             Text("冷藏母乳").tag(2)
                             Text("冷冻母乳").tag(3)
                         }
                         
-                        if nextMilkSource >= 2 {
+                        if nextMilkSource == 0 {
+                            Text("不会创建下一顿喂奶提醒")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if nextMilkSource >= 2 {
                             Text("系统将在下次喂奶前提醒您解冻加热")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
