@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baby.dto.ReminderDTO;
 import com.baby.entity.*;
 import com.baby.mapper.BabyMapper;
+import com.baby.mapper.FeedingSettingMapper;
 import com.baby.mapper.ReminderMapper;
+import com.baby.mapper.SleepSettingMapper;
 import com.baby.mapper.UserMapper;
 import com.baby.service.ReminderService;
 import com.baby.service.PushService;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -31,6 +34,8 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     private final BabyMapper babyMapper;
     private final UserMapper userMapper;
     private final PushService pushService;
+    private final FeedingSettingMapper feedingSettingMapper;
+    private final SleepSettingMapper sleepSettingMapper;
     
     @Override
     @Transactional
@@ -41,6 +46,14 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         
         Baby baby = babyMapper.selectById(feedingRecord.getBabyId());
         if (baby == null) return null;
+        
+        // 检查喂养提醒设置
+        FeedingSetting setting = getFeedingSetting(feedingRecord.getBabyId());
+        if (!isFeedingReminderAllowed(setting, feedingRecord.getNextFeedingTime())) {
+            log.info("喂奶提醒时间不在设定时段内，跳过创建: babyId={}, scheduledTime={}", 
+                    feedingRecord.getBabyId(), feedingRecord.getNextFeedingTime());
+            return null;
+        }
         
         Reminder reminder = new Reminder();
         reminder.setBabyId(feedingRecord.getBabyId());
@@ -76,6 +89,14 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         LocalDateTime thawTime = feedingRecord.getNextFeedingTime()
                 .minusMinutes(feedingRecord.getThawReminderMinutes());
         
+        // 检查喂养提醒设置
+        FeedingSetting setting = getFeedingSetting(feedingRecord.getBabyId());
+        if (!isFeedingReminderAllowed(setting, thawTime)) {
+            log.info("解冻提醒时间不在设定时段内，跳过创建: babyId={}, scheduledTime={}", 
+                    feedingRecord.getBabyId(), thawTime);
+            return null;
+        }
+        
         String milkType = feedingRecord.getMilkSource() == 2 ? "冷藏母乳" : "冷冻母乳";
         
         Reminder reminder = new Reminder();
@@ -102,6 +123,14 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         
         Baby baby = babyMapper.selectById(sleepRecord.getBabyId());
         if (baby == null) return null;
+        
+        // 检查睡眠提醒设置
+        SleepSetting setting = getSleepSetting(sleepRecord.getBabyId());
+        if (!isSleepReminderAllowed(setting, sleepRecord.getNextNapTime())) {
+            log.info("小睡提醒时间不在设定时段内，跳过创建: babyId={}, scheduledTime={}", 
+                    sleepRecord.getBabyId(), sleepRecord.getNextNapTime());
+            return null;
+        }
         
         Reminder reminder = new Reminder();
         reminder.setBabyId(sleepRecord.getBabyId());
@@ -138,6 +167,14 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         
         LocalDateTime soothingTime = sleepRecord.getNextNapTime()
                 .minusMinutes(sleepRecord.getSoothingReminderMinutes());
+        
+        // 检查睡眠提醒设置
+        SleepSetting setting = getSleepSetting(sleepRecord.getBabyId());
+        if (!isSleepReminderAllowed(setting, soothingTime)) {
+            log.info("哄睡提醒时间不在设定时段内，跳过创建: babyId={}, scheduledTime={}", 
+                    sleepRecord.getBabyId(), soothingTime);
+            return null;
+        }
         
         Reminder reminder = new Reminder();
         reminder.setBabyId(sleepRecord.getBabyId());
@@ -291,5 +328,84 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     @Scheduled(fixedRate = 3600000)
     public void cleanupTask() {
         cleanupExpiredReminders();
+    }
+    
+    /**
+     * 获取喂养设置
+     */
+    private FeedingSetting getFeedingSetting(Long babyId) {
+        return feedingSettingMapper.selectOne(
+                new LambdaQueryWrapper<FeedingSetting>().eq(FeedingSetting::getBabyId, babyId));
+    }
+    
+    /**
+     * 获取睡眠设置
+     */
+    private SleepSetting getSleepSetting(Long babyId) {
+        return sleepSettingMapper.selectOne(
+                new LambdaQueryWrapper<SleepSetting>().eq(SleepSetting::getBabyId, babyId));
+    }
+    
+    /**
+     * 检查喂养提醒是否允许（是否启用且在时间段内）
+     */
+    private boolean isFeedingReminderAllowed(FeedingSetting setting, LocalDateTime scheduledTime) {
+        // 如果没有设置，默认允许
+        if (setting == null) {
+            return true;
+        }
+        
+        // 检查是否启用提醒
+        if (setting.getReminderEnabled() != null && setting.getReminderEnabled() == 0) {
+            log.info("喂养提醒已禁用");
+            return false;
+        }
+        
+        // 检查时间段
+        return isTimeInRange(scheduledTime, setting.getReminderStartTime(), setting.getReminderEndTime());
+    }
+    
+    /**
+     * 检查睡眠提醒是否允许（是否启用且在时间段内）
+     */
+    private boolean isSleepReminderAllowed(SleepSetting setting, LocalDateTime scheduledTime) {
+        // 如果没有设置，默认允许
+        if (setting == null) {
+            return true;
+        }
+        
+        // 检查是否启用提醒
+        if (setting.getReminderEnabled() != null && setting.getReminderEnabled() == 0) {
+            log.info("睡眠提醒已禁用");
+            return false;
+        }
+        
+        // 检查时间段
+        return isTimeInRange(scheduledTime, setting.getReminderStartTime(), setting.getReminderEndTime());
+    }
+    
+    /**
+     * 判断给定时间是否在指定的时间范围内
+     * @param dateTime 要判断的日期时间
+     * @param startTime 开始时间（仅时分秒）
+     * @param endTime 结束时间（仅时分秒）
+     * @return 是否在范围内
+     */
+    private boolean isTimeInRange(LocalDateTime dateTime, LocalTime startTime, LocalTime endTime) {
+        if (startTime == null || endTime == null) {
+            // 如果没有设置时间段，默认允许
+            return true;
+        }
+        
+        LocalTime time = dateTime.toLocalTime();
+        
+        // 处理跨午夜的情况（如 22:00 - 06:00）
+        if (startTime.isAfter(endTime)) {
+            // 跨午夜：时间在startTime之后 或 在endTime之前都算在范围内
+            return !time.isBefore(startTime) || !time.isAfter(endTime);
+        } else {
+            // 正常情况：时间在startTime和endTime之间
+            return !time.isBefore(startTime) && !time.isAfter(endTime);
+        }
     }
 }

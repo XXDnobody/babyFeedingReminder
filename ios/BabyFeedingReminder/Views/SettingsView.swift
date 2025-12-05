@@ -389,6 +389,9 @@ struct SleepSettingsView: View {
     @State private var soothingReminderMinutes = 15
     @State private var bedtimeTarget = Calendar.current.date(from: DateComponents(hour: 20, minute: 0))!
     @State private var wakeTimeTarget = Calendar.current.date(from: DateComponents(hour: 7, minute: 0))!
+    @State private var reminderEnabled = true
+    @State private var reminderStartTime = Calendar.current.date(from: DateComponents(hour: 6, minute: 0))!
+    @State private var reminderEndTime = Calendar.current.date(from: DateComponents(hour: 20, minute: 0))!
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var showSaveSuccess = false
@@ -413,6 +416,24 @@ struct SleepSettingsView: View {
                 DatePicker("早晨起床时间", selection: $wakeTimeTarget, displayedComponents: .hourAndMinute)
                     .datePickerStyle(.compact)
                     .environment(\.locale, Locale(identifier: "zh_CN"))
+            }
+            
+            Section("提醒时段") {
+                Toggle("启用睡眠提醒", isOn: $reminderEnabled)
+                
+                if reminderEnabled {
+                    DatePicker("开始时间", selection: $reminderStartTime, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: "zh_CN"))
+                    
+                    DatePicker("结束时间", selection: $reminderEndTime, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: "zh_CN"))
+                    
+                    Text("在设定的时段外，系统不会生成睡眠提醒通知。")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Section {
@@ -458,6 +479,7 @@ struct SleepSettingsView: View {
                     defaultNapInterval = setting.defaultNapInterval ?? 120
                     defaultNapDuration = setting.defaultNapDuration ?? 90
                     soothingReminderMinutes = setting.defaultSoothingReminderMinutes ?? 15
+                    reminderEnabled = (setting.reminderEnabled ?? 1) == 1
                     
                     // 解析作息目标时间
                     if let bedtime = setting.bedtimeTarget {
@@ -465,6 +487,14 @@ struct SleepSettingsView: View {
                     }
                     if let wakeTime = setting.wakeTimeTarget {
                         wakeTimeTarget = parseTimeString(wakeTime) ?? wakeTimeTarget
+                    }
+                    
+                    // 解析提醒时段
+                    if let startTime = setting.reminderStartTime {
+                        reminderStartTime = parseTimeString(startTime) ?? reminderStartTime
+                    }
+                    if let endTime = setting.reminderEndTime {
+                        reminderEndTime = parseTimeString(endTime) ?? reminderEndTime
                     }
                     
                     isLoading = false
@@ -490,7 +520,9 @@ struct SleepSettingsView: View {
                     defaultSoothingReminderMinutes: soothingReminderMinutes,
                     bedtimeTarget: formatTime(bedtimeTarget),
                     wakeTimeTarget: formatTime(wakeTimeTarget),
-                    reminderEnabled: 1
+                    reminderEnabled: reminderEnabled ? 1 : 0,
+                    reminderStartTime: formatTime(reminderStartTime),
+                    reminderEndTime: formatTime(reminderEndTime)
                 )
                 
                 let _: SleepSetting = try await network.request(
@@ -535,6 +567,8 @@ struct SaveSleepSettingRequest: Encodable {
     let bedtimeTarget: String
     let wakeTimeTarget: String
     let reminderEnabled: Int
+    let reminderStartTime: String
+    let reminderEndTime: String
 }
 
 // MARK: - 提醒设置视图
