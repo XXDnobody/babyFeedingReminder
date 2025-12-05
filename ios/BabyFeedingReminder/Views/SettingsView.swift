@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var showFeedingSettings = false
     @State private var showSleepSettings = false
     @State private var notificationsEnabled = true
+    @State private var showLogoutAlert = false
     
     var body: some View {
         NavigationView {
@@ -148,12 +149,46 @@ struct SettingsView: View {
                     } label: {
                         Text("参考指南说明")
                     }
+                    
+                    NavigationLink {
+                        TermsOfServiceView()
+                    } label: {
+                        Text("用户服务协议")
+                    }
+                    
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        Text("隐私政策")
+                    }
+                }
+                
+                // 退出登录
+                Section {
+                    Button(action: {
+                        showLogoutAlert = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("退出登录")
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                    }
                 }
             }
             .navigationTitle("设置")
         }
         .sheet(isPresented: $showEditBaby) {
             BabyFormView(baby: appState.selectedBaby)
+        }
+        .alert("确认退出", isPresented: $showLogoutAlert) {
+            Button("取消", role: .cancel) { }
+            Button("退出", role: .destructive) {
+                appState.logout()
+            }
+        } message: {
+            Text("退出后需要重新登录才能使用应用")
         }
     }
 }

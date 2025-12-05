@@ -46,6 +46,11 @@ apns:
   certificate-password: your-password
   topic: com.baby.feedingreminder
 
+# 微信登录配置
+wechat:
+  appid: ${WECHAT_APPID:your-wechat-appid}
+  secret: ${WECHAT_SECRET:your-wechat-secret}
+
 # 喂养指南配置（基于2025年国家卫生健康委婴幼儿营养喂养评估服务指南）
 feeding:
   guide:

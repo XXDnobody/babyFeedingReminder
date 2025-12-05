@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -32,8 +31,6 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     private final BabyMapper babyMapper;
     private final UserMapper userMapper;
     private final PushService pushService;
-    
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     
     @Override
     @Transactional

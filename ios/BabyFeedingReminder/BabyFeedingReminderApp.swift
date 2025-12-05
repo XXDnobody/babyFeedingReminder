@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct BabyFeedingReminderApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
     
     var body: some Scene {
@@ -12,6 +13,9 @@ struct BabyFeedingReminderApp: App {
                 .task {
                     // App启动时加载宝宝数据
                     await appState.loadBabies()
+                    
+                    // 请求推送权限并注册APNs
+                    await appState.requestPushAuthorization()
                 }
         }
     }
@@ -35,15 +39,15 @@ class AppState: ObservableObject {
     }
     
     private func checkLoginStatus() {
-        // 从UserDefaults检查登录状态
-        if let storedUserId = UserDefaults.standard.object(forKey: "userId") as? Int64 {
+        // 从 UserDefaults 检查登录状态
+        if let storedUserId = UserDefaults.standard.object(forKey: "userId") as? Int64,
+           UserDefaults.standard.string(forKey: "accessToken") != nil {
             self.userId = storedUserId
             self.isLoggedIn = true
         } else {
-            // 默认用户ID为1（简化测试）
-            self.userId = 1
-            self.isLoggedIn = true
-            UserDefaults.standard.set(Int64(1), forKey: "userId")
+            // 未登录状态
+            self.isLoggedIn = false
+            self.userId = nil
         }
     }
     
@@ -152,12 +156,46 @@ class AppState: ObservableObject {
     }
     
     func logout() {
+        // 退出前清除deviceToken
+        Task {
+            await PushTokenManager.shared.clearDeviceToken()
+        }
+        
         self.userId = nil
         self.isLoggedIn = false
         self.selectedBaby = nil
         self.babies = []
         UserDefaults.standard.removeObject(forKey: "userId")
+        UserDefaults.standard.removeObject(forKey: "accessToken")
+        UserDefaults.standard.removeObject(forKey: "refreshToken")
+        UserDefaults.standard.removeObject(forKey: "userNickname")
+        UserDefaults.standard.removeObject(forKey: "userAvatarUrl")
         UserDefaults.standard.removeObject(forKey: "selectedBaby")
         UserDefaults.standard.removeObject(forKey: selectedBabyIdKey)
+    }
+    
+    /// 处理登录成功
+    @MainActor
+    func handleLoginSuccess(response: LoginResponse) {
+        self.userId = response.userId
+        self.isLoggedIn = true
+        
+        // 登录后加载宝宝数据
+        Task {
+            await loadBabies()
+            // 请求推送权限
+            await requestPushAuthorization()
+        }
+    }
+    
+    /// 请求推送权限
+    @MainActor
+    func requestPushAuthorization() async {
+        let granted = await PushTokenManager.shared.requestPushAuthorization()
+        if granted {
+            print("✅ 推送权限已授权，等待获取deviceToken")
+        } else {
+            print("⚠️ 推送权限未授权")
+        }
     }
 }

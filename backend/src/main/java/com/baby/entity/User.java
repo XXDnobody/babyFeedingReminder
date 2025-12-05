@@ -50,9 +50,24 @@ public class User {
     private String appleId;
     
     /**
+     * 微信OpenID
+     */
+    private String wechatOpenId;
+    
+    /**
+     * 微信UnionID
+     */
+    private String wechatUnionId;
+    
+    /**
      * 设备Token（用于推送）
      */
     private String deviceToken;
+    
+    /**
+     * 是否同意用户协议: 0-否 1-是
+     */
+    private Integer agreedTerms;
     
     /**
      * 账号状态: 0-禁用 1-正常

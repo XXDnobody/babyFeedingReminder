@@ -13,13 +13,17 @@ CREATE TABLE IF NOT EXISTS `user` (
     `nickname` VARCHAR(50) COMMENT '昵称',
     `avatar_url` VARCHAR(500) COMMENT '头像URL',
     `apple_id` VARCHAR(100) COMMENT 'Apple登录标识',
+    `wechat_open_id` VARCHAR(100) COMMENT '微信OpenID',
+    `wechat_union_id` VARCHAR(100) COMMENT '微信UnionID',
     `device_token` VARCHAR(255) COMMENT '设备Token（用于推送）',
+    `agreed_terms` TINYINT DEFAULT 0 COMMENT '是否同意用户协议: 0-否 1-是',
     `status` TINYINT DEFAULT 1 COMMENT '账号状态: 0-禁用 1-正常',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除: 0-未删除 1-已删除',
     INDEX `idx_phone` (`phone`),
-    INDEX `idx_apple_id` (`apple_id`)
+    INDEX `idx_apple_id` (`apple_id`),
+    INDEX `idx_wechat_open_id` (`wechat_open_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- 宝宝信息表
