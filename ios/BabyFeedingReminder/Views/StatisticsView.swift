@@ -260,22 +260,187 @@ struct FeedingStatsSection: View {
     }
 }
 
-// MARK: - 喂养奶量柱形图
+// MARK: - 喂养奶量图表（智能切换柱形图/折线图）
 struct FeedingAmountChart: View {
     let data: [DailyFeedingData]
+    @State private var selectedItem: DailyFeedingData?
+    @State private var aggregationMode: AggregationMode = .daily
+    
+    // 判断是否为大数据量（超过10条）
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    // 可用的聚合模式
+    private var availableModes: [AggregationMode] {
+        ChartAggregationHelper.availableAggregationModes(for: data.count)
+    }
+    
+    // 按周聚合的数据
+    private var weeklyData: [WeeklyFeedingData] {
+        aggregateByWeek(data)
+    }
+    
+    // 按月聚合的数据
+    private var monthlyData: [MonthlyFeedingData] {
+        aggregateByMonth(data)
+    }
+    
+    // 智能X轴标签间隔
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("每日奶量 (ml)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("每日奶量 (ml)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                // 显示聚合模式切换器（当有多种模式可选时）
+                if availableModes.count > 1 {
+                    Picker("", selection: $aggregationMode) {
+                        ForEach(availableModes, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: availableModes.count == 2 ? 100 : 150)
+                }
+            }
             
+            // 选中数据提示
+            if let selected = selectedItem, aggregationMode == .daily {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(selected.amount)ml")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(6)
+            }
+            
+            // 根据聚合模式显示不同图表
+            switch aggregationMode {
+            case .monthly:
+                monthlyChart
+            case .weekly:
+                weeklyChart
+            case .daily:
+                dailyChart
+            }
+        }
+        .onAppear {
+            // 设置默认聚合模式
+            aggregationMode = ChartAggregationHelper.defaultAggregationMode(for: data.count)
+        }
+        .onChange(of: data.count) { _, newCount in
+            // 数据量变化时更新默认模式
+            aggregationMode = ChartAggregationHelper.defaultAggregationMode(for: newCount)
+        }
+    }
+    
+    // MARK: - 按月聚合图表
+    private var monthlyChart: some View {
+        Chart(monthlyData) { item in
+            BarMark(
+                x: .value("月", item.monthLabel),
+                y: .value("日均奶量", item.averageAmount)
+            )
+            .foregroundStyle(Color.blue.gradient)
+            .cornerRadius(4)
+        }
+        .frame(height: 180)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+    }
+    
+    // MARK: - 按周聚合图表
+    private var weeklyChart: some View {
+        Chart(weeklyData) { item in
+            BarMark(
+                x: .value("周", item.weekLabel),
+                y: .value("日均奶量", item.averageAmount)
+            )
+            .foregroundStyle(Color.blue.gradient)
+            .cornerRadius(4)
+        }
+        .frame(height: 180)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+    }
+    
+    // MARK: - 按日图表
+    @ViewBuilder
+    private var dailyChart: some View {
+        if isLargeDataSet {
+            // 大数据量使用折线图+面积图
+            Chart(data) { item in
+                AreaMark(
+                    x: .value("日期", item.date),
+                    y: .value("奶量", item.amount)
+                )
+                .foregroundStyle(Color.blue.opacity(0.2))
+                
+                LineMark(
+                    x: .value("日期", item.date),
+                    y: .value("奶量", item.amount)
+                )
+                .foregroundStyle(Color.blue)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                
+                PointMark(
+                    x: .value("日期", item.date),
+                    y: .value("奶量", item.amount)
+                )
+                .foregroundStyle(Color.blue)
+                .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+            }
+            .frame(height: 180)
+            .chartYAxis {
+                AxisMarks(position: .leading)
+            }
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(formatAxisDate(date))
+                                .font(.caption2)
+                        }
+                    }
+                    AxisGridLine()
+                }
+            }
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                }
+                        )
+                }
+            }
+        } else {
+            // 小数据量使用柱形图
             Chart(data) { item in
                 BarMark(
                     x: .value("日期", item.dateLabel),
                     y: .value("奶量", item.amount)
                 )
-                .foregroundStyle(Color.blue.gradient)
+                .foregroundStyle(selectedItem?.id == item.id ? Color.blue : Color.blue.opacity(0.7))
                 .cornerRadius(4)
             }
             .frame(height: 180)
@@ -284,30 +449,275 @@ struct FeedingAmountChart: View {
             }
         }
     }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        // 找到最接近的数据点
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
+        }
+    }
+    
+    private func aggregateByWeek(_ data: [DailyFeedingData]) -> [WeeklyFeedingData] {
+        let calendar = Calendar.current
+        var weeklyDict: [String: (total: Int, count: Int, startDate: Date)] = [:]
+        
+        for item in data {
+            let weekOfYear = calendar.component(.weekOfYear, from: item.date)
+            let year = calendar.component(.year, from: item.date)
+            let key = "\(year)-\(weekOfYear)"
+            if var existing = weeklyDict[key] {
+                existing.total += item.amount
+                existing.count += 1
+                weeklyDict[key] = existing
+            } else {
+                weeklyDict[key] = (item.amount, 1, item.date)
+            }
+        }
+        
+        return weeklyDict.sorted { $0.value.startDate < $1.value.startDate }.map { _, value in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M/d"
+            let label = formatter.string(from: value.startDate) + "周"
+            return WeeklyFeedingData(
+                weekLabel: label,
+                totalAmount: value.total,
+                averageAmount: value.count > 0 ? value.total / value.count : 0,
+                dayCount: value.count
+            )
+        }
+    }
+    
+    private func aggregateByMonth(_ data: [DailyFeedingData]) -> [MonthlyFeedingData] {
+        let calendar = Calendar.current
+        var monthlyDict: [String: (total: Int, count: Int, startDate: Date)] = [:]
+        
+        for item in data {
+            let month = calendar.component(.month, from: item.date)
+            let year = calendar.component(.year, from: item.date)
+            let key = "\(year)-\(month)"
+            if var existing = monthlyDict[key] {
+                existing.total += item.amount
+                existing.count += 1
+                monthlyDict[key] = existing
+            } else {
+                monthlyDict[key] = (item.amount, 1, item.date)
+            }
+        }
+        
+        return monthlyDict.sorted { $0.value.startDate < $1.value.startDate }.map { _, value in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M月"
+            let label = formatter.string(from: value.startDate)
+            return MonthlyFeedingData(
+                monthLabel: label,
+                totalAmount: value.total,
+                averageAmount: value.count > 0 ? value.total / value.count : 0,
+                dayCount: value.count
+            )
+        }
+    }
 }
 
-// MARK: - 喂奶次数柱形图
+// MARK: - 聚合模式枚举
+enum AggregationMode: String, CaseIterable {
+    case daily = "按日"
+    case weekly = "按周"
+    case monthly = "按月"
+}
+
+// MARK: - 智能聚合辅助函数
+struct ChartAggregationHelper {
+    /// 根据数据量计算智能标签间隔，确保显示5-8个标签
+    static func smartLabelStride(for dataCount: Int) -> Int {
+        let targetLabelCount = 6
+        let minStride = max(1, dataCount / targetLabelCount)
+        return minStride
+    }
+    
+    /// 根据数据量获取可用的聚合模式
+    static func availableAggregationModes(for dataCount: Int) -> [AggregationMode] {
+        if dataCount <= 14 {
+            return [.daily]
+        } else if dataCount <= 60 {
+            return [.daily, .weekly]
+        } else {
+            return [.daily, .weekly, .monthly]
+        }
+    }
+    
+    /// 根据数据量获取默认聚合模式
+    static func defaultAggregationMode(for dataCount: Int) -> AggregationMode {
+        if dataCount <= 14 {
+            return .daily
+        } else if dataCount <= 60 {
+            return .weekly
+        } else {
+            return .monthly
+        }
+    }
+}
+
+// MARK: - 周聚合数据模型
+struct WeeklyFeedingData: Identifiable {
+    let id = UUID()
+    let weekLabel: String
+    let totalAmount: Int
+    let averageAmount: Int
+    let dayCount: Int
+}
+
+struct WeeklySleepData: Identifiable {
+    let id = UUID()
+    let weekLabel: String
+    let totalHours: Double
+    let averageHours: Double
+    let averageNapCount: Double
+    let dayCount: Int
+}
+
+// MARK: - 月聚合数据模型
+struct MonthlyFeedingData: Identifiable {
+    let id = UUID()
+    let monthLabel: String
+    let totalAmount: Int
+    let averageAmount: Int
+    let dayCount: Int
+}
+
+struct MonthlySleepData: Identifiable {
+    let id = UUID()
+    let monthLabel: String
+    let totalHours: Double
+    let averageHours: Double
+    let averageNapCount: Double
+    let dayCount: Int
+}
+
+// MARK: - 喂奶次数图表（智能切换）
 struct FeedingCountChart: View {
     let data: [DailyFeedingData]
+    @State private var selectedItem: DailyFeedingData?
+    
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    // 智能X轴标签间隔
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("每日喂奶次数")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            Chart(data) { item in
-                BarMark(
-                    x: .value("日期", item.dateLabel),
-                    y: .value("次数", item.count)
-                )
-                .foregroundStyle(Color.green.gradient)
-                .cornerRadius(4)
+            // 选中数据提示
+            if let selected = selectedItem {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(selected.count)次")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(6)
             }
-            .frame(height: 180)
-            .chartYAxis {
-                AxisMarks(position: .leading)
+            
+            if isLargeDataSet {
+                // 大数据量使用折线图
+                Chart(data) { item in
+                    AreaMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.count)
+                    )
+                    .foregroundStyle(Color.green.opacity(0.2))
+                    
+                    LineMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.count)
+                    )
+                    .foregroundStyle(Color.green)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    
+                    PointMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.count)
+                    )
+                    .foregroundStyle(Color.green)
+                    .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(formatAxisDate(date))
+                                    .font(.caption2)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                    }
+                            )
+                    }
+                }
+            } else {
+                // 小数据量使用柱形图
+                Chart(data) { item in
+                    BarMark(
+                        x: .value("日期", item.dateLabel),
+                        y: .value("次数", item.count)
+                    )
+                    .foregroundStyle(Color.green.gradient)
+                    .cornerRadius(4)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
             }
+        }
+    }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
         }
     }
 }
@@ -427,16 +837,176 @@ struct SleepStatsSection: View {
     }
 }
 
-// MARK: - 睡眠时长柱形图
+// MARK: - 睡眠时长图表（智能切换）
 struct SleepDurationChart: View {
     let data: [DailySleepData]
+    @State private var selectedItem: DailySleepData?
+    @State private var aggregationMode: AggregationMode = .daily
+    
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    // 可用的聚合模式
+    private var availableModes: [AggregationMode] {
+        ChartAggregationHelper.availableAggregationModes(for: data.count)
+    }
+    
+    private var weeklyData: [WeeklySleepData] {
+        aggregateByWeek(data)
+    }
+    
+    private var monthlyData: [MonthlySleepData] {
+        aggregateByMonth(data)
+    }
+    
+    // 智能X轴标签间隔
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("每日睡眠时长 (小时)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("每日睡眠时长 (小时)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                // 显示聚合模式切换器
+                if availableModes.count > 1 {
+                    Picker("", selection: $aggregationMode) {
+                        ForEach(availableModes, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: availableModes.count == 2 ? 100 : 150)
+                }
+            }
             
+            // 选中数据提示
+            if let selected = selectedItem, aggregationMode == .daily {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text(String(format: "%.1f小时", selected.hours))
+                        .font(.caption)
+                        .foregroundColor(.purple)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.purple.opacity(0.1))
+                .cornerRadius(6)
+            }
+            
+            // 根据聚合模式显示不同图表
+            switch aggregationMode {
+            case .monthly:
+                monthlyChart
+            case .weekly:
+                weeklyChart
+            case .daily:
+                dailyChart
+            }
+        }
+        .onAppear {
+            aggregationMode = ChartAggregationHelper.defaultAggregationMode(for: data.count)
+        }
+        .onChange(of: data.count) { _, newCount in
+            aggregationMode = ChartAggregationHelper.defaultAggregationMode(for: newCount)
+        }
+    }
+    
+    // MARK: - 按月聚合图表
+    private var monthlyChart: some View {
+        Chart(monthlyData) { item in
+            BarMark(
+                x: .value("月", item.monthLabel),
+                y: .value("日均睡眠", item.averageHours)
+            )
+            .foregroundStyle(Color.purple.gradient)
+            .cornerRadius(4)
+        }
+        .frame(height: 180)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+    }
+    
+    // MARK: - 按周聚合图表
+    private var weeklyChart: some View {
+        Chart(weeklyData) { item in
+            BarMark(
+                x: .value("周", item.weekLabel),
+                y: .value("日均睡眠", item.averageHours)
+            )
+            .foregroundStyle(Color.purple.gradient)
+            .cornerRadius(4)
+        }
+        .frame(height: 180)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+    }
+    
+    // MARK: - 按日图表
+    @ViewBuilder
+    private var dailyChart: some View {
+        if isLargeDataSet {
+            // 大数据量使用折线图
+            Chart(data) { item in
+                AreaMark(
+                    x: .value("日期", item.date),
+                    y: .value("时长", item.hours)
+                )
+                .foregroundStyle(Color.purple.opacity(0.2))
+                
+                LineMark(
+                    x: .value("日期", item.date),
+                    y: .value("时长", item.hours)
+                )
+                .foregroundStyle(Color.purple)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                
+                PointMark(
+                    x: .value("日期", item.date),
+                    y: .value("时长", item.hours)
+                )
+                .foregroundStyle(Color.purple)
+                .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+            }
+            .frame(height: 180)
+            .chartYAxis {
+                AxisMarks(position: .leading)
+            }
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(formatAxisDate(date))
+                                .font(.caption2)
+                        }
+                    }
+                    AxisGridLine()
+                }
+            }
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                }
+                        )
+                }
+            }
+        } else {
+            // 小数据量使用柱形图
             Chart(data) { item in
                 BarMark(
                     x: .value("日期", item.dateLabel),
@@ -451,30 +1021,203 @@ struct SleepDurationChart: View {
             }
         }
     }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
+        }
+    }
+    
+    private func aggregateByWeek(_ data: [DailySleepData]) -> [WeeklySleepData] {
+        let calendar = Calendar.current
+        var weeklyDict: [String: (totalHours: Double, totalNapCount: Int, count: Int, startDate: Date)] = [:]
+        
+        for item in data {
+            let weekOfYear = calendar.component(.weekOfYear, from: item.date)
+            let year = calendar.component(.year, from: item.date)
+            let key = "\(year)-\(weekOfYear)"
+            if var existing = weeklyDict[key] {
+                existing.totalHours += item.hours
+                existing.totalNapCount += item.napCount
+                existing.count += 1
+                weeklyDict[key] = existing
+            } else {
+                weeklyDict[key] = (item.hours, item.napCount, 1, item.date)
+            }
+        }
+        
+        return weeklyDict.sorted { $0.value.startDate < $1.value.startDate }.map { _, value in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M/d"
+            let label = formatter.string(from: value.startDate) + "周"
+            return WeeklySleepData(
+                weekLabel: label,
+                totalHours: value.totalHours,
+                averageHours: value.count > 0 ? value.totalHours / Double(value.count) : 0,
+                averageNapCount: value.count > 0 ? Double(value.totalNapCount) / Double(value.count) : 0,
+                dayCount: value.count
+            )
+        }
+    }
+    
+    private func aggregateByMonth(_ data: [DailySleepData]) -> [MonthlySleepData] {
+        let calendar = Calendar.current
+        var monthlyDict: [String: (totalHours: Double, totalNapCount: Int, count: Int, startDate: Date)] = [:]
+        
+        for item in data {
+            let month = calendar.component(.month, from: item.date)
+            let year = calendar.component(.year, from: item.date)
+            let key = "\(year)-\(month)"
+            if var existing = monthlyDict[key] {
+                existing.totalHours += item.hours
+                existing.totalNapCount += item.napCount
+                existing.count += 1
+                monthlyDict[key] = existing
+            } else {
+                monthlyDict[key] = (item.hours, item.napCount, 1, item.date)
+            }
+        }
+        
+        return monthlyDict.sorted { $0.value.startDate < $1.value.startDate }.map { _, value in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M月"
+            let label = formatter.string(from: value.startDate)
+            return MonthlySleepData(
+                monthLabel: label,
+                totalHours: value.totalHours,
+                averageHours: value.count > 0 ? value.totalHours / Double(value.count) : 0,
+                averageNapCount: value.count > 0 ? Double(value.totalNapCount) / Double(value.count) : 0,
+                dayCount: value.count
+            )
+        }
+    }
 }
 
-// MARK: - 小睡次数柱形图
+// MARK: - 小睡次数图表（智能切换）
 struct NapCountChart: View {
     let data: [DailySleepData]
+    @State private var selectedItem: DailySleepData?
+    
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    // 智能X轴标签间隔
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("每日小睡次数")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            Chart(data) { item in
-                BarMark(
-                    x: .value("日期", item.dateLabel),
-                    y: .value("次数", item.napCount)
-                )
-                .foregroundStyle(Color.indigo.gradient)
-                .cornerRadius(4)
+            // 选中数据提示
+            if let selected = selectedItem {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(selected.napCount)次")
+                        .font(.caption)
+                        .foregroundColor(.indigo)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.indigo.opacity(0.1))
+                .cornerRadius(6)
             }
-            .frame(height: 180)
-            .chartYAxis {
-                AxisMarks(position: .leading)
+            
+            if isLargeDataSet {
+                // 大数据量使用折线图
+                Chart(data) { item in
+                    AreaMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.napCount)
+                    )
+                    .foregroundStyle(Color.indigo.opacity(0.2))
+                    
+                    LineMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.napCount)
+                    )
+                    .foregroundStyle(Color.indigo)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    
+                    PointMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.napCount)
+                    )
+                    .foregroundStyle(Color.indigo)
+                    .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(formatAxisDate(date))
+                                    .font(.caption2)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                    }
+                            )
+                    }
+                }
+            } else {
+                // 小数据量使用柱形图
+                Chart(data) { item in
+                    BarMark(
+                        x: .value("日期", item.dateLabel),
+                        y: .value("次数", item.napCount)
+                    )
+                    .foregroundStyle(Color.indigo.gradient)
+                    .cornerRadius(4)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
             }
+        }
+    }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
         }
     }
 }
