@@ -1,0 +1,116 @@
+{
+  "" : {
+    "const-values" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary.swiftconstvalues",
+    "dependencies" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary.d",
+    "diagnostics" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary.dia",
+    "emit-module-dependencies" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary-emit-module.dia",
+    "pch" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminder-primary.swiftdeps"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/BabyFeedingReminderApp.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminderApp.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminderApp.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFeedingReminderApp.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/ContentView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ContentView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/LegalViews.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LegalViews.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LegalViews.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LegalViews.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/LoginView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/LoginViewModel.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginViewModel.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginViewModel.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/LoginViewModel.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Models/Models.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/Models.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/Models.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/Models.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Services/NetworkService.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NetworkService.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NetworkService.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NetworkService.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Services/NotificationService.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NotificationService.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NotificationService.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/NotificationService.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/ViewModels/FeedingViewModel.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingViewModel.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingViewModel.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingViewModel.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/ViewModels/HomeViewModel.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeViewModel.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeViewModel.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeViewModel.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/ViewModels/SleepViewModel.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepViewModel.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepViewModel.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepViewModel.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/ViewModels/StatisticsViewModel.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsViewModel.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsViewModel.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsViewModel.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/BabyFormView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFormView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFormView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/BabyFormView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/FeedingView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/FeedingView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/ForgotPasswordView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ForgotPasswordView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ForgotPasswordView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/ForgotPasswordView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/HomeView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/HomeView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/RegisterView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/RegisterView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/RegisterView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/RegisterView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/SettingsView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SettingsView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/SleepView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/SleepView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/Views/StatisticsView.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsView.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsView.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/StatisticsView.o"
+  },
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  }
+}

@@ -14,8 +14,14 @@
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/FeedingRecordDTO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/LoginRequest.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/LoginResponse.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/PasswordLoginRequest.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/PhoneLoginRequest.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/RegisterRequest.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/ReminderDTO.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/ResetPasswordRequest.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/SendCodeRequest.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/SleepRecordDTO.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/dto/SmsCodeRequest.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/entity/Baby.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/entity/FeedingRecord.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/entity/FeedingSetting.java

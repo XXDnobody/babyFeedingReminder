@@ -3,6 +3,7 @@ package com.baby.controller;
 import com.baby.common.Result;
 import com.baby.dto.LoginRequest;
 import com.baby.dto.LoginResponse;
+import com.baby.dto.SmsCodeRequest;
 import com.baby.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,6 +60,98 @@ public class AuthController {
         } catch (Exception e) {
             log.error("微信登录失败: {}", e.getMessage());
             return Result.error(500, "登录失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "手机号密码登录")
+    @PostMapping("/phone/login")
+    public Result<LoginResponse> phoneLogin(@RequestBody LoginRequest request) {
+        if (request.getPhone() == null || request.getPhone().isEmpty()) {
+            return Result.error(400, "手机号不能为空");
+        }
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            return Result.error(400, "密码不能为空");
+        }
+        if (request.getAgreedTerms() == null || !request.getAgreedTerms()) {
+            return Result.error(400, "请先同意用户服务协议和隐私政策");
+        }
+        
+        try {
+            LoginResponse response = authService.loginWithPhone(request);
+            log.info("手机号登录成功: userId={}", response.getUserId());
+            return Result.success(response);
+        } catch (Exception e) {
+            log.error("手机号登录失败: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "手机号注册")
+    @PostMapping("/phone/register")
+    public Result<LoginResponse> phoneRegister(@RequestBody LoginRequest request) {
+        if (request.getPhone() == null || request.getPhone().isEmpty()) {
+            return Result.error(400, "手机号不能为空");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
+            return Result.error(400, "密码不能少于6位");
+        }
+        if (request.getSmsCode() == null || request.getSmsCode().isEmpty()) {
+            return Result.error(400, "验证码不能为空");
+        }
+        if (request.getAgreedTerms() == null || !request.getAgreedTerms()) {
+            return Result.error(400, "请先同意用户服务协议和隐私政策");
+        }
+        
+        try {
+            LoginResponse response = authService.registerWithPhone(request);
+            log.info("手机号注册成功: userId={}", response.getUserId());
+            return Result.success(response);
+        } catch (Exception e) {
+            log.error("手机号注册失败: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "发送短信验证码")
+    @PostMapping("/sms/send")
+    public Result<Void> sendSmsCode(@RequestBody SmsCodeRequest request) {
+        if (request.getPhone() == null || request.getPhone().isEmpty()) {
+            return Result.error(400, "手机号不能为空");
+        }
+        if (request.getScene() == null || request.getScene().isEmpty()) {
+            return Result.error(400, "场景类型不能为空");
+        }
+        
+        try {
+            authService.sendSmsCode(request.getPhone(), request.getScene());
+            log.info("发送验证码成功: phone={}, scene={}", request.getPhone(), request.getScene());
+            return Result.success();
+        } catch (Exception e) {
+            log.error("发送验证码失败: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "重置密码")
+    @PostMapping("/phone/reset-password")
+    public Result<Void> resetPassword(@RequestBody LoginRequest request) {
+        if (request.getPhone() == null || request.getPhone().isEmpty()) {
+            return Result.error(400, "手机号不能为空");
+        }
+        if (request.getSmsCode() == null || request.getSmsCode().isEmpty()) {
+            return Result.error(400, "验证码不能为空");
+        }
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            return Result.error(400, "新密码不能少于6位");
+        }
+        
+        try {
+            authService.resetPassword(request);
+            log.info("重置密码成功: phone={}", request.getPhone());
+            return Result.success();
+        } catch (Exception e) {
+            log.error("重置密码失败: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
         }
     }
     

@@ -1,0 +1,12 @@
+{
+  "/Users/xxd/dev/workspace/babyFeedingReminder/ios/BabyFeedingReminder/BabyFeedingReminderApp.swift" : {
+    "abi-baseline-json" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder.abi.json",
+    "const-values" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder-primary.swiftconstvalues",
+    "dependencies" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder-primary.d",
+    "diagnostics" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder-primary.dia",
+    "objc-header" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder-Swift.h",
+    "swiftdoc" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder.swiftdoc",
+    "swiftmodule" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder.swiftmodule",
+    "swiftsourceinfo" : "/Users/xxd/dev/workspace/babyFeedingReminder/ios/build/BabyFeedingReminder.build/Release-iphonesimulator/BabyFeedingReminder.build/Objects-normal/arm64/BabyFeedingReminder.swiftsourceinfo"
+  }
+}

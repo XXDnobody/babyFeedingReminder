@@ -47,4 +47,31 @@ public class LoginRequest {
      * 是否同意用户协议和隐私政策
      */
     private Boolean agreedTerms;
+    
+    // ========== 手机号登录相关 ==========
+    
+    /**
+     * 手机号
+     */
+    private String phone;
+    
+    /**
+     * 密码
+     */
+    private String password;
+    
+    /**
+     * 短信验证码
+     */
+    private String smsCode;
+    
+    /**
+     * 账号（用户名，用于账号密码登录）
+     */
+    private String username;
+    
+    /**
+     * 新密码（用于重置密码）
+     */
+    private String newPassword;
 }

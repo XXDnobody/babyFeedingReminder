@@ -7,6 +7,9 @@ struct APIResponse<T: Codable>: Codable {
     let data: T?
 }
 
+/// 空响应类型
+struct EmptyResponse: Codable {}
+
 /// 网络服务错误
 enum NetworkError: Error, LocalizedError {
     case invalidURL
@@ -182,8 +185,6 @@ class NetworkService {
 }
 
 // MARK: - 辅助类型
-
-struct EmptyResponse: Codable {}
 
 struct AnyEncodable: Encodable {
     private let encode: (Encoder) throws -> Void

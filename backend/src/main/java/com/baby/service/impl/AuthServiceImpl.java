@@ -25,6 +25,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Date;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * 认证服务实现类
@@ -50,6 +55,28 @@ public class AuthServiceImpl implements AuthService {
     private String wechatSecret;
     
     private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000; // 30天
+    private static final long SMS_CODE_EXPIRATION = 5 * 60 * 1000; // 5分钟
+    
+    // 简单的验证码存储（生产环境应使用Redis）
+    private final Map<String, SmsCodeInfo> smsCodeCache = new ConcurrentHashMap<>();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    
+    // 验证码信息
+    private static class SmsCodeInfo {
+        String code;
+        long expireTime;
+        String scene;
+        
+        SmsCodeInfo(String code, String scene) {
+            this.code = code;
+            this.scene = scene;
+            this.expireTime = System.currentTimeMillis() + SMS_CODE_EXPIRATION;
+        }
+        
+        boolean isExpired() {
+            return System.currentTimeMillis() > expireTime;
+        }
+    }
     
     @Override
     @Transactional
@@ -252,6 +279,216 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             return false;
         }
+    }
+    
+    @Override
+    @Transactional
+    public LoginResponse loginWithPhone(LoginRequest request) {
+        String phone = request.getPhone();
+        String password = request.getPassword();
+        
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("手机号不能为空");
+        }
+        if (password == null || password.isEmpty()) {
+            throw new RuntimeException("密码不能为空");
+        }
+        
+        // 查找用户
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone));
+        
+        if (user == null) {
+            throw new RuntimeException("用户不存在，请先注册");
+        }
+        
+        // 验证密码
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("密码错误");
+        }
+        
+        // 检查用户状态
+        if (user.getStatus() != 1) {
+            throw new RuntimeException("账号已被禁用");
+        }
+        
+        // 更新设备Token
+        if (request.getDeviceToken() != null) {
+            userMapper.update(null, new LambdaUpdateWrapper<User>()
+                    .eq(User::getId, user.getId())
+                    .set(User::getDeviceToken, request.getDeviceToken()));
+        }
+        
+        // 生成JWT Token
+        String accessToken = generateToken(user.getId(), jwtExpiration);
+        String refreshToken = generateToken(user.getId(), REFRESH_TOKEN_EXPIRATION);
+        
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtExpiration / 1000)
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .isNewUser(false)
+                .build();
+    }
+    
+    @Override
+    @Transactional
+    public LoginResponse registerWithPhone(LoginRequest request) {
+        String phone = request.getPhone();
+        String password = request.getPassword();
+        String smsCode = request.getSmsCode();
+        
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("手机号不能为空");
+        }
+        if (password == null || password.length() < 6) {
+            throw new RuntimeException("密码不能少于6位");
+        }
+        if (smsCode == null || smsCode.isEmpty()) {
+            throw new RuntimeException("验证码不能为空");
+        }
+        
+        // 验证短信验证码
+        if (!verifySmsCode(phone, smsCode)) {
+            throw new RuntimeException("验证码错误或已过期");
+        }
+        
+        // 检查手机号是否已注册
+        User existUser = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone));
+        if (existUser != null) {
+            throw new RuntimeException("该手机号已注册");
+        }
+        
+        // 创建新用户
+        User user = new User();
+        user.setPhone(phone);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setNickname(request.getNickname() != null ? request.getNickname() : "用户" + phone.substring(phone.length() - 4));
+        user.setStatus(1);
+        user.setAgreedTerms(1);
+        userMapper.insert(user);
+        
+        log.info("手机号注册成功: userId={}, phone={}", user.getId(), phone);
+        
+        // 清除验证码
+        smsCodeCache.remove(phone);
+        
+        // 更新设备Token
+        if (request.getDeviceToken() != null) {
+            userMapper.update(null, new LambdaUpdateWrapper<User>()
+                    .eq(User::getId, user.getId())
+                    .set(User::getDeviceToken, request.getDeviceToken()));
+        }
+        
+        // 生成JWT Token
+        String accessToken = generateToken(user.getId(), jwtExpiration);
+        String refreshToken = generateToken(user.getId(), REFRESH_TOKEN_EXPIRATION);
+        
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtExpiration / 1000)
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .isNewUser(true)
+                .build();
+    }
+    
+    @Override
+    public void sendSmsCode(String phone, String scene) {
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("手机号不能为空");
+        }
+        
+        // 验证手机号格式
+        if (!phone.matches("^1[3-9]\\d{9}$")) {
+            throw new RuntimeException("手机号格式不正确");
+        }
+        
+        // 根据场景检查
+        if ("register".equals(scene)) {
+            User existUser = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getPhone, phone));
+            if (existUser != null) {
+                throw new RuntimeException("该手机号已注册");
+            }
+        } else if ("reset".equals(scene)) {
+            User existUser = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getPhone, phone));
+            if (existUser == null) {
+                throw new RuntimeException("该手机号未注册");
+            }
+        }
+        
+        // 生成随机6位验证码
+        String code = String.format("%06d", new Random().nextInt(1000000));
+        
+        // 存储验证码
+        smsCodeCache.put(phone, new SmsCodeInfo(code, scene));
+        
+        // TODO: 实际发送短信，这里只打印日志
+        log.info("发送短信验证码: phone={}, code={}, scene={}", phone, code, scene);
+        
+        // 开发环境打印验证码，方便测试
+        System.out.println("[验证码] 手机号: " + phone + ", 验证码: " + code);
+    }
+    
+    @Override
+    public boolean verifySmsCode(String phone, String code) {
+        SmsCodeInfo info = smsCodeCache.get(phone);
+        if (info == null) {
+            return false;
+        }
+        if (info.isExpired()) {
+            smsCodeCache.remove(phone);
+            return false;
+        }
+        return info.code.equals(code);
+    }
+    
+    @Override
+    @Transactional
+    public void resetPassword(LoginRequest request) {
+        String phone = request.getPhone();
+        String smsCode = request.getSmsCode();
+        String newPassword = request.getNewPassword();
+        
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("手机号不能为空");
+        }
+        if (smsCode == null || smsCode.isEmpty()) {
+            throw new RuntimeException("验证码不能为空");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("新密码不能少于6位");
+        }
+        
+        // 验证短信验证码
+        if (!verifySmsCode(phone, smsCode)) {
+            throw new RuntimeException("验证码错误或已过期");
+        }
+        
+        // 查找用户
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone));
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        
+        // 更新密码
+        userMapper.update(null, new LambdaUpdateWrapper<User>()
+                .eq(User::getId, user.getId())
+                .set(User::getPassword, passwordEncoder.encode(newPassword)));
+        
+        // 清除验证码
+        smsCodeCache.remove(phone);
+        
+        log.info("用户重置密码成功: userId={}, phone={}", user.getId(), phone);
     }
     
     @Override

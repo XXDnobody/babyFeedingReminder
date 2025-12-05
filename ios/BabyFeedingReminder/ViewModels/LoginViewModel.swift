@@ -22,6 +22,46 @@ struct LoginRequest: Encodable {
     let avatarUrl: String?
     let deviceToken: String?
     let agreedTerms: Bool
+    
+    // 手机号登录相关
+    let phone: String?
+    let password: String?
+    let smsCode: String?
+    let newPassword: String?
+    
+    init(
+        identityToken: String? = nil,
+        authorizationCode: String? = nil,
+        appleUserId: String? = nil,
+        code: String? = nil,
+        nickname: String? = nil,
+        avatarUrl: String? = nil,
+        deviceToken: String? = nil,
+        agreedTerms: Bool = false,
+        phone: String? = nil,
+        password: String? = nil,
+        smsCode: String? = nil,
+        newPassword: String? = nil
+    ) {
+        self.identityToken = identityToken
+        self.authorizationCode = authorizationCode
+        self.appleUserId = appleUserId
+        self.code = code
+        self.nickname = nickname
+        self.avatarUrl = avatarUrl
+        self.deviceToken = deviceToken
+        self.agreedTerms = agreedTerms
+        self.phone = phone
+        self.password = password
+        self.smsCode = smsCode
+        self.newPassword = newPassword
+    }
+}
+
+/// 发送验证码请求
+struct SmsCodeRequest: Encodable {
+    let phone: String
+    let scene: String  // register, login, reset
 }
 
 /// 登录ViewModel
@@ -31,8 +71,11 @@ class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var loginSuccess = false
     @Published var loginResponse: LoginResponse?
+    @Published var smsCodeSent = false
+    @Published var countdown = 0
     
     private let network = NetworkService.shared
+    private var countdownTimer: Timer?
     
     /// Apple登录
     func loginWithApple(credential: ASAuthorizationAppleIDCredential) {
@@ -66,6 +109,138 @@ class LoginViewModel: ObservableObject {
         )
         
         performLogin(endpoint: "/auth/apple", request: request)
+    }
+    
+    /// 手机号密码登录
+    func loginWithPhone(phone: String, password: String) {
+        isLoading = true
+        errorMessage = nil
+        
+        let deviceToken = UserDefaults.standard.string(forKey: "deviceToken")
+        
+        let request = LoginRequest(
+            deviceToken: deviceToken,
+            agreedTerms: true,
+            phone: phone,
+            password: password
+        )
+        
+        performLogin(endpoint: "/auth/phone/login", request: request)
+    }
+    
+    /// 手机号注册
+    func registerWithPhone(phone: String, password: String, smsCode: String, nickname: String? = nil) {
+        isLoading = true
+        errorMessage = nil
+        
+        let deviceToken = UserDefaults.standard.string(forKey: "deviceToken")
+        
+        let request = LoginRequest(
+            nickname: nickname,
+            deviceToken: deviceToken,
+            agreedTerms: true,
+            phone: phone,
+            password: password,
+            smsCode: smsCode
+        )
+        
+        performLogin(endpoint: "/auth/phone/register", request: request)
+    }
+    
+    /// 用户名密码注册
+    func register(username: String, password: String, nickname: String? = nil) {
+        isLoading = true
+        errorMessage = nil
+        
+        let deviceToken = UserDefaults.standard.string(forKey: "deviceToken")
+        
+        // 用户名注册：将 username 作为 phone 字段传递，后端需要区分处理
+        // 或者如果后端有专门的用户名注册接口，调整 endpoint
+        let request = LoginRequest(
+            nickname: nickname,
+            deviceToken: deviceToken,
+            agreedTerms: true,
+            phone: username,  // 使用 username 作为账号
+            password: password
+        )
+        
+        performLogin(endpoint: "/auth/username/register", request: request)
+    }
+    
+    /// 发送短信验证码
+    func sendSmsCode(phone: String, scene: String) {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let request = SmsCodeRequest(phone: phone, scene: scene)
+                try await network.requestVoid(
+                    endpoint: "/auth/sms/send",
+                    method: "POST",
+                    body: request
+                )
+                
+                self.isLoading = false
+                self.smsCodeSent = true
+                self.startCountdown()
+                print("✅ 验证码发送成功")
+                
+            } catch {
+                self.isLoading = false
+                self.errorMessage = "发送验证码失败: \(error.localizedDescription)"
+                print("❌ 发送验证码失败: \(error)")
+            }
+        }
+    }
+    
+    /// 重置密码
+    func resetPassword(phone: String, smsCode: String, newPassword: String) {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let request = LoginRequest(
+                    agreedTerms: true,
+                    phone: phone,
+                    smsCode: smsCode,
+                    newPassword: newPassword
+                )
+                
+                try await network.requestVoid(
+                    endpoint: "/auth/phone/reset-password",
+                    method: "POST",
+                    body: request
+                )
+                
+                self.isLoading = false
+                self.loginSuccess = true  // 用于通知重置成功
+                print("✅ 密码重置成功")
+                
+            } catch {
+                self.isLoading = false
+                self.errorMessage = "重置密码失败: \(error.localizedDescription)"
+                print("❌ 重置密码失败: \(error)")
+            }
+        }
+    }
+    
+    /// 开始倒计时
+    private func startCountdown() {
+        countdown = 60
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
+                if self.countdown > 0 {
+                    self.countdown -= 1
+                } else {
+                    self.countdownTimer?.invalidate()
+                    self.smsCodeSent = false
+                }
+            }
+        }
     }
     
     /// 微信登录

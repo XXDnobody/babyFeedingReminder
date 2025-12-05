@@ -24,9 +24,12 @@
 		1A000000E /* StatisticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001E /* StatisticsViewModel.swift */; };
 		1A000000F /* NetworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001F /* NetworkService.swift */; };
 		F99DFF992EE2F5FD008CAD69 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99DFF982EE2F5FD008CAD69 /* AppDelegate.swift */; };
-		F99DFF9B2EE2F676008CAD69 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99DFF9A2EE2F676008CAD69 /* LoginView.swift */; };
-		F99DFF9D2EE2F68E008CAD69 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99DFF9C2EE2F68E008CAD69 /* LegalViews.swift */; };
 		F99DFF9F2EE2F699008CAD69 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */; };
+		F9VIEWS001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR01 /* LoginView.swift */; };
+		F9VIEWS002 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR02 /* RegisterView.swift */; };
+		F9VIEWS003 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR03 /* ForgotPasswordView.swift */; };
+		F9VIEWS004 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR04 /* LegalViews.swift */; };
+		F9VIEWS005 /* PhoneRegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR05 /* PhoneRegisterView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,9 +51,12 @@
 		1A000001F /* NetworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkService.swift; sourceTree = "<group>"; };
 		1A0000020A /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		F99DFF982EE2F5FD008CAD69 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		F99DFF9A2EE2F676008CAD69 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		F99DFF9C2EE2F68E008CAD69 /* LegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalViews.swift; sourceTree = "<group>"; };
 		F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
+		F9VIEWSR01 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		F9VIEWSR02 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
+		F9VIEWSR03 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
+		F9VIEWSR04 /* LegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalViews.swift; sourceTree = "<group>"; };
+		F9VIEWSR05 /* PhoneRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRegisterView.swift; sourceTree = "<group>"; };
 		F99DFFA02EE2F9FB008CAD69 /* BabyFeedingReminder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BabyFeedingReminder.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -69,9 +75,6 @@
 				F99DFFA02EE2F9FB008CAD69 /* BabyFeedingReminder.entitlements */,
 				F99DFF982EE2F5FD008CAD69 /* AppDelegate.swift */,
 				1A0000011 /* BabyFeedingReminderApp.swift */,
-				F99DFF9A2EE2F676008CAD69 /* LoginView.swift */,
-				F99DFF9C2EE2F68E008CAD69 /* LegalViews.swift */,
-				F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */,
 				1A0000012 /* ContentView.swift */,
 				1A0000013 /* Assets.xcassets */,
 				1A0000023 /* Models */,
@@ -107,6 +110,11 @@
 				1A0000018 /* StatisticsView.swift */,
 				1A0000019 /* SettingsView.swift */,
 				1A000001A /* BabyFormView.swift */,
+				F9VIEWSR01 /* LoginView.swift */,
+				F9VIEWSR02 /* RegisterView.swift */,
+				F9VIEWSR03 /* ForgotPasswordView.swift */,
+				F9VIEWSR04 /* LegalViews.swift */,
+				F9VIEWSR05 /* PhoneRegisterView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -116,6 +124,7 @@
 			children = (
 				1A000001B /* HomeViewModel.swift */,
 				1A000001C /* FeedingViewModel.swift */,
+				F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */,
 				1A000001D /* SleepViewModel.swift */,
 				1A000001E /* StatisticsViewModel.swift */,
 			);
@@ -202,7 +211,7 @@
 			files = (
 				1A0000001 /* BabyFeedingReminderApp.swift in Sources */,
 				1A0000002 /* ContentView.swift in Sources */,
-				F99DFF9D2EE2F68E008CAD69 /* LegalViews.swift in Sources */,
+
 				1A0000004 /* Models.swift in Sources */,
 				1A0000005 /* HomeView.swift in Sources */,
 				1A0000006 /* FeedingView.swift in Sources */,
@@ -211,7 +220,7 @@
 				1A0000009 /* SettingsView.swift in Sources */,
 				F99DFF992EE2F5FD008CAD69 /* AppDelegate.swift in Sources */,
 				1A000000A /* BabyFormView.swift in Sources */,
-				F99DFF9B2EE2F676008CAD69 /* LoginView.swift in Sources */,
+
 				1A000000B /* HomeViewModel.swift in Sources */,
 				1A000000C /* FeedingViewModel.swift in Sources */,
 				1A000000D /* SleepViewModel.swift in Sources */,
@@ -219,6 +228,11 @@
 				1A000000F /* NetworkService.swift in Sources */,
 				F99DFF9F2EE2F699008CAD69 /* LoginViewModel.swift in Sources */,
 				1A00000010 /* NotificationService.swift in Sources */,
+				F9VIEWS001 /* LoginView.swift in Sources */,
+				F9VIEWS002 /* RegisterView.swift in Sources */,
+				F9VIEWS003 /* ForgotPasswordView.swift in Sources */,
+				F9VIEWS004 /* LegalViews.swift in Sources */,
+				F9VIEWS005 /* PhoneRegisterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
