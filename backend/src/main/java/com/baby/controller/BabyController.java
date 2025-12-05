@@ -25,7 +25,7 @@ public class BabyController {
     
     @Operation(summary = "创建宝宝信息")
     @PostMapping
-    public Result<Baby> create(@RequestHeader("userId") Long userId,
+    public Result<Baby> create(@RequestHeader(value = "userId", defaultValue = "1") Long userId,
                                @Valid @RequestBody BabyDTO dto) {
         Baby baby = babyService.createBaby(userId, dto);
         return Result.success(baby);
@@ -48,7 +48,7 @@ public class BabyController {
     
     @Operation(summary = "获取用户的所有宝宝")
     @GetMapping("/list")
-    public Result<List<Baby>> listByUser(@RequestHeader("userId") Long userId) {
+    public Result<List<Baby>> listByUser(@RequestHeader(value = "userId", defaultValue = "1") Long userId) {
         List<Baby> babies = babyService.getBabiesByUserId(userId);
         return Result.success(babies);
     }

@@ -223,9 +223,14 @@ struct BabyFormView: View {
         // 胎龄转换为总天数保存
         let gestationalAgeDays = gestationalWeeks * 7 + gestationalDays
         
+        // 使用本地日期格式，避免时区转换问题
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone.current
+        
         let request = SaveBabyRequest(
             nickname: nickname,
-            birthDate: ISO8601DateFormatter().string(from: birthDate),
+            birthDate: dateFormatter.string(from: birthDate),
             gender: gender,
             gestationalAge: gestationalAgeDays,
             height: Double(heightText),
@@ -242,6 +247,10 @@ struct BabyFormView: View {
                     body: request
                 )
                 appState.selectedBaby = updatedBaby
+                // 更新列表中的宝宝
+                if let index = appState.babies.firstIndex(where: { $0.id == babyId }) {
+                    appState.babies[index] = updatedBaby
+                }
             } else {
                 // 创建
                 let newBaby: Baby = try await network.request(
@@ -251,7 +260,9 @@ struct BabyFormView: View {
                     userId: appState.userId
                 )
                 appState.selectedBaby = newBaby
+                appState.babies.append(newBaby)
             }
+            appState.cacheSelectedBaby()
             dismiss()
         } catch {
             // 使用本地模拟
@@ -270,6 +281,8 @@ struct BabyFormView: View {
                 updateTime: Date()
             )
             appState.selectedBaby = mockBaby
+            appState.babies.append(mockBaby)
+            appState.cacheSelectedBaby()
             dismiss()
         }
         

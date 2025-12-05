@@ -15,25 +15,38 @@ struct Baby: Codable, Identifiable {
     var createTime: Date?
     var updateTime: Date?
     
-    /// 计算月龄
-    var ageInMonths: Int {
+    /// 计算月龄和天数
+    var ageComponents: (months: Int, days: Int) {
         let calendar = Calendar.current
-        let components = calendar.dateComponents([.month], from: birthDate, to: Date())
-        return components.month ?? 0
+        let components = calendar.dateComponents([.month, .day], from: birthDate, to: Date())
+        return (months: components.month ?? 0, days: components.day ?? 0)
     }
     
-    /// 年龄描述
+    /// 计算月龄
+    var ageInMonths: Int {
+        return ageComponents.months
+    }
+    
+    /// 年龄描述（详细到天）
     var ageDescription: String {
-        let months = ageInMonths
+        let (months, days) = ageComponents
         if months < 12 {
-            return "\(months)个月"
+            if days > 0 {
+                return "\(months)个月\(days)天"
+            } else {
+                return "\(months)个月"
+            }
         } else {
             let years = months / 12
             let remainingMonths = months % 12
-            if remainingMonths == 0 {
+            if remainingMonths == 0 && days == 0 {
                 return "\(years)岁"
-            } else {
+            } else if remainingMonths == 0 {
+                return "\(years)岁\(days)天"
+            } else if days == 0 {
                 return "\(years)岁\(remainingMonths)个月"
+            } else {
+                return "\(years)岁\(remainingMonths)个月\(days)天"
             }
         }
     }
