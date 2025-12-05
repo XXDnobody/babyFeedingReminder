@@ -88,7 +88,7 @@ struct SleepQualityData: Identifiable {
 class StatisticsViewModel: ObservableObject {
     // 今日数据
     @Published var todayFeedingAmount: Int = 0
-    @Published var todaySleepHours: String = "0小时"
+    @Published var todaySleepHours: String = "0分钟"
     @Published var feedingCount: Int = 0
     @Published var todayNapCount: Int = 0
     
@@ -128,6 +128,23 @@ class StatisticsViewModel: ObservableObject {
     private var sleepDailyDataResponse: [DailySleepDataResponse] = []  // 睡眠每日数据
     
     private let network = NetworkService.shared
+    
+    /// 格式化睡眠时长显示
+    /// - Parameter minutes: 总分钟数
+    /// - Returns: 格式化后的字符串（如 "45分钟" 或 "2小时30分"）
+    private func formatSleepDuration(minutes: Int) -> String {
+        if minutes < 60 {
+            return "\(minutes)分钟"
+        } else {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            if remainingMinutes == 0 {
+                return "\(hours)小时"
+            } else {
+                return "\(hours)小时\(remainingMinutes)分"
+            }
+        }
+    }
     
     var feedingComparisonColor: Color {
         if dailyAverageFeedingAmount < Int(Double(recommendedDailyAmount) * 0.8) {
@@ -182,12 +199,8 @@ class StatisticsViewModel: ObservableObject {
             }
             
             if let sleep = overview.sleep {
-                if let hours = sleep.totalHours {
-                    todaySleepHours = "\(hours)小时"
-                } else if let minutes = sleep.totalMinutes {
-                    let hours = Double(minutes) / 60.0
-                    todaySleepHours = String(format: "%.1f小时", hours)
-                }
+                let totalMinutes = sleep.totalMinutes ?? 0
+                todaySleepHours = formatSleepDuration(minutes: totalMinutes)
                 todayNapCount = sleep.napCount ?? 0
             }
         } catch {

@@ -36,7 +36,7 @@ struct InsightsResponse: Codable {
 class HomeViewModel: ObservableObject {
     @Published var todayFeedingAmount: Int = 0
     @Published var todayFeedingCount: Int = 0
-    @Published var todaySleepHours: String = "0小时"
+    @Published var todaySleepHours: String = "0分钟"
     @Published var todayNapCount: Int = 0
     @Published var upcomingReminders: [Reminder] = []
     @Published var isLoading = false
@@ -48,6 +48,23 @@ class HomeViewModel: ObservableObject {
     @Published var suggestion: String = ""
     
     private let network = NetworkService.shared
+    
+    /// 格式化睡眠时长显示
+    /// - Parameter minutes: 总分钟数
+    /// - Returns: 格式化后的字符串（如 "45分钟" 或 "2小时30分"）
+    private func formatSleepDuration(minutes: Int) -> String {
+        if minutes < 60 {
+            return "\(minutes)分钟"
+        } else {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            if remainingMinutes == 0 {
+                return "\(hours)小时"
+            } else {
+                return "\(hours)小时\(remainingMinutes)分"
+            }
+        }
+    }
     
     func loadData(babyId: Int64?) async {
         guard let babyId = babyId else { return }
@@ -80,12 +97,8 @@ class HomeViewModel: ObservableObject {
             
             // 解析睡眠数据
             if let sleep = overview.sleep {
-                if let hours = sleep.totalHours {
-                    todaySleepHours = "\(hours)小时"
-                } else if let minutes = sleep.totalMinutes {
-                    let hours = Double(minutes) / 60.0
-                    todaySleepHours = String(format: "%.1f小时", hours)
-                }
+                let totalMinutes = sleep.totalMinutes ?? 0
+                todaySleepHours = formatSleepDuration(minutes: totalMinutes)
                 todayNapCount = sleep.napCount ?? 0
             }
             
@@ -93,7 +106,7 @@ class HomeViewModel: ObservableObject {
             // 使用模拟数据
             todayFeedingAmount = 0
             todayFeedingCount = 0
-            todaySleepHours = "0小时"
+            todaySleepHours = "0分钟"
             todayNapCount = 0
             print("⚠️ 加载概览失败: \(error.localizedDescription)")
         }
