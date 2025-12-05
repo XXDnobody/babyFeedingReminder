@@ -15,6 +15,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,13 +39,17 @@ public class StatisticsController {
     public Result<Map<String, Object>> getTodayOverview(@PathVariable Long babyId) {
         Map<String, Object> overview = new HashMap<>();
         
+        // 使用 Java 计算今天的时间范围（解决时区问题）
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        
         // 今日喂养数据
-        Integer todayTotalAmount = feedingRecordMapper.getTodayTotalAmount(babyId);
-        Integer todayFeedingCount = feedingRecordMapper.getTodayFeedingCount(babyId);
+        Integer todayTotalAmount = feedingRecordMapper.getTotalAmountByDateRange(babyId, startOfDay, endOfDay);
+        Integer todayFeedingCount = feedingRecordMapper.getFeedingCountByDateRange(babyId, startOfDay, endOfDay);
         
         // 今日睡眠数据
-        Integer todaySleepDuration = sleepRecordMapper.getTodayTotalDuration(babyId);
-        Integer todayNapCount = sleepRecordMapper.getTodayNapCount(babyId);
+        Integer todaySleepDuration = sleepRecordMapper.getTotalDurationByDateRange(babyId, startOfDay, endOfDay);
+        Integer todayNapCount = sleepRecordMapper.getNapCountByDateRange(babyId, startOfDay, endOfDay);
         
         // 获取推荐值
         int ageInMonths = babyService.calculateAgeInMonths(babyId);

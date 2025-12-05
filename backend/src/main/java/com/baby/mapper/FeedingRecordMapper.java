@@ -30,6 +30,7 @@ public interface FeedingRecordMapper extends BaseMapper<FeedingRecord> {
     
     /**
      * 获取今日喂养总量
+     * @deprecated 使用 getTotalAmountByDateRange 替代，避免时区问题
      */
     @Select("SELECT IFNULL(SUM(amount), 0) FROM feeding_record " +
             "WHERE baby_id = #{babyId} AND deleted = 0 " +
@@ -38,9 +39,30 @@ public interface FeedingRecordMapper extends BaseMapper<FeedingRecord> {
     
     /**
      * 获取今日喂养次数
+     * @deprecated 使用 getFeedingCountByDateRange 替代，避免时区问题
      */
     @Select("SELECT COUNT(*) FROM feeding_record " +
             "WHERE baby_id = #{babyId} AND deleted = 0 " +
             "AND DATE(start_time) = CURDATE()")
     Integer getTodayFeedingCount(@Param("babyId") Long babyId);
+    
+    /**
+     * 获取指定日期范围内的喂养总量（解决时区问题）
+     */
+    @Select("SELECT IFNULL(SUM(amount), 0) FROM feeding_record " +
+            "WHERE baby_id = #{babyId} AND deleted = 0 " +
+            "AND start_time >= #{startTime} AND start_time < #{endTime}")
+    Integer getTotalAmountByDateRange(@Param("babyId") Long babyId,
+                                       @Param("startTime") LocalDateTime startTime,
+                                       @Param("endTime") LocalDateTime endTime);
+    
+    /**
+     * 获取指定日期范围内的喂养次数（解决时区问题）
+     */
+    @Select("SELECT COUNT(*) FROM feeding_record " +
+            "WHERE baby_id = #{babyId} AND deleted = 0 " +
+            "AND start_time >= #{startTime} AND start_time < #{endTime}")
+    Integer getFeedingCountByDateRange(@Param("babyId") Long babyId,
+                                        @Param("startTime") LocalDateTime startTime,
+                                        @Param("endTime") LocalDateTime endTime);
 }
