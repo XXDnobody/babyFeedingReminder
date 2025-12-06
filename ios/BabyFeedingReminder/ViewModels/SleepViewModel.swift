@@ -69,10 +69,17 @@ class SleepViewModel: ObservableObject {
         errorMessage = nil
         
         do {
+            // 加载睡眠记录
             let records: [SleepRecord] = try await network.request(
                 endpoint: "/sleep/today/\(babyId)"
             )
             todayRecords = records
+            
+            // 加载睡眠设置，获取下次小睡提醒开关状态
+            let setting: SleepSetting = try await network.request(
+                endpoint: "/setting/sleep/\(babyId)"
+            )
+            shouldRemindNextNap = (setting.nextNapReminderEnabled ?? 1) == 1
             
             // 检查是否有正在进行的睡眠
             if let ongoingNap = records.first(where: { $0.endTime == nil }) {
@@ -287,6 +294,31 @@ class SleepViewModel: ObservableObject {
         let recordsToDelete = offsets.map { todayRecords[$0] }
         for record in recordsToDelete {
             await deleteSleepRecord(id: record.id)
+        }
+    }
+    
+    /// 保存下次小睡提醒开关状态
+    func saveNextNapReminderEnabled(_ enabled: Bool) async {
+        guard let babyId = babyId else { return }
+        
+        do {
+            // 先加载当前设置
+            var setting: SleepSetting = try await network.request(
+                endpoint: "/setting/sleep/\(babyId)"
+            )
+            
+            // 更新开关状态
+            setting.nextNapReminderEnabled = enabled ? 1 : 0
+            
+            // 保存设置
+            let _: SleepSetting = try await network.request(
+                endpoint: "/setting/sleep",
+                method: "POST",
+                body: setting
+            )
+            
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

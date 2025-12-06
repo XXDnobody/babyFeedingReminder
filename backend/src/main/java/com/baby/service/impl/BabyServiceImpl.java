@@ -88,8 +88,9 @@ public class BabyServiceImpl extends ServiceImpl<BabyMapper, Baby> implements Ba
         setting.setReminderStartTime(LocalTime.of(6, 0));   // 06:00
         setting.setReminderEndTime(LocalTime.of(20, 0));    // 20:00
         setting.setReminderEnabled(1);                   // 默认开启提醒
-        setting.setBedtimeTarget(LocalTime.of(20, 0));   // 晚间入睡目标20:00
-        setting.setWakeTimeTarget(LocalTime.of(7, 0));   // 早晨起床目标07:00
+        setting.setNextNapReminderEnabled(1);            // 默认开启下次小睡提醒
+        setting.setBedtimeTarget(LocalTime.of(20, 0));   // 晚间入睡目栀20:00
+        setting.setWakeTimeTarget(LocalTime.of(7, 0));   // 早晨起床目栀07:00
         sleepSettingMapper.insert(setting);
         log.info("初始化默认睡眠设置: babyId={}", babyId);
     }

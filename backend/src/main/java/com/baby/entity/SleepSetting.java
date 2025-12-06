@@ -51,6 +51,11 @@ public class SleepSetting {
     private Integer reminderEnabled;
     
     /**
+     * 是否启用下次小睡提醒: 0-否 1-是
+     */
+    private Integer nextNapReminderEnabled;
+    
+    /**
      * 晚间入睡目标时间
      */
     private LocalTime bedtimeTarget;

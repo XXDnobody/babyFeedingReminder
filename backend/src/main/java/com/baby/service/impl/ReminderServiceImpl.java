@@ -131,35 +131,13 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         Baby baby = babyMapper.selectById(sleepRecord.getBabyId());
         if (baby == null) return null;
         
-        // 检查睡眠提醒设置
-        SleepSetting setting = getSleepSetting(sleepRecord.getBabyId());
-        if (!isSleepReminderAllowed(setting, sleepRecord.getNextNapTime())) {
-            log.info("小睡提醒时间不在设定时段内，跳过创建: babyId={}, scheduledTime={}", 
-                    sleepRecord.getBabyId(), sleepRecord.getNextNapTime());
-            return null;
-        }
-        
-        Reminder reminder = new Reminder();
-        reminder.setBabyId(sleepRecord.getBabyId());
-        reminder.setUserId(baby.getUserId());
-        reminder.setReminderType(3); // 小睡提醒
-        reminder.setTitle("小睡时间到");
-        reminder.setContent(String.format("%s该小睡啦！建议睡眠时长：%d分钟", 
-                baby.getNickname(),
-                sleepRecord.getPlannedDuration() != null ? sleepRecord.getPlannedDuration() : 60));
-        reminder.setScheduledTime(sleepRecord.getNextNapTime());
-        reminder.setSent(0);
-        reminder.setStatus(0);
-        reminder.setRelatedRecordId(sleepRecord.getId());
-        
-        save(reminder);
-        
+        // 下次小睡提醒只创建哄睡提醒，不创建小睡时间点的提醒
         // 创建哄睡提醒
         if (sleepRecord.getSoothingReminderMinutes() != null && sleepRecord.getSoothingReminderMinutes() > 0) {
-            createSoothingReminder(sleepRecord);
+            return createSoothingReminder(sleepRecord);
         }
         
-        return reminder;
+        return null;
     }
     
     @Override

@@ -101,6 +101,7 @@ public class SettingController {
             setting.setDefaultNapDuration(90);
             setting.setDefaultSoothingReminderMinutes(15);
             setting.setReminderEnabled(1);
+            setting.setNextNapReminderEnabled(1);
             setting.setReminderStartTime(java.time.LocalTime.of(6, 0));
             setting.setReminderEndTime(java.time.LocalTime.of(20, 0));
             setting.setBedtimeTarget(java.time.LocalTime.of(20, 0));

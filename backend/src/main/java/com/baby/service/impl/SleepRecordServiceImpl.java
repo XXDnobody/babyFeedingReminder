@@ -78,8 +78,14 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         
         save(record);
         
-        // 如果有下次小睡时间，创建提醒
-        if (record.getNextNapTime() != null) {
+        // 检查睡眠设置中的下次小睡提醒开关
+        SleepSetting setting = getSleepSetting(dto.getBabyId());
+        boolean nextNapReminderEnabled = setting != null && 
+                setting.getNextNapReminderEnabled() != null && 
+                setting.getNextNapReminderEnabled() == 1;
+        
+        // 如果有下次小睡时间且开启了提醒，创建提醒
+        if (record.getNextNapTime() != null && nextNapReminderEnabled) {
             reminderService.createNapReminder(record);
         }
         
@@ -98,6 +104,15 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         record.setPlannedDuration(getRecommendedNapDuration(ageInMonths));
         
         save(record);
+        
+        // 检查是否需要创建下次小睡提醒（从睡眠设置中获取）
+        SleepSetting setting = getSleepSetting(babyId);
+        if (setting != null && setting.getNextNapReminderEnabled() != null && setting.getNextNapReminderEnabled() == 1) {
+            // 如果开启了下次小睡提醒，计算并保存下次小睡时间和哄睡提醒时间
+            // 注意：此时还未结束小睡，不创建提醒，只是做个标记
+            // 实际提醒在 endNap 时创建
+        }
+        
         return record;
     }
     
@@ -135,14 +150,23 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         LocalDateTime nextNapTime = calculateNextNapTime(record.getBabyId(), actualEndTime);
         record.setNextNapTime(nextNapTime);
 
+        // 获取睡眠设置
         SleepSetting setting = getSleepSetting(record.getBabyId());
         record.setSoothingReminderMinutes(setting != null ?
                 setting.getDefaultSoothingReminderMinutes() : 15);
 
         updateById(record);
 
-        // 只有在应该提醒时才创建下次小睡提醒
-        if (shouldRemind == null || shouldRemind) {
+        // 检查睡眠设置中的下次小睡提醒开关
+        boolean nextNapReminderEnabled = setting != null && 
+                setting.getNextNapReminderEnabled() != null && 
+                setting.getNextNapReminderEnabled() == 1;
+        
+        // 只有在开启了下次小睡提醒开关时才创建提醒
+        // shouldRemind 参数仅用于临时覆盖，如果为null则使用设置值
+        boolean shouldCreateReminder = (shouldRemind != null) ? shouldRemind : nextNapReminderEnabled;
+        
+        if (shouldCreateReminder) {
             reminderService.createNapReminder(record);
         }
 
@@ -175,6 +199,9 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         if (record == null) {
             throw new RuntimeException("睡眠记录不存在");
         }
+        
+        // 记录原始的endTime，用于判断是否是第一次结束小睡
+        LocalDateTime originalEndTime = record.getEndTime();
 
         record.setSleepType(dto.getSleepType());
         record.setStartTime(dto.getStartTime());
@@ -185,9 +212,34 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         if (dto.getEndTime() != null && dto.getStartTime() != null) {
             long minutes = ChronoUnit.MINUTES.between(dto.getStartTime(), dto.getEndTime());
             record.setDuration((int) minutes);
+            
+            // 如果是小睡且是第一次设置结束时间，需要计算下次小睡时间并创建提醒
+            if (dto.getSleepType() == 1 && originalEndTime == null) {
+                // 计算下次小睡时间
+                LocalDateTime nextNapTime = calculateNextNapTime(record.getBabyId(), dto.getEndTime());
+                record.setNextNapTime(nextNapTime);
+                
+                // 获取睡眠设置
+                SleepSetting setting = getSleepSetting(record.getBabyId());
+                record.setSoothingReminderMinutes(setting != null ?
+                        setting.getDefaultSoothingReminderMinutes() : 15);
+            }
         }
 
         updateById(record);
+        
+        // 如果是小睡且是第一次结束，检查是否需要创建下次小睡提醒
+        if (dto.getSleepType() == 1 && originalEndTime == null && dto.getEndTime() != null) {
+            SleepSetting setting = getSleepSetting(record.getBabyId());
+            boolean nextNapReminderEnabled = setting != null && 
+                    setting.getNextNapReminderEnabled() != null && 
+                    setting.getNextNapReminderEnabled() == 1;
+            
+            if (nextNapReminderEnabled && record.getNextNapTime() != null) {
+                reminderService.createNapReminder(record);
+            }
+        }
+        
         return record;
     }
     
