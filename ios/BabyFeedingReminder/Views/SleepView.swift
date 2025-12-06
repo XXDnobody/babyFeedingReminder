@@ -356,7 +356,9 @@ struct EditSleepRecordView: View {
     private var title: String { isEditMode ? "编辑睡眠记录" : "添加睡眠记录" }
     
     var duration: Int {
-        max(0, Int(endTime.timeIntervalSince(startTime) / 60))
+        let calculatedMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
+        // 如果开始时间和结束时间相同，按1分钟计算
+        return max(1, calculatedMinutes)
     }
     
     var body: some View {
@@ -442,7 +444,7 @@ struct EditSleepRecordView: View {
                             dismiss()
                         }
                     }
-                    .disabled(duration <= 0 && !isEditMode)  // 编辑模式始终可保存
+                    .disabled(endTime < startTime && !isEditMode)  // 编辑模式始终可保存，仅当结束时间早于开始时间时禁用
                 }
             }
             .onAppear {
@@ -560,7 +562,9 @@ struct EndNapConfirmationView: View {
     @State private var remark = ""
 
     private var duration: Int {
-        max(0, Int(endTime.timeIntervalSince(startTime) / 60))
+        let calculatedMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
+        // 如果开始时间和结束时间相同，按1分钟计算
+        return max(1, calculatedMinutes)
     }
 
     var body: some View {
@@ -609,7 +613,7 @@ struct EndNapConfirmationView: View {
                         onConfirm(quality, endTime, remark.isEmpty ? nil : remark)
                         dismiss()
                     }
-                    .disabled(duration <= 0)
+                    .disabled(endTime < startTime)
                 }
             }
             .onAppear {

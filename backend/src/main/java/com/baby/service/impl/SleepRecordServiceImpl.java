@@ -57,8 +57,9 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         
         // 计算睡眠时长
         if (dto.getEndTime() != null && dto.getStartTime() != null) {
+            // 如果开始时间和结束时间相同，按1分钟计算
             long minutes = ChronoUnit.MINUTES.between(dto.getStartTime(), dto.getEndTime());
-            record.setDuration((int) minutes);
+            record.setDuration(minutes > 0 ? (int) minutes : 1);
         }
         
         // 设置推荐睡眠时长
@@ -142,9 +143,9 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         record.setEndTime(actualEndTime);
         record.setQuality(quality);
 
-        // 计算实际睡眠时长
+        // 计算实际睡眠时长，如果开始时间和结束时间相同，按1分钟计算
         long minutes = ChronoUnit.MINUTES.between(record.getStartTime(), actualEndTime);
-        record.setDuration((int) minutes);
+        record.setDuration(minutes > 0 ? (int) minutes : 1);
 
         // 计算下次小睡时间
         LocalDateTime nextNapTime = calculateNextNapTime(record.getBabyId(), actualEndTime);
@@ -210,8 +211,9 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         record.setRemark(dto.getRemark());
 
         if (dto.getEndTime() != null && dto.getStartTime() != null) {
+            // 计算睡眠时长，如果开始时间和结束时间相同，按1分钟计算
             long minutes = ChronoUnit.MINUTES.between(dto.getStartTime(), dto.getEndTime());
-            record.setDuration((int) minutes);
+            record.setDuration(minutes > 0 ? (int) minutes : 1);
             
             // 如果是小睡且是第一次设置结束时间，需要计算下次小睡时间并创建提醒
             if (dto.getSleepType() == 1 && originalEndTime == null) {
