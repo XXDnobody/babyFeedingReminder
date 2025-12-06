@@ -72,6 +72,7 @@ public class BabyServiceImpl extends ServiceImpl<BabyMapper, Baby> implements Ba
         setting.setReminderEnabled(1);     // 默认开启提醒
         setting.setRefrigeratedThawMinutes(15);  // 冷藏解冻提前15分钟
         setting.setFrozenThawMinutes(30);        // 冷冻解冻提前30分钟
+        setting.setDefaultNextMilkSource(0);     // 默认不提醒
         feedingSettingMapper.insert(setting);
         log.info("初始化默认喂养设置: babyId={}", babyId);
     }

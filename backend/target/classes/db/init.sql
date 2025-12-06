@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `feeding_setting` (
     `reminder_enabled` TINYINT DEFAULT 1 COMMENT '是否启用提醒: 0-否 1-是',
     `refrigerated_thaw_minutes` INT DEFAULT 15 COMMENT '冷藏母乳解冻提前时间（分钟）',
     `frozen_thaw_minutes` INT DEFAULT 30 COMMENT '冷冻母乳解冻提前时间（分钟）',
+    `default_next_milk_source` TINYINT DEFAULT 0 COMMENT '默认下一顿奶源: 0-不提醒 1-亲喂/现冲 2-冷藏母乳 3-冷冻母乳',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除: 0-未删除 1-已删除'

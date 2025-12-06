@@ -85,6 +85,11 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
         
         save(record);
         
+        // 保存用户选择的下一顿奶源到设置中
+        if (dto.getNextMilkSource() != null) {
+            updateDefaultNextMilkSource(dto.getBabyId(), dto.getNextMilkSource());
+        }
+        
         // 创建喂奶提醒（仅当nextMilkSource不为null且大于0时）
         if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
             reminderService.createFeedingReminder(record);
@@ -285,5 +290,16 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
     private FeedingSetting getFeedingSetting(Long babyId) {
         return feedingSettingMapper.selectOne(
                 new LambdaQueryWrapper<FeedingSetting>().eq(FeedingSetting::getBabyId, babyId));
+    }
+    
+    /**
+     * 更新默认下一顿奶源设置
+     */
+    private void updateDefaultNextMilkSource(Long babyId, Integer nextMilkSource) {
+        FeedingSetting setting = getFeedingSetting(babyId);
+        if (setting != null) {
+            setting.setDefaultNextMilkSource(nextMilkSource);
+            feedingSettingMapper.updateById(setting);
+        }
     }
 }

@@ -151,6 +151,7 @@ struct FeedingSetting: Codable {
     var reminderEnabled: Int
     var refrigeratedThawMinutes: Int
     var frozenThawMinutes: Int
+    var defaultNextMilkSource: Int?  // 默认下一顿奶源
 }
 
 /// 睡眠设置模型

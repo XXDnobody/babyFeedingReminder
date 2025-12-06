@@ -42,6 +42,7 @@ public class SettingController {
             setting.setRefrigeratedThawMinutes(15);
             setting.setFrozenThawMinutes(30);
             setting.setReminderEnabled(1);
+            setting.setDefaultNextMilkSource(0);
         } else {
             // 如果存在设置但时间为null，设置默认值
             if (setting.getReminderStartTime() == null) {

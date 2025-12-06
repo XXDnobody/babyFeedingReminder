@@ -216,6 +216,7 @@ struct FeedingRecordRow: View {
 // MARK: - 编辑喂养记录视图
 struct EditFeedingRecordView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appState: AppState
     @ObservedObject var viewModel: FeedingViewModel
     let record: FeedingRecord?  // nil 表示新增，否则是编辑
     
@@ -227,6 +228,7 @@ struct EditFeedingRecordView: View {
     @State private var nextMilkSource = 0  // 0-不提醒 1-亲喂/现冲 2-冷藏母乳 3-冷冻母乳
     @State private var remark = ""
     @State private var showDeleteAlert = false
+    @State private var isInitialized = false  // 标记是否已初始化
     
     private var isEditMode: Bool { record != nil }
     private var title: String { isEditMode ? "编辑喂养记录" : "添加喂养记录" }
@@ -418,20 +420,37 @@ struct EditFeedingRecordView: View {
                 }
             }
             .onAppear {
-                if let record = record {
-                    // 编辑模式：使用记录中的值
-                    feedingType = record.feedingType
-                    milkSource = record.milkSource ?? 1
-                    startTime = record.startTime
-                    amount = record.amount ?? 120
-                    duration = record.duration ?? 20
-                    remark = record.remark ?? ""
-                } else {
-                    // 新增模式：使用喂养设置的默认值
-                    if let setting = viewModel.feedingSetting {
-                        feedingType = setting.defaultFeedingType
-                        amount = setting.defaultAmount
-                        duration = setting.defaultDuration
+                Task {
+                    // 确保喂养设置已加载
+                    if viewModel.feedingSetting == nil, let babyId = appState.selectedBaby?.id {
+                        await viewModel.loadFeedingSetting(babyId: babyId)
+                    }
+                    
+                    // 初始化表单值
+                    await MainActor.run {
+                        if !isInitialized {
+                            if let record = record {
+                                // 编辑模式：使用记录中的值
+                                feedingType = record.feedingType
+                                milkSource = record.milkSource ?? 1
+                                startTime = record.startTime
+                                amount = record.amount ?? 120
+                                duration = record.duration ?? 20
+                                remark = record.remark ?? ""
+                            } else {
+                                // 新增模式：使用喂养设置的默认值
+                                if let setting = viewModel.feedingSetting {
+                                    feedingType = setting.defaultFeedingType
+                                    amount = setting.defaultAmount
+                                    duration = setting.defaultDuration
+                                    // 使用上次选择的下一顿奶源
+                                    if let defaultNext = setting.defaultNextMilkSource {
+                                        nextMilkSource = defaultNext
+                                    }
+                                }
+                            }
+                            isInitialized = true
+                        }
                     }
                 }
             }

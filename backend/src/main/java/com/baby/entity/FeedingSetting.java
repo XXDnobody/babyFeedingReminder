@@ -64,6 +64,11 @@ public class FeedingSetting {
      */
     private Integer frozenThawMinutes;
     
+    /**
+     * 默认下一顿奶源: 0-不提醒 1-亲喂/现冲 2-冷藏母乳 3-冷冻母乳
+     */
+    private Integer defaultNextMilkSource;
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     
