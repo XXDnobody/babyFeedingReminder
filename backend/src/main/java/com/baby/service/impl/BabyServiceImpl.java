@@ -67,8 +67,8 @@ public class BabyServiceImpl extends ServiceImpl<BabyMapper, Baby> implements Ba
         setting.setDefaultAmount(120);     // 默认120ml
         setting.setDefaultDuration(20);    // 默认20分钟
         setting.setDefaultInterval(180);   // 默认间隔3小时
-        setting.setReminderStartTime(LocalTime.of(6, 0));   // 06:00
-        setting.setReminderEndTime(LocalTime.of(22, 0));    // 22:00
+        setting.setReminderStartTime("06:00:00");   // 06:00
+        setting.setReminderEndTime("22:00:00");    // 22:00
         setting.setReminderEnabled(1);     // 默认开启提醒
         setting.setRefrigeratedThawMinutes(15);  // 冷藏解冻提前15分钟
         setting.setFrozenThawMinutes(30);        // 冷冻解冻提前30分钟

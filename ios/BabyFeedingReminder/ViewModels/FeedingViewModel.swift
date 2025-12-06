@@ -29,7 +29,8 @@ class FeedingViewModel: ObservableObject {
     @Published var selectedFeedingType: Int = 0          // 0=全部, 1=母乳, 2=奶粉, 3=混合
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+    @Published var feedingSetting: FeedingSetting?       // 喂养设置
+
     private let network = NetworkService.shared
     private var babyId: Int64?
     
@@ -62,9 +63,12 @@ class FeedingViewModel: ObservableObject {
     func loadTodayRecords(babyId: Int64?) async {
         guard let babyId = babyId else { return }
         self.babyId = babyId
-        
+
         isLoading = true
         errorMessage = nil
+
+        // 同时加载喂养设置
+        await loadFeedingSetting(babyId: babyId)
         
         do {
             let records: [FeedingRecord] = try await network.request(
@@ -220,6 +224,31 @@ class FeedingViewModel: ObservableObject {
         let recordsToDelete = offsets.map { todayRecords[$0] }
         for record in recordsToDelete {
             await deleteRecord(id: record.id)
+        }
+    }
+
+    /// 加载喂养设置
+    func loadFeedingSetting(babyId: Int64) async {
+        do {
+            let setting: FeedingSetting = try await network.request(
+                endpoint: "/setting/feeding/\(babyId)"
+            )
+            feedingSetting = setting
+        } catch {
+            // 使用默认设置
+            feedingSetting = FeedingSetting(
+                id: nil,
+                babyId: babyId,
+                defaultFeedingType: 1,
+                defaultAmount: 120,
+                defaultDuration: 20,
+                defaultInterval: 180,
+                reminderStartTime: "06:00:00",
+                reminderEndTime: "22:00:00",
+                reminderEnabled: 1,
+                refrigeratedThawMinutes: 15,
+                frozenThawMinutes: 30
+            )
         }
     }
 }

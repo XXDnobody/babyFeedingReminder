@@ -258,7 +258,6 @@ struct FeedingSettingsView: View {
                 Picker("默认喂养类型", selection: $defaultFeedingType) {
                     Text("母乳").tag(1)
                     Text("奶粉").tag(2)
-                    Text("混合喂养").tag(3)
                 }
                 
                 LargeStepperView(title: "默认奶量", value: $defaultAmount, range: 30...300, step: 10, unit: "ml", color: .blue)
@@ -342,6 +341,8 @@ struct FeedingSettingsView: View {
                     defaultAmount: defaultAmount,
                     defaultDuration: defaultDuration,
                     defaultInterval: defaultInterval,
+                    reminderStartTime: "06:00:00",
+                    reminderEndTime: "22:00:00",
                     refrigeratedThawMinutes: refrigeratedThawMinutes,
                     frozenThawMinutes: frozenThawMinutes,
                     reminderEnabled: 1
@@ -376,6 +377,8 @@ struct SaveFeedingSettingRequest: Encodable {
     let defaultAmount: Int
     let defaultDuration: Int
     let defaultInterval: Int
+    let reminderStartTime: String
+    let reminderEndTime: String
     let refrigeratedThawMinutes: Int
     let frozenThawMinutes: Int
     let reminderEnabled: Int

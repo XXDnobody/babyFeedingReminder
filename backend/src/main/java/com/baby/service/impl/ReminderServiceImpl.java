@@ -387,24 +387,50 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     /**
      * 判断给定时间是否在指定的时间范围内
      * @param dateTime 要判断的日期时间
-     * @param startTime 开始时间（仅时分秒）
-     * @param endTime 结束时间（仅时分秒）
+     * @param startTimeStr 开始时间字符串（格式：HH:mm:ss）
+     * @param endTimeStr 结束时间字符串（格式：HH:mm:ss）
      * @return 是否在范围内
      */
-    private boolean isTimeInRange(LocalDateTime dateTime, LocalTime startTime, LocalTime endTime) {
-        if (startTime == null || endTime == null) {
+    private boolean isTimeInRange(LocalDateTime dateTime, String startTimeStr, String endTimeStr) {
+        if (startTimeStr == null || endTimeStr == null) {
             // 如果没有设置时间段，默认允许
             return true;
         }
-        
+
+        try {
+            LocalTime startTime = LocalTime.parse(startTimeStr);
+            LocalTime endTime = LocalTime.parse(endTimeStr);
+            LocalTime time = dateTime.toLocalTime();
+
+            // 处理跨午夜的情况（如 22:00 - 06:00）
+            if (startTime.isAfter(endTime)) {
+                // 跨午夜：时间在startTime之后 或 在endTime之前都算在范围内
+                return !time.isBefore(startTime) || !time.isAfter(endTime);
+            } else {
+                // 正常情况：时间在startTime和endTime之间
+                return !time.isBefore(startTime) && !time.isAfter(endTime);
+            }
+        } catch (Exception e) {
+            // 解析失败，默认允许
+            log.warn("时间解析失败: startTime={}, endTime={}", startTimeStr, endTimeStr, e);
+            return true;
+        }
+    }
+
+    /**
+     * 判断给定时间是否在指定的时间范围内（兼容 LocalTime 参数的版本）
+     */
+    private boolean isTimeInRange(LocalDateTime dateTime, LocalTime startTime, LocalTime endTime) {
+        if (startTime == null || endTime == null) {
+            return true;
+        }
+
         LocalTime time = dateTime.toLocalTime();
-        
+
         // 处理跨午夜的情况（如 22:00 - 06:00）
         if (startTime.isAfter(endTime)) {
-            // 跨午夜：时间在startTime之后 或 在endTime之前都算在范围内
             return !time.isBefore(startTime) || !time.isAfter(endTime);
         } else {
-            // 正常情况：时间在startTime和endTime之间
             return !time.isBefore(startTime) && !time.isAfter(endTime);
         }
     }

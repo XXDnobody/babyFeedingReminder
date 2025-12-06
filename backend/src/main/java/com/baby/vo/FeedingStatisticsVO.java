@@ -56,7 +56,7 @@ public class FeedingStatisticsVO {
     private String comparisonWithRecommended;
     
     /**
-     * 母乳/奶粉/混合喂养比例
+     * 母乳/奶粉比例
      */
     private Map<String, Double> feedingTypeRatio;
     

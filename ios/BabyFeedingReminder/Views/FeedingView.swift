@@ -394,12 +394,20 @@ struct EditFeedingRecordView: View {
             }
             .onAppear {
                 if let record = record {
+                    // 编辑模式：使用记录中的值
                     feedingType = record.feedingType
                     milkSource = record.milkSource ?? 1
                     startTime = record.startTime
                     amount = record.amount ?? 120
                     duration = record.duration ?? 20
                     remark = record.remark ?? ""
+                } else {
+                    // 新增模式：使用喂养设置的默认值
+                    if let setting = viewModel.feedingSetting {
+                        feedingType = setting.defaultFeedingType
+                        amount = setting.defaultAmount
+                        duration = setting.defaultDuration
+                    }
                 }
             }
             .alert("确认删除", isPresented: $showDeleteAlert) {

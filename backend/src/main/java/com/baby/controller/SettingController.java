@@ -37,9 +37,19 @@ public class SettingController {
             setting.setDefaultAmount(120);
             setting.setDefaultDuration(20);
             setting.setDefaultInterval(180);
+            setting.setReminderStartTime("06:00:00");
+            setting.setReminderEndTime("22:00:00");
             setting.setRefrigeratedThawMinutes(15);
             setting.setFrozenThawMinutes(30);
             setting.setReminderEnabled(1);
+        } else {
+            // 如果存在设置但时间为null，设置默认值
+            if (setting.getReminderStartTime() == null) {
+                setting.setReminderStartTime("06:00:00");
+            }
+            if (setting.getReminderEndTime() == null) {
+                setting.setReminderEndTime("22:00:00");
+            }
         }
         
         return Result.success(setting);
@@ -48,16 +58,32 @@ public class SettingController {
     @Operation(summary = "保存宝宝的喂养设置")
     @PostMapping("/feeding")
     public Result<FeedingSetting> saveFeedingSetting(@RequestBody FeedingSetting setting) {
+        // 设置默认值（如果客户端没有发送）
+        if (setting.getReminderStartTime() == null) {
+            setting.setReminderStartTime("06:00:00");
+        }
+        if (setting.getReminderEndTime() == null) {
+            setting.setReminderEndTime("22:00:00");
+        }
+
         FeedingSetting existing = feedingSettingMapper.selectOne(
                 new LambdaQueryWrapper<FeedingSetting>().eq(FeedingSetting::getBabyId, setting.getBabyId()));
-        
+
         if (existing != null) {
             setting.setId(existing.getId());
             feedingSettingMapper.updateById(setting);
         } else {
             feedingSettingMapper.insert(setting);
         }
-        
+
+        // 确保返回的数据包含所有必要的字段
+        if (setting.getReminderStartTime() == null) {
+            setting.setReminderStartTime("06:00:00");
+        }
+        if (setting.getReminderEndTime() == null) {
+            setting.setReminderEndTime("22:00:00");
+        }
+
         return Result.success(setting);
     }
     

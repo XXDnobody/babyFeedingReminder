@@ -3,7 +3,6 @@ package com.baby.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 /**
  * 喂养设置实体类
@@ -21,7 +20,7 @@ public class FeedingSetting {
     private Long babyId;
     
     /**
-     * 默认喂养类型: 1-母乳 2-奶粉 3-混合喂养
+     * 默认喂养类型: 1-母乳 2-奶粉
      */
     private Integer defaultFeedingType;
     
@@ -43,12 +42,12 @@ public class FeedingSetting {
     /**
      * 提醒时段开始时间
      */
-    private LocalTime reminderStartTime;
-    
+    private String reminderStartTime;
+
     /**
      * 提醒时段结束时间
      */
-    private LocalTime reminderEndTime;
+    private String reminderEndTime;
     
     /**
      * 是否启用提醒: 0-否 1-是

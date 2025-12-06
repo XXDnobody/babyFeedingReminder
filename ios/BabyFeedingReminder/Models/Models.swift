@@ -61,7 +61,7 @@ struct Baby: Codable, Identifiable {
 struct FeedingRecord: Codable, Identifiable {
     let id: Int64
     var babyId: Int64
-    var feedingType: Int  // 1-母乳 2-奶粉 3-混合喂养
+    var feedingType: Int  // 1-母乳 2-奶粉
     var milkSource: Int?  // 1-亲喂 2-瓶装母乳（冷藏）3-瓶装母乳（冷冻）
     var startTime: Date
     var endTime: Date?
@@ -78,7 +78,6 @@ struct FeedingRecord: Codable, Identifiable {
         switch feedingType {
         case 1: return "母乳"
         case 2: return "奶粉"
-        case 3: return "混合喂养"
         default: return "未知"
         }
     }

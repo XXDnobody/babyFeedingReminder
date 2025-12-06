@@ -20,7 +20,7 @@ public class FeedingRecord {
     private Long babyId;
     
     /**
-     * 喂养类型: 1-母乳 2-奶粉 3-混合喂养
+     * 喂养类型: 1-母乳 2-奶粉
      */
     private Integer feedingType;
     
