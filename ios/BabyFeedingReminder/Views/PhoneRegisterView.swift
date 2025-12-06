@@ -6,8 +6,9 @@ private struct FormInputStyle: ViewModifier {
         content
             .padding(.horizontal, 16)
             .frame(height: 52)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
 }
 
@@ -44,15 +45,20 @@ struct PhoneRegisterView: View {
     
     // MARK: - 主内容视图
     private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                headerSection
-                formSection
-                registerButton
-                Spacer(minLength: 40)
+        ZStack {
+            // 渐变背景
+            AppTheme.backgroundGradient
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    headerSection
+                    formSection
+                    registerButton
+                    Spacer(minLength: 40)
+                }
             }
         }
-        .background(Color(.systemBackground))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -89,11 +95,11 @@ struct PhoneRegisterView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Text("注册账号")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(AppTheme.primaryText)
             Text("注册后开始记录宝宝成长")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
         }
         .padding(.top, 20)
     }
@@ -116,7 +122,7 @@ struct PhoneRegisterView: View {
         FormFieldView(title: "手机号") {
             HStack {
                 Image(systemName: "phone.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 TextField("请输入手机号", text: $phone)
                     .keyboardType(.phonePad)
@@ -131,7 +137,7 @@ struct PhoneRegisterView: View {
         FormFieldView(title: "验证码") {
             HStack {
                 Image(systemName: "number.circle.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 TextField("请输入验证码", text: $smsCode)
                     .keyboardType(.numberPad)
@@ -147,10 +153,10 @@ struct PhoneRegisterView: View {
             Group {
                 if viewModel.countdown > 0 {
                     Text("\(viewModel.countdown)s")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                 } else {
                     Text("获取验证码")
-                        .foregroundColor(canSendSms ? .pink : .gray)
+                        .foregroundColor(canSendSms ? AppTheme.primaryBlue : AppTheme.secondaryText)
                 }
             }
             .font(.subheadline)
@@ -167,7 +173,7 @@ struct PhoneRegisterView: View {
         FormFieldView(title: "昵称（可选）") {
             HStack {
                 Image(systemName: "face.smiling")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 TextField("请输入昵称", text: $nickname)
             }
@@ -180,7 +186,7 @@ struct PhoneRegisterView: View {
         FormFieldView(title: "密码") {
             HStack {
                 Image(systemName: "lock.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 Group {
                     if isPasswordVisible {
@@ -191,7 +197,7 @@ struct PhoneRegisterView: View {
                 }
                 Button { isPasswordVisible.toggle() } label: {
                     Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                 }
             }
             .formInputStyle()
@@ -204,7 +210,7 @@ struct PhoneRegisterView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: "lock.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                         .frame(width: 24)
                     Group {
                         if isConfirmPasswordVisible {
@@ -215,7 +221,7 @@ struct PhoneRegisterView: View {
                     }
                     Button { isConfirmPasswordVisible.toggle() } label: {
                         Image(systemName: isConfirmPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
                 }
                 .formInputStyle()
@@ -235,7 +241,7 @@ struct PhoneRegisterView: View {
             HStack(alignment: .top, spacing: 8) {
                 Button { agreedTerms.toggle() } label: {
                     Image(systemName: agreedTerms ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(agreedTerms ? .pink : .gray)
+                        .foregroundColor(agreedTerms ? AppTheme.primaryBlue : AppTheme.secondaryText)
                         .font(.body)
                 }
                 
@@ -249,16 +255,16 @@ struct PhoneRegisterView: View {
     private var agreementText: some View {
         HStack(spacing: 0) {
             Text("我已阅读并同意")
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             Button { showTerms = true } label: {
                 Text("《用户服务协议》")
-                    .foregroundColor(.pink)
+                    .foregroundColor(AppTheme.primaryBlue)
             }
             Text("和")
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             Button { showPrivacy = true } label: {
                 Text("《隐私政策》")
-                    .foregroundColor(.pink)
+                    .foregroundColor(AppTheme.primaryBlue)
             }
         }
         .font(.caption)
@@ -273,7 +279,7 @@ struct PhoneRegisterView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(registerButtonGradient)
-                .cornerRadius(12)
+                .cornerRadius(AppTheme.cardRadius)
         }
         .disabled(!canRegister)
         .padding(.horizontal, 24)
@@ -281,7 +287,7 @@ struct PhoneRegisterView: View {
     
     private var registerButtonGradient: LinearGradient {
         LinearGradient(
-            colors: canRegister ? [.pink, .purple] : [.gray, .gray],
+            colors: canRegister ? [AppTheme.primaryBlue, AppTheme.secondaryBlue] : [.gray, .gray],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -338,7 +344,7 @@ private struct FormFieldView<Content: View>: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             content()
         }
     }

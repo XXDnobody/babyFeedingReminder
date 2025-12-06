@@ -26,14 +26,19 @@ struct LoginView: View {
     
     // MARK: - 主内容视图
     private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                logoSection
-                loginFormSection
-                otherLoginSection
+        ZStack {
+            // 渐变背景
+            AppTheme.backgroundGradient
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    logoSection
+                    loginFormSection
+                    otherLoginSection
+                }
             }
         }
-        .background(Color(.systemGroupedBackground))
         .alert("请先同意协议", isPresented: $showAgreementAlert) {
             Button("我知道了", role: .cancel) { }
         } message: {
@@ -78,23 +83,35 @@ struct LoginView: View {
     // MARK: - Logo区域
     private var logoSection: some View {
         VStack(spacing: 20) {
-            Image(systemName: "heart.circle.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.pink, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [AppTheme.primaryPink.opacity(0.3), AppTheme.primaryBlue.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: "heart.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [AppTheme.primaryPink, AppTheme.primaryBlue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
             
             Text("宝宝成长记录")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(AppTheme.primaryText)
             
             Text("科学育儿，陪伴成长")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
         }
         .padding(.top, 60)
         .padding(.bottom, 40)
@@ -116,7 +133,7 @@ struct LoginView: View {
     private var phoneInputField: some View {
         HStack {
             Image(systemName: "phone.fill")
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 24)
             TextField("请输入手机号", text: $phone)
                 .keyboardType(.phonePad)
@@ -124,14 +141,15 @@ struct LoginView: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 52)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .background(Color.white)
+        .cornerRadius(AppTheme.cardRadius)
+        .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
     private var passwordInputField: some View {
         HStack {
             Image(systemName: "lock.fill")
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 24)
             if isPasswordVisible {
                 TextField("请输入密码", text: $password)
@@ -140,13 +158,14 @@ struct LoginView: View {
             }
             Button(action: { isPasswordVisible.toggle() }) {
                 Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
             }
         }
         .padding(.horizontal, 16)
         .frame(height: 52)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .background(Color.white)
+        .cornerRadius(AppTheme.cardRadius)
+        .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
     private var forgotPasswordButton: some View {
@@ -156,7 +175,7 @@ struct LoginView: View {
                 showForgotPassword = true
             }
             .font(.subheadline)
-            .foregroundColor(.pink)
+            .foregroundColor(AppTheme.primaryBlue)
         }
     }
     
@@ -168,14 +187,14 @@ struct LoginView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(loginButtonGradient)
-                .cornerRadius(12)
+                .cornerRadius(AppTheme.cardRadius)
         }
         .disabled(!canLogin)
     }
     
     private var loginButtonGradient: LinearGradient {
         LinearGradient(
-            colors: canLogin ? [.pink, .purple] : [.gray, .gray],
+            colors: canLogin ? [AppTheme.primaryBlue, AppTheme.secondaryBlue] : [.gray, .gray],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -185,9 +204,9 @@ struct LoginView: View {
         Button(action: { showRegister = true }) {
             HStack {
                 Text("还没有账号？")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.secondaryText)
                 Text("立即注册")
-                    .foregroundColor(.pink)
+                    .foregroundColor(AppTheme.primaryBlue)
                     .fontWeight(.medium)
             }
             .font(.subheadline)
@@ -199,7 +218,7 @@ struct LoginView: View {
         HStack(alignment: .top, spacing: 8) {
             Button(action: { agreedTerms.toggle() }) {
                 Image(systemName: agreedTerms ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(agreedTerms ? .pink : .gray)
+                    .foregroundColor(agreedTerms ? AppTheme.primaryBlue : AppTheme.secondaryText)
                     .font(.body)
             }
             
@@ -211,19 +230,19 @@ struct LoginView: View {
     private var agreementText: some View {
         HStack(spacing: 0) {
             Text("我已阅读并同意")
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             
             Button(action: { showTerms = true }) {
                 Text("《用户服务协议》")
-                    .foregroundColor(.pink)
+                    .foregroundColor(AppTheme.primaryBlue)
             }
             
             Text("和")
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             
             Button(action: { showPrivacy = true }) {
                 Text("《隐私政策》")
-                    .foregroundColor(.pink)
+                    .foregroundColor(AppTheme.primaryBlue)
             }
         }
         .font(.caption)
@@ -250,14 +269,14 @@ struct LoginView: View {
     private var otherLoginDivider: some View {
         HStack {
             Rectangle()
-                .fill(Color(.systemGray4))
+                .fill(AppTheme.secondaryText.opacity(0.3))
                 .frame(height: 1)
             Text("其他登录方式")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
                 .padding(.horizontal, 8)
             Rectangle()
-                .fill(Color(.systemGray4))
+                .fill(AppTheme.secondaryText.opacity(0.3))
                 .frame(height: 1)
         }
     }
@@ -378,21 +397,24 @@ struct LoginView: View {
 struct LoadingOverlay: View {
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
+            Color.black.opacity(0.3)
                 .ignoresSafeArea()
             
             VStack(spacing: 16) {
                 ProgressView()
                     .scaleEffect(1.5)
-                    .tint(.white)
+                    .tint(AppTheme.primaryBlue)
                 
                 Text("登录中...")
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.primaryText)
                     .font(.headline)
             }
             .padding(32)
-            .background(Color(.systemGray5).opacity(0.9))
-            .cornerRadius(16)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                    .fill(Color.white)
+                    .shadow(color: AppTheme.cardShadowColor, radius: 12, x: 0, y: 4)
+            )
         }
     }
 }

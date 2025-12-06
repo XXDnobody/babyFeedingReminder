@@ -9,90 +9,103 @@ struct FeedingView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 固定标题区域
-                HStack {
-                    Text("喂养记录")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-                .background(Color(.systemBackground))
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
                 
-                // 网络状态提示
-                if !networkMonitor.isConnected {
+                VStack(spacing: 0) {
+                    // 固定标题区域
                     HStack {
-                        Image(systemName: "wifi.slash")
-                            .foregroundColor(.red)
-                        Text("网络不见了，请检查网络")
-                            .foregroundColor(.red)
-                            .font(.caption)
+                        Text("喂养记录")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
                         Spacer()
+                        
+                        // 奶瓶装饰图标
+                        Image(systemName: "drop.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.feedingColor.opacity(0.6))
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .background(Color.red.opacity(0.1))
-                }
-
-                // 喂养类型选择器 - 固定不滚动
-                FeedingTypeSelector(
-                    selectedType: $viewModel.selectedFeedingType,
-                    breastCount: viewModel.breastMilkCount,
-                    formulaCount: viewModel.formulaCount
-                )
-                .padding()
-                
-                // 今日喂养记录列表
-                List {
-                    Section {
-                        ForEach(viewModel.todayRecords) { record in
-                            FeedingRecordRow(record: record)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    editingRecord = record
-                                }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    
+                    // 网络状态提示
+                    if !networkMonitor.isConnected {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                                .foregroundColor(.red)
+                            Text("网络不见了，请检查网络")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                            Spacer()
                         }
-                        .onDelete { offsets in
-                            Task {
-                                await viewModel.deleteRecords(at: offsets)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.1))
+                    }
+
+                    // 喂养类型选择器
+                    FeedingTypeSelector(
+                        selectedType: $viewModel.selectedFeedingType,
+                        breastCount: viewModel.breastMilkCount,
+                        formulaCount: viewModel.formulaCount
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    
+                    // 今日喂养记录列表
+                    List {
+                        Section {
+                            ForEach(viewModel.todayRecords) { record in
+                                FeedingRecordRow(record: record)
+                                    .listRowBackground(Color.clear)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        editingRecord = record
+                                    }
+                            }
+                            .onDelete { offsets in
+                                Task {
+                                    await viewModel.deleteRecords(at: offsets)
+                                }
+                            }
+                        } header: {
+                            HStack {
+                                Text("今日记录")
+                                Spacer()
+                                Text("共\(viewModel.todayRecords.count)次，\(viewModel.totalAmount)ml")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
-                    } header: {
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .refreshable {
+                        await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
+                    }
+                    
+                    // 底部添加按钮
+                    Button {
+                        showAddRecord = true
+                    } label: {
                         HStack {
-                            Text("今日记录")
-                            Spacer()
-                            Text("共\(viewModel.todayRecords.count)次，\(viewModel.totalAmount)ml")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                            Text("添加喂养记录")
+                                .fontWeight(.semibold)
                         }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(AppTheme.primaryButtonGradient)
+                        .cornerRadius(AppTheme.cardRadius)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
                 }
-                .listStyle(.insetGrouped)
-                .refreshable {
-                    await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
-                }
-                
-                // 底部添加按钮 - 方便单手操作
-                Button {
-                    showAddRecord = true
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                        Text("添加喂养记录")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(16)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
             }
             .navigationBarHidden(true)
         }
@@ -148,7 +161,7 @@ struct FeedingTypeButton: View {
         Button {
             selectedType = type
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.title2)
                 HStack(spacing: 2) {
@@ -162,13 +175,18 @@ struct FeedingTypeButton: View {
             }
             .frame(width: 75)
             .padding(.vertical, 12)
-            .background(isSelected ? Color.blue.opacity(0.1) : Color(.systemGray6))
-            .foregroundColor(isSelected ? .blue : .secondary)
+            .background(
+                isSelected 
+                    ? AppTheme.feedingColor.opacity(0.15)
+                    : Color.white
+            )
+            .foregroundColor(isSelected ? AppTheme.feedingColor : AppTheme.secondaryText)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppTheme.feedingColor : Color.clear, lineWidth: 2)
             )
+            .shadow(color: AppTheme.cardShadowColor, radius: isSelected ? 4 : 2, x: 0, y: 2)
         }
     }
 }
@@ -184,17 +202,18 @@ struct FeedingRecordRow: View {
                     Text(record.feedingTypeDescription)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                        .foregroundColor(AppTheme.primaryText)
                     
                     if let source = record.milkSourceDescription {
                         Text("(\(source))")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
                 }
                 
                 Text(timeString(record.startTime))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.secondaryText)
             }
             
             Spacer()
@@ -202,20 +221,24 @@ struct FeedingRecordRow: View {
             if let amount = record.amount {
                 Text("\(amount)ml")
                     .font(.headline)
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.feedingColor)
             }
             
             if let duration = record.duration {
                 Text("\(duration)分钟")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.secondaryText)
             }
             
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
     private func timeString(_ date: Date) -> String {

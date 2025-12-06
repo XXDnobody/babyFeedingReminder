@@ -16,62 +16,85 @@ struct ForgotPasswordView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // 标题
-                    VStack(spacing: 8) {
-                        Image(systemName: "lock.rotation")
-                            .font(.system(size: 60))
-                            .foregroundColor(.pink)
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 标题
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [AppTheme.primaryBlue.opacity(0.3), AppTheme.primaryPink.opacity(0.3)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 100, height: 100)
+                                
+                                Image(systemName: "lock.rotation")
+                                    .font(.system(size: 45))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [AppTheme.primaryBlue, AppTheme.primaryPink],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            }
+                            
+                            Text("重置密码")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                            Text("请输入您的手机号并验证")
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        .padding(.top, 40)
                         
-                        Text("重置密码")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        Text("请输入您的手机号并验证")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 40)
-                    
-                    // 表单
-                    VStack(spacing: 16) {
-                        // 手机号
-                        phoneInputField
+                        // 表单
+                        VStack(spacing: 16) {
+                            // 手机号
+                            phoneInputField
+                            
+                            // 验证码
+                            smsCodeInputField
+                            
+                            // 新密码
+                            newPasswordInputField
+                            
+                            // 确认密码
+                            confirmPasswordInputField
+                        }
+                        .padding(.horizontal, 24)
                         
-                        // 验证码
-                        smsCodeInputField
-                        
-                        // 新密码
-                        newPasswordInputField
-                        
-                        // 确认密码
-                        confirmPasswordInputField
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // 重置按钮
-                    Button(action: performReset) {
-                        Text("重置密码")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                LinearGradient(
-                                    colors: canReset ? [.pink, .purple] : [.gray, .gray],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                        // 重置按钮
+                        Button(action: performReset) {
+                            Text("重置密码")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(
+                                    LinearGradient(
+                                        colors: canReset ? [AppTheme.primaryBlue, AppTheme.secondaryBlue] : [.gray, .gray],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .cornerRadius(12)
+                                .cornerRadius(AppTheme.cardRadius)
+                        }
+                        .disabled(!canReset)
+                        .padding(.horizontal, 24)
+                        
+                        Spacer(minLength: 40)
                     }
-                    .disabled(!canReset)
-                    .padding(.horizontal, 24)
-                    
-                    Spacer(minLength: 40)
                 }
             }
-            .background(Color(.systemBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -114,10 +137,10 @@ struct ForgotPasswordView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("手机号")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             HStack {
                 Image(systemName: "phone.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 TextField("请输入手机号", text: $phone)
                     .keyboardType(.phonePad)
@@ -125,8 +148,9 @@ struct ForgotPasswordView: View {
             }
             .padding(.horizontal, 16)
             .frame(height: 52)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
         }
     }
     
@@ -134,10 +158,10 @@ struct ForgotPasswordView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("验证码")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             HStack {
                 Image(systemName: "number.circle.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 TextField("请输入验证码", text: $smsCode)
                     .keyboardType(.numberPad)
@@ -146,11 +170,11 @@ struct ForgotPasswordView: View {
                     if viewModel.countdown > 0 {
                         Text("\(viewModel.countdown)s")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                     } else {
                         Text("获取验证码")
                             .font(.subheadline)
-                            .foregroundColor(canSendSms ? .pink : .gray)
+                            .foregroundColor(canSendSms ? AppTheme.primaryBlue : AppTheme.secondaryText)
                     }
                 }
                 .buttonStyle(.plain)
@@ -161,8 +185,9 @@ struct ForgotPasswordView: View {
             }
             .padding(.horizontal, 16)
             .frame(height: 52)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
         }
     }
     
@@ -170,10 +195,10 @@ struct ForgotPasswordView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("新密码")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             HStack {
                 Image(systemName: "lock.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 if isPasswordVisible {
                     TextField("请输入新密码（至少6位）", text: $newPassword)
@@ -182,13 +207,14 @@ struct ForgotPasswordView: View {
                 }
                 Button(action: { isPasswordVisible.toggle() }) {
                     Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                 }
             }
             .padding(.horizontal, 16)
             .frame(height: 52)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
         }
     }
     
@@ -196,10 +222,10 @@ struct ForgotPasswordView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("确认密码")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
             HStack {
                 Image(systemName: "lock.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(width: 24)
                 if isConfirmPasswordVisible {
                     TextField("请再次输入新密码", text: $confirmPassword)
@@ -208,13 +234,14 @@ struct ForgotPasswordView: View {
                 }
                 Button(action: { isConfirmPasswordVisible.toggle() }) {
                     Image(systemName: isConfirmPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                 }
             }
             .padding(.horizontal, 16)
             .frame(height: 52)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
             
             if !confirmPassword.isEmpty && newPassword != confirmPassword {
                 Text("两次输入的密码不一致")

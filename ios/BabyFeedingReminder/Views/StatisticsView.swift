@@ -17,49 +17,59 @@ struct StatisticsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 固定标题区域
-                HStack {
-                    Text("统计分析")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-                .background(Color(.systemBackground))
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // 今日概览 - 放在最上方
-                        TodayStatsCard(viewModel: viewModel)
+                VStack(spacing: 0) {
+                    // 固定标题区域
+                    HStack {
+                        Text("统计分析")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
+                        Spacer()
                         
-                        // 时间段选择器 - 放在下方
-                        Picker("统计周期", selection: $selectedPeriod) {
-                            Text("近7天").tag(0)
-                            Text("近30天").tag(1)
-                            Text("全部").tag(2)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal)
-                        
-                        // 喂养统计 - 带图表
-                        FeedingStatsSection(viewModel: viewModel)
-                        
-                        // 睡眠统计 - 带图表
-                        SleepStatsSection(viewModel: viewModel)
-                        
-                        // 智能洞察
-                        InsightsSection(viewModel: viewModel)
+                        // 图表装饰图标
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.statsColor.opacity(0.6))
                     }
-                    .padding()
-                }
-                .refreshable {
-                    await viewModel.loadStatistics(
-                        babyId: appState.selectedBaby?.id,
-                        days: periodDays
-                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 20) {
+                            // 今日概览 - 放在最上方
+                            TodayStatsCard(viewModel: viewModel)
+                            
+                            // 时间段选择器
+                            Picker("统计周期", selection: $selectedPeriod) {
+                                Text("近7天").tag(0)
+                                Text("近30天").tag(1)
+                                Text("全部").tag(2)
+                            }
+                            .pickerStyle(.segmented)
+                            
+                            // 喂养统计 - 带图表
+                            FeedingStatsSection(viewModel: viewModel)
+                            
+                            // 睡眠统计 - 带图表
+                            SleepStatsSection(viewModel: viewModel)
+                            
+                            // 智能洞察
+                            InsightsSection(viewModel: viewModel)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                    }
+                    .refreshable {
+                        await viewModel.loadStatistics(
+                            babyId: appState.selectedBaby?.id,
+                            days: periodDays
+                        )
+                    }
                 }
             }
             .navigationBarHidden(true)
@@ -92,11 +102,12 @@ struct TodayStatsCard: View {
             Text("今日概览")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(AppTheme.primaryText)
             
             HStack(spacing: 0) {
                 StatItem(
                     icon: "drop.fill",
-                    color: .blue,
+                    color: AppTheme.feedingColor,
                     value: "\(viewModel.todayFeedingAmount)",
                     unit: "ml",
                     label: "喂养量"
@@ -108,7 +119,7 @@ struct TodayStatsCard: View {
                 
                 StatItem(
                     icon: "moon.fill",
-                    color: .purple,
+                    color: AppTheme.sleepColor,
                     value: viewModel.todaySleepHours,
                     unit: "",
                     label: "睡眠"
@@ -132,7 +143,7 @@ struct TodayStatsCard: View {
                 
                 StatItem(
                     icon: "moon.zzz.fill",
-                    color: .indigo,
+                    color: AppTheme.sleepColor,
                     value: "\(viewModel.todayNapCount)",
                     unit: "次",
                     label: "小睡次数"
@@ -141,9 +152,9 @@ struct TodayStatsCard: View {
             .padding(.vertical, 16)
             .padding(.horizontal, 12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                    .fill(Color.white)
+                    .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
             )
             
             // 今日分析建议
@@ -151,7 +162,7 @@ struct TodayStatsCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "lightbulb.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppTheme.statsColor)
                         .frame(width: 24, height: 24)
                         .padding(.top, 2)
                     
@@ -159,11 +170,11 @@ struct TodayStatsCard: View {
                         Text("今日建议")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(AppTheme.primaryText)
                         
                         Text(viewModel.suggestion)
                             .font(.callout)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                             .lineSpacing(4)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -171,11 +182,11 @@ struct TodayStatsCard: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.08))
+                    RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                        .fill(AppTheme.statsColor.opacity(0.1))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.orange.opacity(0.2), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                                .strokeBorder(AppTheme.statsColor.opacity(0.2), lineWidth: 1)
                         )
                 )
             }
@@ -209,7 +220,7 @@ struct StatItem: View {
                     // 睡眠时长等无单位项，可能有多行（如"3小时\n12分"）
                     Text(value)
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppTheme.primaryText)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
@@ -219,13 +230,13 @@ struct StatItem: View {
                     HStack(alignment: .lastTextBaseline, spacing: 2) {
                         Text(value)
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundColor(.primary)
+                            .foregroundColor(AppTheme.primaryText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                         
                         Text(unit)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
                 }
             }
@@ -234,7 +245,7 @@ struct StatItem: View {
             // 标签
             Text(label)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.secondaryText)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
@@ -251,6 +262,7 @@ struct FeedingStatsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("喂养分析")
                 .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
             
             VStack(alignment: .leading, spacing: 16) {
                 // 日均数据
@@ -258,10 +270,11 @@ struct FeedingStatsSection: View {
                     VStack(alignment: .leading) {
                         Text("日均奶量")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                         Text("\(viewModel.dailyAverageFeedingAmount)ml")
                             .font(.title2)
                             .fontWeight(.semibold)
+                            .foregroundColor(AppTheme.primaryText)
                     }
                     
                     Spacer()
@@ -269,10 +282,10 @@ struct FeedingStatsSection: View {
                     VStack(alignment: .trailing) {
                         Text("推荐日均")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                         Text("\(viewModel.recommendedDailyAmount)ml")
                             .font(.title2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.feedingColor)
                     }
                 }
                 
@@ -312,7 +325,7 @@ struct FeedingStatsSection: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("喂养类型分布")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                         HStack(spacing: 16) {
                             ForEach(Array(viewModel.feedingTypeRatio.keys.sorted()), id: \.self) { key in
                                 if let value = viewModel.feedingTypeRatio[key] {
@@ -322,7 +335,7 @@ struct FeedingStatsSection: View {
                                             .foregroundColor(colorForFeedingType(key))
                                         Text(key)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(AppTheme.secondaryText)
                                     }
                                 }
                             }
@@ -331,18 +344,18 @@ struct FeedingStatsSection: View {
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
         }
     }
     
     private func colorForFeedingType(_ type: String) -> Color {
         switch type {
-        case "母乳": return .pink
-        case "奶粉": return .blue
-        case "混合": return .purple
-        default: return .gray
+        case "母乳": return AppTheme.primaryPink
+        case "奶粉": return AppTheme.primaryBlue
+        case "混合": return AppTheme.sleepColor
+        default: return AppTheme.secondaryText
         }
     }
 }
@@ -844,6 +857,7 @@ struct SleepStatsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("睡眠分析")
                 .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
             
             VStack(alignment: .leading, spacing: 16) {
                 // 日均睡眠
@@ -851,10 +865,11 @@ struct SleepStatsSection: View {
                     VStack(alignment: .leading) {
                         Text("日均睡眠")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                         Text(viewModel.dailyAverageSleepHours)
                             .font(.title2)
                             .fontWeight(.semibold)
+                            .foregroundColor(AppTheme.primaryText)
                     }
                     
                     Spacer()
@@ -862,10 +877,10 @@ struct SleepStatsSection: View {
                     VStack(alignment: .trailing) {
                         Text("推荐时长")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                         Text(viewModel.recommendedSleepHours)
                             .font(.title2)
-                            .foregroundColor(.purple)
+                            .foregroundColor(AppTheme.sleepColor)
                     }
                 }
                 
@@ -908,18 +923,18 @@ struct SleepStatsSection: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("睡眠质量统计")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.secondaryText)
                     HStack(spacing: 20) {
                         QualityIndicator(label: "好", percent: viewModel.goodSleepPercent, color: .green)
-                        QualityIndicator(label: "一般", percent: viewModel.normalSleepPercent, color: .orange)
+                        QualityIndicator(label: "一般", percent: viewModel.normalSleepPercent, color: AppTheme.statsColor)
                         QualityIndicator(label: "差", percent: viewModel.poorSleepPercent, color: .red)
                     }
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
         }
     }
 }
@@ -1412,27 +1427,29 @@ struct InsightsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "lightbulb.fill")
-                    .foregroundColor(.yellow)
+                    .foregroundColor(AppTheme.statsColor)
                 Text("智能洞察")
                     .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
             }
             
             VStack(alignment: .leading, spacing: 12) {
                 if !viewModel.feedingInsight.isEmpty {
-                    InsightRow(icon: "drop.fill", color: .blue, text: viewModel.feedingInsight)
+                    InsightRow(icon: "drop.fill", color: AppTheme.feedingColor, text: viewModel.feedingInsight)
                 }
                 
                 if !viewModel.sleepInsight.isEmpty {
-                    InsightRow(icon: "moon.fill", color: .purple, text: viewModel.sleepInsight)
+                    InsightRow(icon: "moon.fill", color: AppTheme.sleepColor, text: viewModel.sleepInsight)
                 }
                 
                 if !viewModel.suggestion.isEmpty {
-                    InsightRow(icon: "star.fill", color: .orange, text: viewModel.suggestion)
+                    InsightRow(icon: "star.fill", color: AppTheme.statsColor, text: viewModel.suggestion)
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
         }
     }
 }
@@ -1450,7 +1467,7 @@ struct InsightRow: View {
             
             Text(text)
                 .font(.subheadline)
-                .foregroundColor(.primary)
+                .foregroundColor(AppTheme.primaryText)
         }
     }
 }

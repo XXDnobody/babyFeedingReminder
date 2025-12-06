@@ -8,94 +8,113 @@ struct SleepView: View {
     @State private var editingRecord: SleepRecord? = nil
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 固定标题区域
-                HStack {
-                    Text("睡眠记录")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-                .background(Color(.systemBackground))
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
                 
-                // 网络状态提示
-                if !networkMonitor.isConnected {
+                VStack(spacing: 0) {
+                    // 固定标题区域
                     HStack {
-                        Image(systemName: "wifi.slash")
-                            .foregroundColor(.red)
-                        Text("网络不见了，请检查网络")
-                            .foregroundColor(.red)
-                            .font(.caption)
+                        Text("睡眠记录")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
                         Spacer()
+                        
+                        // 月亮装饰图标
+                        Image(systemName: "moon.zzz.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.sleepColor.opacity(0.6))
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .background(Color.red.opacity(0.1))
-                }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    
+                    // 网络状态提示
+                    if !networkMonitor.isConnected {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                                .foregroundColor(.red)
+                            Text("网络不见了，请检查网络")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.1))
+                    }
 
-                // 当前睡眠状态卡片
-                CurrentSleepStatusCard(viewModel: viewModel)
-                    .environmentObject(appState)
-                    .padding()
-                
-                // 今日睡眠记录列表
-                List {
-                    Section {
-                        ForEach(viewModel.todayRecords) { record in
-                            SleepRecordRow(record: record)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    // 只有已结束的记录才能编辑
-                                    if record.endTime != nil {
-                                        editingRecord = record
+                    // 当前睡眠状态卡片
+                    CurrentSleepStatusCard(viewModel: viewModel)
+                        .environmentObject(appState)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                    
+                    // 今日睡眠记录列表
+                    List {
+                        Section {
+                            ForEach(viewModel.todayRecords) { record in
+                                SleepRecordRow(record: record)
+                                    .listRowBackground(Color.clear)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        // 只有已结束的记录才能编辑
+                                        if record.endTime != nil {
+                                            editingRecord = record
+                                        }
+                                    }
+                            }
+                            .onDelete { offsets in
+                                // 只删除已结束的记录
+                                let validOffsets = offsets.filter { viewModel.todayRecords[$0].endTime != nil }
+                                if !validOffsets.isEmpty {
+                                    Task {
+                                        await viewModel.deleteSleepRecords(at: IndexSet(validOffsets))
                                     }
                                 }
-                        }
-                        .onDelete { offsets in
-                            // 只删除已结束的记录
-                            let validOffsets = offsets.filter { viewModel.todayRecords[$0].endTime != nil }
-                            if !validOffsets.isEmpty {
-                                Task {
-                                    await viewModel.deleteSleepRecords(at: IndexSet(validOffsets))
-                                }
+                            }
+                        } header: {
+                            HStack {
+                                Text("今日记录")
+                                Spacer()
+                                Text("共\(viewModel.todayRecords.count)次，\(viewModel.totalSleepHours)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
-                    } header: {
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .refreshable {
+                        await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
+                    }
+                    
+                    // 底部添加按钮
+                    Button {
+                        showAddRecord = true
+                    } label: {
                         HStack {
-                            Text("今日记录")
-                            Spacer()
-                            Text("共\(viewModel.todayRecords.count)次，\(viewModel.totalSleepHours)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                            Text("添加小睡记录")
+                                .fontWeight(.semibold)
                         }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [AppTheme.sleepColor.opacity(0.9), AppTheme.sleepColor],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(AppTheme.cardRadius)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
                 }
-                .listStyle(.insetGrouped)
-                .refreshable {
-                    await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
-                }
-                
-                // 底部添加按钮 - 方便单手操作
-                Button {
-                    showAddRecord = true
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                        Text("添加小睡记录")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.purple)
-                    .foregroundColor(.white)
-                    .cornerRadius(16)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
             }
             .navigationBarHidden(true)
         }
@@ -135,23 +154,36 @@ struct CurrentSleepStatusCard: View {
             if viewModel.isNapping {
                 // 正在睡眠中
                 HStack {
-                    Image(systemName: "moon.zzz.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.purple)
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.sleepColor.opacity(0.3), AppTheme.sleepColor.opacity(0.5)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: "moon.zzz.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("正在小睡")
                             .font(.title2)
                             .fontWeight(.bold)
+                            .foregroundColor(AppTheme.primaryText)
                         
                         if let startTime = viewModel.currentNapStartTime {
                             Text("开始于 \(timeString(startTime))")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.secondaryText)
                             
                             Text("已睡 \(viewModel.currentNapDuration)")
                                 .font(.headline)
-                                .foregroundColor(.purple)
+                                .foregroundColor(AppTheme.sleepColor)
                         }
                     }
                     
@@ -161,7 +193,7 @@ struct CurrentSleepStatusCard: View {
                 // 建议睡眠时长提示
                 Text("建议本次小睡时长：\(viewModel.recommendedNapDuration)分钟")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // 大按钮 - 结束小睡
@@ -174,10 +206,10 @@ struct CurrentSleepStatusCard: View {
                         Text("结束小睡")
                             .font(.headline)
                     }
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.red)
-                    .foregroundColor(.white)
+                    .background(Color.red.opacity(0.8))
                     .cornerRadius(12)
                     .contentShape(Rectangle())
                 }
@@ -186,19 +218,32 @@ struct CurrentSleepStatusCard: View {
             } else {
                 // 清醒状态
                 HStack {
-                    Image(systemName: "sun.max.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.orange)
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.orange.opacity(0.3), Color.orange.opacity(0.5)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: "sun.max.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("宝宝正在活动")
                             .font(.title2)
                             .fontWeight(.bold)
+                            .foregroundColor(AppTheme.primaryText)
                         
                         if let nextNapTime = viewModel.nextNapTime {
                             Text("预计下次小睡：\(timeString(nextNapTime))")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                     }
                     
@@ -214,10 +259,11 @@ struct CurrentSleepStatusCard: View {
                         Text("下次小睡提醒")
                             .font(.subheadline)
                             .fontWeight(.medium)
+                            .foregroundColor(AppTheme.primaryText)
 
                         Text(viewModel.shouldRemindNextNap ? "将在小睡结束前提醒" : "不会发送提醒")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
 
                     Spacer()
@@ -245,20 +291,23 @@ struct CurrentSleepStatusCard: View {
                         Text("开始小睡")
                             .font(.headline)
                     }
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.purple)
-                    .foregroundColor(.white)
+                    .background(
+                        LinearGradient(
+                            colors: [AppTheme.sleepColor.opacity(0.9), AppTheme.sleepColor],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .cornerRadius(12)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .cardStyle()
         .sheet(isPresented: $showEndNapConfirmation) {
             EndNapConfirmationView(
                 viewModel: viewModel,
@@ -286,19 +335,26 @@ struct SleepRecordRow: View {
     var body: some View {
         HStack {
             // 睡眠类型图标
-            Image(systemName: record.sleepType == 1 ? "moon.fill" : "moon.stars.fill")
-                .foregroundColor(.purple)
-                .frame(width: 30)
+            ZStack {
+                Circle()
+                    .fill(AppTheme.sleepColor.opacity(0.2))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: record.sleepType == 1 ? "moon.fill" : "moon.stars.fill")
+                    .foregroundColor(AppTheme.sleepColor)
+                    .font(.system(size: 16))
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.sleepTypeDescription)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundColor(AppTheme.primaryText)
                 
                 HStack(spacing: 8) {
                     Text(timeRangeString)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.secondaryText)
                     
                     if let quality = record.qualityDescription {
                         Text("• \(quality)")
@@ -313,16 +369,21 @@ struct SleepRecordRow: View {
             if let duration = record.durationFormatted {
                 Text(duration)
                     .font(.subheadline)
-                    .foregroundColor(.purple)
+                    .fontWeight(.medium)
+                    .foregroundColor(AppTheme.sleepColor)
             }
             
             if record.endTime != nil {
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.secondaryText)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
     private var timeRangeString: String {

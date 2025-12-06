@@ -10,46 +10,65 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 固定标题区域
-                HStack {
-                    Text("设置")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-                .background(Color(.systemBackground))
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
                 
-                List {
-                // 宝宝信息
-                Section("宝宝信息") {
-                    if let baby = appState.selectedBaby {
-                        HStack {
-                            Circle()
-                                .fill(baby.gender == 1 ? Color.blue.opacity(0.2) : Color.pink.opacity(0.2))
-                                .frame(width: 50, height: 50)
-                                .overlay(
-                                    Image(systemName: "figure.child")
-                                        .foregroundColor(baby.gender == 1 ? .blue : .pink)
-                                )
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(baby.nickname)
-                                    .font(.headline)
-                                Text(baby.ageDescription)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                VStack(spacing: 0) {
+                    // 固定标题区域
+                    HStack {
+                        Text("设置")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
+                        Spacer()
+                        
+                        // 设置装饰图标
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    
+                    List {
+                    // 宝宝信息
+                    Section("宝宝信息") {
+                        if let baby = appState.selectedBaby {
+                            HStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: baby.gender == 1 
+                                                ? [AppTheme.primaryBlue.opacity(0.3), AppTheme.secondaryBlue.opacity(0.5)]
+                                                : [AppTheme.primaryPink.opacity(0.3), AppTheme.secondaryPink.opacity(0.5)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 50, height: 50)
+                                    .overlay(
+                                        Image(systemName: "figure.child")
+                                            .foregroundColor(baby.gender == 1 ? AppTheme.primaryBlue : AppTheme.primaryPink)
+                                    )
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(baby.nickname)
+                                        .font(.headline)
+                                        .foregroundColor(AppTheme.primaryText)
+                                    Text(baby.ageDescription)
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.secondaryText)
+                                }
+                                
+                                Spacer()
+                                
+                                Button("编辑") {
+                                    showEditBaby = true
+                                }
+                                .foregroundColor(AppTheme.primaryBlue)
                             }
-                            
-                            Spacer()
-                            
-                            Button("编辑") {
-                                showEditBaby = true
-                            }
-                        }
                         
                         // 生长指标
                         if let height = baby.height {
@@ -84,8 +103,9 @@ struct SettingsView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.pink)
+                                    .foregroundColor(AppTheme.primaryPink)
                                 Text("添加宝宝信息")
+                                    .foregroundColor(AppTheme.primaryText)
                             }
                         }
                     }
@@ -98,8 +118,9 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "drop.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.feedingColor)
                             Text("喂养偏好")
+                                .foregroundColor(AppTheme.primaryText)
                         }
                     }
                     
@@ -108,8 +129,9 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "bell.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.statsColor)
                             Text("喂养提醒设置")
+                                .foregroundColor(AppTheme.primaryText)
                         }
                     }
                 }
@@ -121,8 +143,9 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "moon.fill")
-                                .foregroundColor(.purple)
+                                .foregroundColor(AppTheme.sleepColor)
                             Text("睡眠偏好")
+                                .foregroundColor(AppTheme.primaryText)
                         }
                     }
                     
@@ -131,8 +154,9 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "bell.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.statsColor)
                             Text("睡眠提醒设置")
+                                .foregroundColor(AppTheme.primaryText)
                         }
                     }
                 }
@@ -189,6 +213,9 @@ struct SettingsView: View {
                         }
                     }
                 }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
                 }
             }
             .navigationBarHidden(true)

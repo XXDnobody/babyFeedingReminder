@@ -39,141 +39,153 @@ struct BabyFormView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                Section("基本信息") {
-                    TextField("宝宝昵称", text: $nickname)
-                        .font(.body)
-                    
-                    Picker("性别", selection: $gender) {
-                        Text("男宝宝").tag(1)
-                        Text("女宝宝").tag(0)
-                    }
-                }
+            ZStack {
+                // 渐变背景
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
                 
-                Section("出生日期") {
-                    DatePicker("选择日期", selection: $birthDate, displayedComponents: .date)
-                        .datePickerStyle(.wheel)
-                        .environment(\.locale, Locale(identifier: "zh_CN"))
-                        .labelsHidden()
-                        .frame(height: 150)
-                }
-                
-                Section("出生胎龄") {
-                    // 周数调节
-                    VStack(spacing: 4) {
-                        Text("周数")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        HStack {
-                            Button {
-                                if gestationalWeeks > 24 { gestationalWeeks -= 1 }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.pink)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            Text("\(gestationalWeeks) 周")
-                                .font(.system(size: 28, weight: .bold))
-                                .monospacedDigit()
-                            Spacer()
-                            
-                            Button {
-                                if gestationalWeeks < 44 { gestationalWeeks += 1 }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.pink)
-                            }
-                            .buttonStyle(.plain)
+                Form {
+                    Section("基本信息") {
+                        TextField("宝宝昵称", text: $nickname)
+                            .font(.body)
+                        
+                        Picker("性别", selection: $gender) {
+                            Text("男宝宝").tag(1)
+                            Text("女宝宝").tag(0)
                         }
                     }
-                    .padding(.vertical, 4)
                     
-                    // 天数调节
-                    VStack(spacing: 4) {
-                        Text("天数")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Section("出生日期") {
+                        DatePicker("选择日期", selection: $birthDate, displayedComponents: .date)
+                            .datePickerStyle(.wheel)
+                            .environment(\.locale, Locale(identifier: "zh_CN"))
+                            .labelsHidden()
+                            .frame(height: 150)
+                    }
+                    
+                    Section("出生胎龄") {
+                        // 周数调节
+                        VStack(spacing: 4) {
+                            Text("周数")
+                                .font(.caption)
+                                .foregroundColor(AppTheme.secondaryText)
+                            HStack {
+                                Button {
+                                    if gestationalWeeks > 24 { gestationalWeeks -= 1 }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(AppTheme.primaryPink)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Spacer()
+                                Text("\(gestationalWeeks) 周")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                    .monospacedDigit()
+                                Spacer()
+                                
+                                Button {
+                                    if gestationalWeeks < 44 { gestationalWeeks += 1 }
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(AppTheme.primaryPink)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // 天数调节
+                        VStack(spacing: 4) {
+                            Text("天数")
+                                .font(.caption)
+                                .foregroundColor(AppTheme.secondaryText)
+                            HStack {
+                                Button {
+                                    if gestationalDays > 0 { gestationalDays -= 1 }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(AppTheme.statsColor)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Spacer()
+                                Text("+ \(gestationalDays) 天")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                    .monospacedDigit()
+                                Spacer()
+                                
+                                Button {
+                                    if gestationalDays < 6 { gestationalDays += 1 }
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(AppTheme.statsColor)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // 显示完整胎龄
+                        Text("出生胎龄：\(gestationalWeeks)周\(gestationalDays > 0 ? "+\(gestationalDays)天" : "")")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    
+                    Section("生长指标（可选）") {
                         HStack {
-                            Button {
-                                if gestationalDays > 0 { gestationalDays -= 1 }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.orange)
-                            }
-                            .buttonStyle(.plain)
-                            
+                            Text("身高")
+                                .foregroundColor(AppTheme.primaryText)
                             Spacer()
-                            Text("+ \(gestationalDays) 天")
-                                .font(.system(size: 28, weight: .bold))
-                                .monospacedDigit()
+                            TextField("cm", text: $heightText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                            Text("cm")
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        
+                        HStack {
+                            Text("体重")
+                                .foregroundColor(AppTheme.primaryText)
                             Spacer()
-                            
-                            Button {
-                                if gestationalDays < 6 { gestationalDays += 1 }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.orange)
-                            }
-                            .buttonStyle(.plain)
+                            TextField("kg", text: $weightText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                            Text("kg")
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        
+                        HStack {
+                            Text("头围")
+                                .foregroundColor(AppTheme.primaryText)
+                            Spacer()
+                            TextField("cm", text: $headCircumferenceText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                            Text("cm")
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                     }
-                    .padding(.vertical, 4)
                     
-                    // 显示完整胎龄
-                    Text("出生胎龄：\(gestationalWeeks)周\(gestationalDays > 0 ? "+\(gestationalDays)天" : "")")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                
-                Section("生长指标（可选）") {
-                    HStack {
-                        Text("身高")
-                        Spacer()
-                        TextField("cm", text: $heightText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("cm")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("体重")
-                        Spacer()
-                        TextField("kg", text: $weightText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("kg")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("头围")
-                        Spacer()
-                        TextField("cm", text: $headCircumferenceText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("cm")
-                            .foregroundColor(.secondary)
+                    if let error = errorMessage {
+                        Section {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
                     }
                 }
-                
-                if let error = errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    }
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(isEditing ? "编辑宝宝信息" : "添加宝宝")
             .navigationBarTitleDisplayMode(.inline)
@@ -182,6 +194,7 @@ struct BabyFormView: View {
                     Button("取消") {
                         dismiss()
                     }
+                    .foregroundColor(AppTheme.primaryBlue)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -190,6 +203,7 @@ struct BabyFormView: View {
                             await saveBaby()
                         }
                     }
+                    .foregroundColor(AppTheme.primaryBlue)
                     .disabled(nickname.isEmpty || isLoading)
                 }
             }

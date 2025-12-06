@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F9THEME001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9THEMER01 /* Theme.swift */; };
 		1A0000001 /* BabyFeedingReminderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000011 /* BabyFeedingReminderApp.swift */; };
 		1A00000010 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020A /* NotificationService.swift */; };
 		1A0000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000012 /* ContentView.swift */; };
@@ -58,6 +59,7 @@
 		F9VIEWSR04 /* LegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalViews.swift; sourceTree = "<group>"; };
 		F9VIEWSR05 /* PhoneRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRegisterView.swift; sourceTree = "<group>"; };
 		F99DFFA02EE2F9FB008CAD69 /* BabyFeedingReminder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BabyFeedingReminder.entitlements; sourceTree = "<group>"; };
+		F9THEMER01 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -76,6 +78,7 @@
 				F99DFF982EE2F5FD008CAD69 /* AppDelegate.swift */,
 				1A0000011 /* BabyFeedingReminderApp.swift */,
 				1A0000012 /* ContentView.swift */,
+				F9THEMER01 /* Theme.swift */,
 				1A0000013 /* Assets.xcassets */,
 				1A0000023 /* Models */,
 				1A0000024 /* Views */,
@@ -211,6 +214,7 @@
 			files = (
 				1A0000001 /* BabyFeedingReminderApp.swift in Sources */,
 				1A0000002 /* ContentView.swift in Sources */,
+				F9THEME001 /* Theme.swift in Sources */,
 
 				1A0000004 /* Models.swift in Sources */,
 				1A0000005 /* HomeView.swift in Sources */,
