@@ -9,7 +9,8 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
+            VStack(spacing: 0) {
+                // 顶部固定内容区域（不滚动）
                 VStack(spacing: 20) {
                     // 加载状态
                     if appState.isLoadingBabies {
@@ -31,22 +32,32 @@ struct HomeView: View {
                     // 今日概览
                     if appState.selectedBaby != nil {
                         TodayOverviewSection(viewModel: viewModel)
-                        
-                        // 即将到来的提醒
-                        UpcomingRemindersSection(viewModel: viewModel)
-                            .environmentObject(appState)
-                        
-                        // 快捷操作
-                        QuickActionsSection(appState: appState)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top)
+                
+                // 即将提醒区域（可滚动）
+                if appState.selectedBaby != nil {
+                    UpcomingRemindersSection(viewModel: viewModel)
+                        .environmentObject(appState)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                }
+                
+                Spacer(minLength: 0)
+                
+                // 快捷操作固定在底部
+                if appState.selectedBaby != nil {
+                    Divider()
+                    QuickActionsSection(appState: appState)
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                        .background(Color(.systemBackground))
+                }
             }
-            .navigationTitle("宝宝喂养助手")
-            .refreshable {
-                await appState.loadBabies()
-                await viewModel.loadData(babyId: appState.selectedBaby?.id)
-            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
         }
         // 宝宝管理弹窗
         .sheet(isPresented: $showBabyManager) {
@@ -293,12 +304,19 @@ struct UpcomingRemindersSection: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding()
+                    .frame(height: 80)
             } else {
-                ForEach(viewModel.upcomingReminders.prefix(5)) { reminder in
-                    ReminderRow(reminder: reminder, viewModel: viewModel)
-                        .onTapGesture {
-                            reminderToEdit = reminder
+                // 可滚动的提醒列表
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(viewModel.upcomingReminders) { reminder in
+                            ReminderRow(reminder: reminder, viewModel: viewModel)
+                                .onTapGesture {
+                                    reminderToEdit = reminder
+                                }
                         }
+                    }
+                    .padding(.bottom, 8)
                 }
             }
         }
@@ -555,22 +573,17 @@ struct QuickActionsSection: View {
     @ObservedObject var appState: AppState
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("快捷操作")
-                .font(.headline)
+        HStack(spacing: 16) {
+            QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: .blue) {
+                appState.selectedTab = 1  // 跳转到喂养页
+            }
             
-            HStack(spacing: 16) {
-                QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: .blue) {
-                    appState.selectedTab = 1  // 跳转到喂养页
-                }
-                
-                QuickActionButton(icon: "moon.fill", title: "开始小睡", color: .purple) {
-                    appState.selectedTab = 2  // 跳转到睡眠页
-                }
-                
-                QuickActionButton(icon: "chart.bar.fill", title: "查看统计", color: .orange) {
-                    appState.selectedTab = 3  // 跳转到统计页
-                }
+            QuickActionButton(icon: "moon.fill", title: "开始小睡", color: .purple) {
+                appState.selectedTab = 2  // 跳转到睡眠页
+            }
+            
+            QuickActionButton(icon: "chart.bar.fill", title: "查看统计", color: .orange) {
+                appState.selectedTab = 3  // 跳转到统计页
             }
         }
     }
@@ -585,24 +598,23 @@ struct QuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 32))  // 更大的图标
+                    .font(.system(size: 26))
                     .foregroundColor(color)
                 
                 Text(title)
-                    .font(.subheadline)  // 更大的文字
+                    .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)  // 更大的点击区域
+            .padding(.vertical, 12)
             .padding(.horizontal, 8)
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(12)
         }
-        .buttonStyle(.plain)  // 移除默认点击效果
+        .buttonStyle(.plain)
     }
 }
 

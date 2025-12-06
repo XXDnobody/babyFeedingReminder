@@ -10,6 +10,18 @@ struct FeedingView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // 固定标题区域
+                HStack {
+                    Text("喂养记录")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .background(Color(.systemBackground))
+                
                 // 网络状态提示
                 if !networkMonitor.isConnected {
                     HStack {
@@ -25,7 +37,7 @@ struct FeedingView: View {
                     .background(Color.red.opacity(0.1))
                 }
 
-                // 喂养类型选择器
+                // 喂养类型选择器 - 固定不滚动
                 FeedingTypeSelector(
                     selectedType: $viewModel.selectedFeedingType,
                     breastCount: viewModel.breastMilkCount,
@@ -82,7 +94,7 @@ struct FeedingView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .navigationTitle("喂养记录")
+            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showAddRecord) {
             EditFeedingRecordView(viewModel: viewModel, record: nil)

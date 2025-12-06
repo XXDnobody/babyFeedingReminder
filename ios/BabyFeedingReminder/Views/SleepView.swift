@@ -9,6 +9,18 @@ struct SleepView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // 固定标题区域
+                HStack {
+                    Text("睡眠记录")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .background(Color(.systemBackground))
+                
                 // 网络状态提示
                 if !networkMonitor.isConnected {
                     HStack {
@@ -85,7 +97,7 @@ struct SleepView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .navigationTitle("睡眠记录")
+            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showAddRecord) {
             EditSleepRecordView(viewModel: viewModel, record: nil)

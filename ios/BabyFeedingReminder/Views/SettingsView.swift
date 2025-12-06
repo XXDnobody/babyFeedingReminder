@@ -10,7 +10,20 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            List {
+            VStack(spacing: 0) {
+                // 固定标题区域
+                HStack {
+                    Text("设置")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .background(Color(.systemBackground))
+                
+                List {
                 // 宝宝信息
                 Section("宝宝信息") {
                     if let baby = appState.selectedBaby {
@@ -176,8 +189,9 @@ struct SettingsView: View {
                         }
                     }
                 }
+                }
             }
-            .navigationTitle("设置")
+            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showEditBaby) {
             BabyFormView(baby: appState.selectedBaby)

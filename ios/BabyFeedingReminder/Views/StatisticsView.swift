@@ -17,38 +17,52 @@ struct StatisticsView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // 今日概览 - 放在最上方
-                    TodayStatsCard(viewModel: viewModel)
-                    
-                    // 时间段选择器 - 放在下方
-                    Picker("统计周期", selection: $selectedPeriod) {
-                        Text("近7天").tag(0)
-                        Text("近30天").tag(1)
-                        Text("全部").tag(2)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    
-                    // 喂养统计 - 带图表
-                    FeedingStatsSection(viewModel: viewModel)
-                    
-                    // 睡眠统计 - 带图表
-                    SleepStatsSection(viewModel: viewModel)
-                    
-                    // 智能洞察
-                    InsightsSection(viewModel: viewModel)
+            VStack(spacing: 0) {
+                // 固定标题区域
+                HStack {
+                    Text("统计分析")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .background(Color(.systemBackground))
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // 今日概览 - 放在最上方
+                        TodayStatsCard(viewModel: viewModel)
+                        
+                        // 时间段选择器 - 放在下方
+                        Picker("统计周期", selection: $selectedPeriod) {
+                            Text("近7天").tag(0)
+                            Text("近30天").tag(1)
+                            Text("全部").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        
+                        // 喂养统计 - 带图表
+                        FeedingStatsSection(viewModel: viewModel)
+                        
+                        // 睡眠统计 - 带图表
+                        SleepStatsSection(viewModel: viewModel)
+                        
+                        // 智能洞察
+                        InsightsSection(viewModel: viewModel)
+                    }
+                    .padding()
+                }
+                .refreshable {
+                    await viewModel.loadStatistics(
+                        babyId: appState.selectedBaby?.id,
+                        days: periodDays
+                    )
+                }
             }
-            .navigationTitle("统计分析")
-            .refreshable {
-                await viewModel.loadStatistics(
-                    babyId: appState.selectedBaby?.id,
-                    days: periodDays
-                )
-            }
+            .navigationBarHidden(true)
         }
         .onChange(of: selectedPeriod) { _, newValue in
             Task {
