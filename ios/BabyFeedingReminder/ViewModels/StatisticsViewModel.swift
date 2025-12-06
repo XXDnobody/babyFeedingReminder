@@ -130,9 +130,11 @@ class StatisticsViewModel: ObservableObject {
     private let network = NetworkService.shared
     
     /// 格式化睡眠时长显示
-    /// - Parameter minutes: 总分钟数
-    /// - Returns: 格式化后的字符串（如 "45分钟" 或 "2小时30分"）
-    private func formatSleepDuration(minutes: Int) -> String {
+    /// - Parameters:
+    ///   - minutes: 总分钟数
+    ///   - compact: 是否使用紧凑格式（用于今日概览，换行显示）
+    /// - Returns: 格式化后的字符串
+    private func formatSleepDuration(minutes: Int, compact: Bool = false) -> String {
         if minutes < 60 {
             return "\(minutes)分钟"
         } else {
@@ -141,7 +143,13 @@ class StatisticsViewModel: ObservableObject {
             if remainingMinutes == 0 {
                 return "\(hours)小时"
             } else {
-                return "\(hours)小时\(remainingMinutes)分"
+                if compact {
+                    // 紧凑格式：换行显示，适合今日概览卡片
+                    return "\(hours)小时\n\(remainingMinutes)分钟"
+                } else {
+                    // 标准格式：一行显示
+                    return "\(hours)小时\(remainingMinutes)分"
+                }
             }
         }
     }
@@ -200,7 +208,8 @@ class StatisticsViewModel: ObservableObject {
             
             if let sleep = overview.sleep {
                 let totalMinutes = sleep.totalMinutes ?? 0
-                todaySleepHours = formatSleepDuration(minutes: totalMinutes)
+                // 使用紧凑格式，换行显示小时和分钟
+                todaySleepHours = formatSleepDuration(minutes: totalMinutes, compact: true)
                 todayNapCount = sleep.napCount ?? 0
             }
         } catch {

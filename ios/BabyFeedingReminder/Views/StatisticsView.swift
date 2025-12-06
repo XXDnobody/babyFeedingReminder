@@ -77,8 +77,9 @@ struct TodayStatsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("今日概览")
                 .font(.headline)
+                .fontWeight(.semibold)
             
-            HStack(spacing: 12) {
+            HStack(spacing: 0) {
                 StatItem(
                     icon: "drop.fill",
                     color: .blue,
@@ -88,6 +89,8 @@ struct TodayStatsCard: View {
                 )
                 
                 Divider()
+                    .frame(height: 60)
+                    .padding(.horizontal, 8)
                 
                 StatItem(
                     icon: "moon.fill",
@@ -98,6 +101,8 @@ struct TodayStatsCard: View {
                 )
                 
                 Divider()
+                    .frame(height: 60)
+                    .padding(.horizontal, 8)
                 
                 StatItem(
                     icon: "chart.line.uptrend.xyaxis",
@@ -108,6 +113,8 @@ struct TodayStatsCard: View {
                 )
                 
                 Divider()
+                    .frame(height: 60)
+                    .padding(.horizontal, 8)
                 
                 StatItem(
                     icon: "moon.zzz.fill",
@@ -117,10 +124,47 @@ struct TodayStatsCard: View {
                     label: "小睡次数"
                 )
             }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+            )
+            
+            // 今日分析建议
+            if !viewModel.suggestion.isEmpty {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.orange)
+                        .frame(width: 24, height: 24)
+                        .padding(.top, 2)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("今日建议")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Text(viewModel.suggestion)
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.orange.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            }
         }
     }
 }
@@ -134,24 +178,53 @@ struct StatItem: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .font(.title2)
-            
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                Text(unit)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            // 图标容器 - 确保所有图标大小一致
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.1))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
             }
             
+            // 数值和单位 - 允许换行显示
+            VStack(spacing: 2) {
+                if unit.isEmpty {
+                    // 睡眠时长等无单位项，可能有多行（如"3小时\n12分"）
+                    Text(value)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    // 有单位的项（如奶量、次数）
+                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                        Text(value)
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        
+                        Text(unit)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .frame(height: 44)
+            
+            // 标签
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
+        .frame(height: 110)
     }
 }
 
