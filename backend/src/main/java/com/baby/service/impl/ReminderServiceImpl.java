@@ -97,7 +97,14 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
             return null;
         }
         
-        String milkType = feedingRecord.getMilkSource() == 2 ? "冷藏母乳" : "冷冻母乳";
+        // 根据解冻提前时间判断奶源类型：15分钟左右为冷藏，30分钟左右为冷冻
+        String milkType;
+        int thawMinutes = feedingRecord.getThawReminderMinutes();
+        if (thawMinutes <= 20) {
+            milkType = "冷藏母乳";
+        } else {
+            milkType = "冷冻母乳";
+        }
         
         Reminder reminder = new Reminder();
         reminder.setBabyId(feedingRecord.getBabyId());

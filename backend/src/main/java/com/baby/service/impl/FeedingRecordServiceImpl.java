@@ -64,20 +64,22 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
             record.setDuration(dto.getDuration());
         }
         
-        // 计算下次喂奶时间
-        LocalDateTime nextFeedingTime = calculateNextFeedingTime(dto.getBabyId(), dto.getStartTime());
-        record.setNextFeedingTime(nextFeedingTime);
-        
-        // 检查是否需要提前解冻
-        if (dto.getNextMilkSource() != null && dto.getNextMilkSource() >= 2) {
-            record.setNeedThaw(1);
-            FeedingSetting setting = getFeedingSetting(dto.getBabyId());
-            if (dto.getNextMilkSource() == 2) {
-                // 冷藏母乳，默认提前15分钟
-                record.setThawReminderMinutes(setting != null ? setting.getRefrigeratedThawMinutes() : 15);
-            } else {
-                // 冷冻母乳，默认提前30分钟
-                record.setThawReminderMinutes(setting != null ? setting.getFrozenThawMinutes() : 30);
+        // 只有当用户选择了提醒时，才计算并设置下次喂奶时间
+        if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
+            LocalDateTime nextFeedingTime = calculateNextFeedingTime(dto.getBabyId(), dto.getStartTime());
+            record.setNextFeedingTime(nextFeedingTime);
+            
+            // 检查是否需要提前解冻
+            if (dto.getNextMilkSource() >= 2) {
+                record.setNeedThaw(1);
+                FeedingSetting setting = getFeedingSetting(dto.getBabyId());
+                if (dto.getNextMilkSource() == 2) {
+                    // 冷藏母乳，默认提前15分钟
+                    record.setThawReminderMinutes(setting != null ? setting.getRefrigeratedThawMinutes() : 15);
+                } else {
+                    // 冷冻母乳，默认提前30分钟
+                    record.setThawReminderMinutes(setting != null ? setting.getFrozenThawMinutes() : 30);
+                }
             }
         }
         
