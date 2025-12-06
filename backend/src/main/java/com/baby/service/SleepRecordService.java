@@ -31,7 +31,7 @@ public interface SleepRecordService extends IService<SleepRecord> {
     /**
      * 结束小睡
      */
-    SleepRecord endNap(Long id, LocalDateTime endTime, Integer quality);
+    SleepRecord endNap(Long id, LocalDateTime endTime, Integer quality, Boolean shouldRemind);
     
     /**
      * 获取宝宝今日的睡眠记录

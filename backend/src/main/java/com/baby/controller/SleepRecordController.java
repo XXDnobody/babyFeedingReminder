@@ -57,10 +57,11 @@ public class SleepRecordController {
     @Operation(summary = "结束小睡")
     @PostMapping("/end/{id}")
     public Result<SleepRecord> endNap(@PathVariable Long id,
-                                      @RequestParam(required = false) 
+                                      @RequestParam(required = false)
                                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
-                                      @RequestParam(required = false) Integer quality) {
-        SleepRecord record = sleepRecordService.endNap(id, endTime, quality);
+                                      @RequestParam(required = false) Integer quality,
+                                      @RequestParam(required = false) Boolean remind) {
+        SleepRecord record = sleepRecordService.endNap(id, endTime, quality, remind);
         return Result.success(record);
     }
     

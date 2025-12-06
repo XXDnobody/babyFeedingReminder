@@ -169,11 +169,33 @@ struct CurrentSleepStatusCard: View {
                     
                     Spacer()
                 }
-                
+
+                // 提醒选项
+                HStack {
+                    Image(systemName: viewModel.shouldRemindNextNap ? "bell.fill" : "bell.slash.fill")
+                        .foregroundColor(viewModel.shouldRemindNextNap ? .orange : .gray)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("下次小睡提醒")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+
+                        Text(viewModel.shouldRemindNextNap ? "将在小睡结束前提醒" : "不会发送提醒")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: $viewModel.shouldRemindNextNap)
+                        .labelsHidden()
+                }
+                .padding(.vertical, 8)
+
                 // 大按钮 - 开始小睡
                 Button(action: {
                     Task {
-                        await viewModel.startNap(babyId: appState.selectedBaby?.id)
+                        await viewModel.startNap(babyId: appState.selectedBaby?.id, shouldRemind: viewModel.shouldRemindNextNap)
                     }
                 }) {
                     HStack {

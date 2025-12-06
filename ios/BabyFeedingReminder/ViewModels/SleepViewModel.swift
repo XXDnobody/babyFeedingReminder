@@ -10,7 +10,8 @@ class SleepViewModel: ObservableObject {
     @Published var recommendedNapDuration: Int = 90
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+    @Published var shouldRemindNextNap = true  // 持久化提醒设置
+
     private let network = NetworkService.shared
     private var babyId: Int64?
     private var timer: Timer?
@@ -35,7 +36,31 @@ class SleepViewModel: ObservableObject {
         }
         return "\(mins)分钟"
     }
-    
+
+    // 初始化时设置定时器
+    init() {
+        setupTimer()
+    }
+
+    deinit {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func setupTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.objectWillChange.send()
+            }
+        }
+    }
+
+    @MainActor
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
     func loadTodayRecords(babyId: Int64?) async {
         guard let babyId = babyId else { return }
         self.babyId = babyId
@@ -55,6 +80,16 @@ class SleepViewModel: ObservableObject {
                 currentNapStartTime = ongoingNap.startTime
                 currentNapId = ongoingNap.id
                 recommendedNapDuration = ongoingNap.plannedDuration ?? 90
+
+                // 确保定时器正在运行
+                if timer == nil {
+                    setupTimer()
+                }
+            } else {
+                // 如果没有正在进行的睡眠，停止定时器以节省资源
+                if timer != nil {
+                    stopTimer()
+                }
             }
             
             // 获取下次小睡时间
@@ -81,64 +116,121 @@ class SleepViewModel: ObservableObject {
         isLoading = false
     }
     
-    func startNap(babyId: Int64?) async {
+    func startNap(babyId: Int64?, shouldRemind: Bool = true) async {
         // 即使没有babyId也允许本地模拟开始小睡
         if let babyId = babyId {
             self.babyId = babyId
-            
+
             do {
+                // 构建请求URL，包含提醒参数
+                var endpoint = "/sleep/start/\(babyId)"
+                if !shouldRemind {
+                    endpoint += "?remind=false"
+                }
+
                 let record: SleepRecord = try await network.request(
-                    endpoint: "/sleep/start/\(babyId)",
+                    endpoint: endpoint,
                     method: "POST"
                 )
-                
+
                 isNapping = true
                 currentNapStartTime = record.startTime
                 currentNapId = record.id
                 recommendedNapDuration = record.plannedDuration ?? 90
-                
+
                 await loadTodayRecords(babyId: babyId)
                 return
-                
+
             } catch {
                 // 网络失败，继续执行本地模拟
                 errorMessage = error.localizedDescription
             }
         }
-        
+
         // 本地模拟开始小睡
         isNapping = true
         currentNapStartTime = Date()
-        currentNapId = Int64(Date().timeIntervalSince1970)
+        // 使用负数ID区分本地模拟记录
+        currentNapId = -Int64(Date().timeIntervalSince1970)
         recommendedNapDuration = 90
+
+        // 确保定时器正在运行
+        if timer == nil {
+            setupTimer()
+        }
     }
     
     func endNap(quality: Int = 1) async {
         guard currentNapId != nil else { return }
-        
+
+        var shouldStopNapping = false
+
         if let napId = currentNapId, let babyId = babyId {
             do {
+                let remindParam = shouldRemindNextNap ? "true" : "false"
                 let _: SleepRecord = try await network.request(
-                    endpoint: "/sleep/end/\(napId)?quality=\(quality)",
+                    endpoint: "/sleep/end/\(napId)?quality=\(quality)&remind=\(remindParam)",
                     method: "POST"
                 )
-                
-                isNapping = false
-                currentNapStartTime = nil
-                currentNapId = nil
-                
+
+                // 网络请求成功，停止小睡状态
+                shouldStopNapping = true
                 await loadTodayRecords(babyId: babyId)
-                return
-                
+
             } catch {
                 errorMessage = error.localizedDescription
+
+                // 检查是否是本地模拟的记录（负数ID或时间戳ID）
+                if napId < 0 || napId > 1000000000000 {
+                    // 这是本地模拟的记录，直接更新本地数据
+                    shouldStopNapping = true
+                    updateLocalNapRecord(napId: napId, quality: quality)
+                } else {
+                    // 尝试刷新数据，可能记录已在其他地方更新
+                    await loadTodayRecords(babyId: babyId)
+
+                    // 检查当前是否还在小睡状态
+                    let stillNapping = todayRecords.contains { $0.id == napId && $0.endTime == nil }
+                    if !stillNapping {
+                        shouldStopNapping = true
+                    }
+                }
+            }
+        } else {
+            // 没有babyId或napId，直接停止本地模拟
+            shouldStopNapping = true
+            if let napId = currentNapId {
+                updateLocalNapRecord(napId: napId, quality: quality)
             }
         }
-        
-        // 本地模拟结束小睡
-        isNapping = false
-        currentNapStartTime = nil
-        currentNapId = nil
+
+        if shouldStopNapping {
+            isNapping = false
+            currentNapStartTime = nil
+            currentNapId = nil
+            stopTimer()
+        }
+    }
+
+    private func updateLocalNapRecord(napId: Int64, quality: Int) {
+        if let index = todayRecords.firstIndex(where: { $0.id == napId && $0.endTime == nil }) {
+            let endTime = Date()
+            let duration = Int(endTime.timeIntervalSince(todayRecords[index].startTime) / 60)
+            todayRecords[index] = SleepRecord(
+                id: napId,
+                babyId: todayRecords[index].babyId,
+                sleepType: todayRecords[index].sleepType,
+                startTime: todayRecords[index].startTime,
+                endTime: endTime,
+                duration: duration,
+                plannedDuration: todayRecords[index].plannedDuration,
+                nextNapTime: todayRecords[index].nextNapTime,
+                soothingReminderMinutes: todayRecords[index].soothingReminderMinutes,
+                quality: quality,
+                remark: todayRecords[index].remark,
+                createTime: todayRecords[index].createTime
+            )
+        }
     }
     
     /// 添加睡眠记录（手动输入）
@@ -177,7 +269,7 @@ class SleepViewModel: ObservableObject {
         } catch {
             // 模拟添加记录
             let newRecord = SleepRecord(
-                id: Int64(Date().timeIntervalSince1970),
+                id: -Int64(Date().timeIntervalSince1970),
                 babyId: babyId,
                 sleepType: sleepType,
                 startTime: startTime,

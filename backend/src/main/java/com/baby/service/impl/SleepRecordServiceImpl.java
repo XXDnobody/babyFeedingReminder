@@ -103,55 +103,90 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
     
     @Override
     @Transactional
-    public SleepRecord endNap(Long id, LocalDateTime endTime, Integer quality) {
+    public SleepRecord endNap(Long id, LocalDateTime endTime, Integer quality, Boolean shouldRemind) {
+        // 如果ID是负数，说明是本地模拟的记录，直接返回成功
+        if (id < 0) {
+            // 创建一个模拟的返回记录
+            SleepRecord mockRecord = new SleepRecord();
+            mockRecord.setId(id);
+            mockRecord.setEndTime(endTime != null ? endTime : LocalDateTime.now());
+            mockRecord.setQuality(quality);
+            // 对于本地模拟记录，也需要计算下次小睡时间
+            LocalDateTime actualEndTime = endTime != null ? endTime : LocalDateTime.now();
+            LocalDateTime nextNapTime = calculateNextNapTime(mockRecord.getBabyId(), actualEndTime);
+            mockRecord.setNextNapTime(nextNapTime);
+            return mockRecord;
+        }
+
         SleepRecord record = getById(id);
         if (record == null) {
             throw new RuntimeException("睡眠记录不存在");
         }
-        
+
         LocalDateTime actualEndTime = endTime != null ? endTime : LocalDateTime.now();
         record.setEndTime(actualEndTime);
         record.setQuality(quality);
-        
+
         // 计算实际睡眠时长
         long minutes = ChronoUnit.MINUTES.between(record.getStartTime(), actualEndTime);
         record.setDuration((int) minutes);
-        
+
         // 计算下次小睡时间
         LocalDateTime nextNapTime = calculateNextNapTime(record.getBabyId(), actualEndTime);
         record.setNextNapTime(nextNapTime);
-        
+
         SleepSetting setting = getSleepSetting(record.getBabyId());
-        record.setSoothingReminderMinutes(setting != null ? 
+        record.setSoothingReminderMinutes(setting != null ?
                 setting.getDefaultSoothingReminderMinutes() : 15);
-        
+
         updateById(record);
-        
-        // 创建下次小睡提醒
-        reminderService.createNapReminder(record);
-        
+
+        // 只有在应该提醒时才创建下次小睡提醒
+        if (shouldRemind == null || shouldRemind) {
+            reminderService.createNapReminder(record);
+        }
+
         return record;
     }
     
     @Override
     @Transactional
     public SleepRecord updateRecord(Long id, SleepRecordDTO dto) {
+        // 如果ID是负数，说明是本地模拟的记录，直接返回模拟记录
+        if (id < 0) {
+            SleepRecord mockRecord = new SleepRecord();
+            mockRecord.setId(id);
+            mockRecord.setBabyId(dto.getBabyId());
+            mockRecord.setSleepType(dto.getSleepType());
+            mockRecord.setStartTime(dto.getStartTime());
+            mockRecord.setEndTime(dto.getEndTime());
+            mockRecord.setQuality(dto.getQuality());
+            mockRecord.setRemark(dto.getRemark());
+
+            if (dto.getEndTime() != null && dto.getStartTime() != null) {
+                long minutes = ChronoUnit.MINUTES.between(dto.getStartTime(), dto.getEndTime());
+                mockRecord.setDuration((int) minutes);
+            }
+
+            return mockRecord;
+        }
+
         SleepRecord record = getById(id);
         if (record == null) {
             throw new RuntimeException("睡眠记录不存在");
         }
-        
+
         record.setSleepType(dto.getSleepType());
         record.setStartTime(dto.getStartTime());
         record.setEndTime(dto.getEndTime());
         record.setQuality(dto.getQuality());
         record.setRemark(dto.getRemark());
-        
+
         if (dto.getEndTime() != null && dto.getStartTime() != null) {
             long minutes = ChronoUnit.MINUTES.between(dto.getStartTime(), dto.getEndTime());
             record.setDuration((int) minutes);
         }
-        
+
         updateById(record);
         return record;
     }
@@ -160,10 +195,14 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
     public List<SleepRecord> getTodayRecords(Long babyId) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
-        
+
         return list(new LambdaQueryWrapper<SleepRecord>()
                 .eq(SleepRecord::getBabyId, babyId)
-                .between(SleepRecord::getStartTime, startOfDay, endOfDay)
+                .and(wrapper -> wrapper
+                    .between(SleepRecord::getStartTime, startOfDay, endOfDay)
+                    .or()
+                    .between(SleepRecord::getEndTime, startOfDay, endOfDay)
+                )
                 .orderByDesc(SleepRecord::getStartTime));
     }
     
