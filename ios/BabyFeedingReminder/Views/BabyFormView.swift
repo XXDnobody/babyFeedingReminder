@@ -265,25 +265,8 @@ struct BabyFormView: View {
             appState.cacheSelectedBaby()
             dismiss()
         } catch {
-            // 使用本地模拟
-            let mockBaby = Baby(
-                id: Int64(Date().timeIntervalSince1970),
-                userId: appState.userId ?? 1,
-                nickname: nickname,
-                birthDate: birthDate,
-                gender: gender,
-                gestationalAge: gestationalAgeDays,
-                height: Double(heightText),
-                weight: Double(weightText),
-                headCircumference: Double(headCircumferenceText),
-                avatarUrl: nil,
-                createTime: Date(),
-                updateTime: Date()
-            )
-            appState.selectedBaby = mockBaby
-            appState.babies.append(mockBaby)
-            appState.cacheSelectedBaby()
-            dismiss()
+            // 网络失败，显示错误提示
+            errorMessage = error.localizedDescription
         }
         
         isLoading = false

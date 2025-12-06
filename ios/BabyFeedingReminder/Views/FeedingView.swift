@@ -3,12 +3,28 @@ import SwiftUI
 struct FeedingView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = FeedingViewModel()
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @State private var showAddRecord = false
     @State private var editingRecord: FeedingRecord? = nil
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // 网络状态提示
+                if !networkMonitor.isConnected {
+                    HStack {
+                        Image(systemName: "wifi.slash")
+                            .foregroundColor(.red)
+                        Text("网络不见了，请检查网络")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .background(Color.red.opacity(0.1))
+                }
+
                 // 喂养类型选择器
                 FeedingTypeSelector(
                     selectedType: $viewModel.selectedFeedingType,
@@ -77,6 +93,15 @@ struct FeedingView: View {
         .onAppear {
             Task {
                 await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
+            }
+        }
+        .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("确定") {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
             }
         }
     }

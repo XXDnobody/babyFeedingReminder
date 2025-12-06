@@ -76,23 +76,8 @@ class FeedingViewModel: ObservableObject {
             )
             allRecords = records
         } catch {
-            // 使用模拟数据
-            allRecords = [
-                FeedingRecord(
-                    id: 1, babyId: babyId, feedingType: 1, milkSource: 1,
-                    startTime: Date().addingTimeInterval(-3600 * 3),
-                    endTime: Date().addingTimeInterval(-3600 * 3 + 1200),
-                    amount: 120, duration: 20, nextFeedingTime: nil,
-                    needThaw: 0, thawReminderMinutes: nil, remark: nil, createTime: nil
-                ),
-                FeedingRecord(
-                    id: 2, babyId: babyId, feedingType: 2, milkSource: nil,
-                    startTime: Date().addingTimeInterval(-3600 * 6),
-                    endTime: Date().addingTimeInterval(-3600 * 6 + 900),
-                    amount: 150, duration: 15, nextFeedingTime: nil,
-                    needThaw: 0, thawReminderMinutes: nil, remark: nil, createTime: nil
-                )
-            ]
+            // 网络失败，清空记录并显示错误提示
+            allRecords = []
             errorMessage = error.localizedDescription
         }
         
@@ -129,23 +114,7 @@ class FeedingViewModel: ObservableObject {
             )
             await loadTodayRecords(babyId: babyId)
         } catch {
-            // 本地模拟添加
-            let newRecord = FeedingRecord(
-                id: Int64(Date().timeIntervalSince1970),
-                babyId: babyId,
-                feedingType: feedingType,
-                milkSource: feedingType == 2 ? nil : milkSource,
-                startTime: startTime,
-                endTime: nil,
-                amount: amount,
-                duration: duration,
-                nextFeedingTime: nil,
-                needThaw: 0,
-                thawReminderMinutes: nil,
-                remark: remark.isEmpty ? nil : remark,
-                createTime: Date()
-            )
-            allRecords.insert(newRecord, at: 0)
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -180,24 +149,7 @@ class FeedingViewModel: ObservableObject {
             // babyId 已经在 guard 中解包，直接使用
             await loadTodayRecords(babyId: babyId)
         } catch {
-            // 本地模拟更新
-            if let index = allRecords.firstIndex(where: { $0.id == id }) {
-                allRecords[index] = FeedingRecord(
-                    id: id,
-                    babyId: allRecords[index].babyId,
-                    feedingType: feedingType,
-                    milkSource: feedingType == 2 ? nil : milkSource,
-                    startTime: startTime,
-                    endTime: allRecords[index].endTime,
-                    amount: amount,
-                    duration: duration,
-                    nextFeedingTime: allRecords[index].nextFeedingTime,
-                    needThaw: allRecords[index].needThaw,
-                    thawReminderMinutes: allRecords[index].thawReminderMinutes,
-                    remark: remark.isEmpty ? nil : remark,
-                    createTime: allRecords[index].createTime
-                )
-            }
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -213,8 +165,7 @@ class FeedingViewModel: ObservableObject {
                 await loadTodayRecords(babyId: babyId)
             }
         } catch {
-            // 本地模拟删除
-            allRecords.removeAll { $0.id == id }
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -235,20 +186,8 @@ class FeedingViewModel: ObservableObject {
             )
             feedingSetting = setting
         } catch {
-            // 使用默认设置
-            feedingSetting = FeedingSetting(
-                id: nil,
-                babyId: babyId,
-                defaultFeedingType: 1,
-                defaultAmount: 120,
-                defaultDuration: 20,
-                defaultInterval: 180,
-                reminderStartTime: "06:00:00",
-                reminderEndTime: "22:00:00",
-                reminderEnabled: 1,
-                refrigeratedThawMinutes: 15,
-                frozenThawMinutes: 30
-            )
+            // 网络失败，不使用默认设置，显示错误提示
+            feedingSetting = nil
         }
     }
 }

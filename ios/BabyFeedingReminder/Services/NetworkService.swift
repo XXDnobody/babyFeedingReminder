@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 /// API响应包装
 struct APIResponse<T: Codable>: Codable {
@@ -17,7 +18,8 @@ enum NetworkError: Error, LocalizedError {
     case decodingError
     case serverError(String)
     case unauthorized
-    
+    case networkUnavailable
+
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "无效的URL"
@@ -25,6 +27,7 @@ enum NetworkError: Error, LocalizedError {
         case .decodingError: return "数据解析失败"
         case .serverError(let message): return message
         case .unauthorized: return "未授权，请重新登录"
+        case .networkUnavailable: return "网络不见了，请检查网络"
         }
     }
 }
@@ -57,17 +60,25 @@ class NetworkService {
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
             
-            // 尝试多种日期格式
-            let formatters = [
-                "yyyy-MM-dd'T'HH:mm:ss",
-                "yyyy-MM-dd HH:mm:ss",
-                "yyyy-MM-dd"
+            // 尝试多种日期格式，包含微秒格式
+            let formatters: [(String, Bool)] = [
+                ("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", true),  // 带微秒
+                ("yyyy-MM-dd'T'HH:mm:ss.SSS", true),     // 带毫秒
+                ("yyyy-MM-dd'T'HH:mm:ss", false),        // 标准ISO格式
+                ("yyyy-MM-dd HH:mm:ss", false),          // 空格分隔
+                ("yyyy-MM-dd", false)                    // 仅日期
             ]
             
-            for format in formatters {
+            for (format, needsFractionalSeconds) in formatters {
                 let formatter = DateFormatter()
                 formatter.dateFormat = format
                 formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+                
+                // 对于带小数秒的格式，使用locale设置
+                if needsFractionalSeconds {
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                }
+                
                 if let date = formatter.date(from: dateString) {
                     return date
                 }
@@ -113,31 +124,37 @@ class NetworkService {
             request.httpBody = try encoder.encode(AnyEncodable(body))
         }
         
-        let (data, response) = try await session.data(for: request)
+        do {
+            let (data, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw NetworkError.serverError("无效的响应")
+            }
+
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+
+            guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+                throw NetworkError.serverError("服务器错误: \(httpResponse.statusCode)")
+            }
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.serverError("无效的响应")
+            let apiResponse = try decoder.decode(APIResponse<T>.self, from: data)
+
+            if apiResponse.code != 200 {
+                throw NetworkError.serverError(apiResponse.message)
+            }
+
+            guard let responseData = apiResponse.data else {
+                throw NetworkError.noData
+            }
+
+            return responseData
+        } catch is URLError {
+            throw NetworkError.networkUnavailable
+        } catch {
+            throw error
         }
-        
-        if httpResponse.statusCode == 401 {
-            throw NetworkError.unauthorized
-        }
-        
-        guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-            throw NetworkError.serverError("服务器错误: \(httpResponse.statusCode)")
-        }
-        
-        let apiResponse = try decoder.decode(APIResponse<T>.self, from: data)
-        
-        if apiResponse.code != 200 {
-            throw NetworkError.serverError(apiResponse.message)
-        }
-        
-        guard let responseData = apiResponse.data else {
-            throw NetworkError.noData
-        }
-        
-        return responseData
     }
     
     func requestVoid(
@@ -162,25 +179,82 @@ class NetworkService {
             request.httpBody = try encoder.encode(AnyEncodable(body))
         }
         
-        let (data, response) = try await session.data(for: request)
+        do {
+            let (data, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw NetworkError.serverError("无效的响应")
+            }
+
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+
+            guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+                throw NetworkError.serverError("服务器错误: \(httpResponse.statusCode)")
+            }
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.serverError("无效的响应")
+          // 尝试解析响应检查是否成功
+            if let apiResponse = try? decoder.decode(APIResponse<EmptyResponse>.self, from: data),
+               apiResponse.code != 200 {
+                throw NetworkError.serverError(apiResponse.message)
+            }
+        } catch is URLError {
+            throw NetworkError.networkUnavailable
+        } catch {
+            throw error
         }
-        
-        if httpResponse.statusCode == 401 {
-            throw NetworkError.unauthorized
+    }
+}
+
+/// 网络监测服务
+class NetworkMonitor: ObservableObject {
+    static let shared = NetworkMonitor()
+
+    private let monitor: NWPathMonitor
+    private let queue = DispatchQueue(label: "NetworkMonitor")
+
+    @Published var isConnected = true
+    @Published var connectionType: NWInterface.InterfaceType?
+
+    private init() {
+        monitor = NWPathMonitor()
+        startMonitoring()
+    }
+
+    deinit {
+        stopMonitoring()
+    }
+
+    /// 开始监测网络
+    func startMonitoring() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isConnected = path.status == .satisfied
+                // 获取主要连接类型
+                if path.usesInterfaceType(.wifi) {
+                    self?.connectionType = .wifi
+                } else if path.usesInterfaceType(.cellular) {
+                    self?.connectionType = .cellular
+                } else if path.usesInterfaceType(.wiredEthernet) {
+                    self?.connectionType = .wiredEthernet
+                } else {
+                    self?.connectionType = .other
+                }
+
+                if !self!.isConnected {
+                    print("⚠️ 网络连接断开")
+                } else {
+                    print("✅ 网络连接正常")
+                }
+            }
         }
-        
-        guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-            throw NetworkError.serverError("服务器错误: \(httpResponse.statusCode)")
-        }
-        
-        // 尝试解析响应检查是否成功
-        if let apiResponse = try? decoder.decode(APIResponse<EmptyResponse>.self, from: data),
-           apiResponse.code != 200 {
-            throw NetworkError.serverError(apiResponse.message)
-        }
+        monitor.start(queue: queue)
+    }
+
+    /// 停止监测网络
+    func stopMonitoring() {
+        monitor.cancel()
     }
 }
 
@@ -188,11 +262,11 @@ class NetworkService {
 
 struct AnyEncodable: Encodable {
     private let encode: (Encoder) throws -> Void
-    
+
     init<T: Encodable>(_ wrapped: T) {
         encode = wrapped.encode
     }
-    
+
     func encode(to encoder: Encoder) throws {
         try encode(encoder)
     }

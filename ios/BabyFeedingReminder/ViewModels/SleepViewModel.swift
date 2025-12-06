@@ -98,141 +98,97 @@ class SleepViewModel: ObservableObject {
             }
             
         } catch {
-            // 使用模拟数据
-            todayRecords = [
-                SleepRecord(
-                    id: 1, babyId: babyId, sleepType: 1,
-                    startTime: Date().addingTimeInterval(-3600 * 2),
-                    endTime: Date().addingTimeInterval(-3600),
-                    duration: 60, plannedDuration: 90,
-                    nextNapTime: Date().addingTimeInterval(3600),
-                    soothingReminderMinutes: 15, quality: 1, remark: nil, createTime: nil
-                )
-            ]
-            nextNapTime = Date().addingTimeInterval(3600)
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
+
+            // 如果当前正在小睡，确保定时器在运行
+            if isNapping && timer == nil {
+                setupTimer()
+            }
         }
         
         isLoading = false
     }
     
     func startNap(babyId: Int64?, shouldRemind: Bool = true) async {
-        // 即使没有babyId也允许本地模拟开始小睡
-        if let babyId = babyId {
-            self.babyId = babyId
-
-            do {
-                // 构建请求URL，包含提醒参数
-                var endpoint = "/sleep/start/\(babyId)"
-                if !shouldRemind {
-                    endpoint += "?remind=false"
-                }
-
-                let record: SleepRecord = try await network.request(
-                    endpoint: endpoint,
-                    method: "POST"
-                )
-
-                isNapping = true
-                currentNapStartTime = record.startTime
-                currentNapId = record.id
-                recommendedNapDuration = record.plannedDuration ?? 90
-
-                await loadTodayRecords(babyId: babyId)
-                return
-
-            } catch {
-                // 网络失败，继续执行本地模拟
-                errorMessage = error.localizedDescription
-            }
+        guard let babyId = babyId else {
+            errorMessage = "请先选择宝宝"
+            return
         }
 
-        // 本地模拟开始小睡
-        isNapping = true
-        currentNapStartTime = Date()
-        // 使用负数ID区分本地模拟记录
-        currentNapId = -Int64(Date().timeIntervalSince1970)
-        recommendedNapDuration = 90
+        self.babyId = babyId
 
-        // 确保定时器正在运行
-        if timer == nil {
-            setupTimer()
+        do {
+            // 构建请求体，包含必要的睡眠信息
+            let request = StartNapRequest(
+                babyId: babyId,
+                sleepType: 1,  // 1-小睡
+                startTime: Date()
+            )
+            
+            let record: SleepRecord = try await network.request(
+                endpoint: "/sleep",
+                method: "POST",
+                body: request
+            )
+
+            isNapping = true
+            currentNapStartTime = record.startTime
+            currentNapId = record.id
+            recommendedNapDuration = record.plannedDuration ?? 90
+
+            await loadTodayRecords(babyId: babyId)
+
+        } catch {
+            // 网络失败，显示错误提示，不允许模拟
+            errorMessage = error.localizedDescription
         }
     }
     
-    func endNap(quality: Int = 1) async {
+    func endNap(quality: Int = 1, endTime: Date? = nil, remark: String? = nil) async {
         guard currentNapId != nil else { return }
+        guard let babyId = babyId else { return }
 
-        var shouldStopNapping = false
+        let napId = currentNapId!
+        let actualEndTime = endTime ?? Date()
 
-        if let napId = currentNapId, let babyId = babyId {
-            do {
-                let remindParam = shouldRemindNextNap ? "true" : "false"
-                let _: SleepRecord = try await network.request(
-                    endpoint: "/sleep/end/\(napId)?quality=\(quality)&remind=\(remindParam)",
-                    method: "POST"
-                )
+        do {
+            // 使用PUT方法更新睡眠记录，发送完整的数据
+            guard let startTime = currentNapStartTime else { return }
+            
+            let duration = Int(actualEndTime.timeIntervalSince(startTime) / 60)
+            
+            let request = UpdateSleepRecordRequest(
+                babyId: babyId,
+                sleepType: 1,  // 小睡
+                startTime: startTime,
+                endTime: actualEndTime,
+                duration: duration,
+                quality: quality,
+                remark: remark
+            )
+            
+            let _: SleepRecord = try await network.request(
+                endpoint: "/sleep/\(napId)",
+                method: "PUT",
+                body: request
+            )
 
-                // 网络请求成功，停止小睡状态
-                shouldStopNapping = true
-                await loadTodayRecords(babyId: babyId)
-
-            } catch {
-                errorMessage = error.localizedDescription
-
-                // 检查是否是本地模拟的记录（负数ID或时间戳ID）
-                if napId < 0 || napId > 1000000000000 {
-                    // 这是本地模拟的记录，直接更新本地数据
-                    shouldStopNapping = true
-                    updateLocalNapRecord(napId: napId, quality: quality)
-                } else {
-                    // 尝试刷新数据，可能记录已在其他地方更新
-                    await loadTodayRecords(babyId: babyId)
-
-                    // 检查当前是否还在小睡状态
-                    let stillNapping = todayRecords.contains { $0.id == napId && $0.endTime == nil }
-                    if !stillNapping {
-                        shouldStopNapping = true
-                    }
-                }
-            }
-        } else {
-            // 没有babyId或napId，直接停止本地模拟
-            shouldStopNapping = true
-            if let napId = currentNapId {
-                updateLocalNapRecord(napId: napId, quality: quality)
-            }
-        }
-
-        if shouldStopNapping {
+            // 网络请求成功，停止小睡状态
             isNapping = false
             currentNapStartTime = nil
             currentNapId = nil
             stopTimer()
+
+            await loadTodayRecords(babyId: babyId)
+
+        } catch {
+            // 网络失败，显示错误提示
+            errorMessage = error.localizedDescription
         }
     }
 
-    private func updateLocalNapRecord(napId: Int64, quality: Int) {
-        if let index = todayRecords.firstIndex(where: { $0.id == napId && $0.endTime == nil }) {
-            let endTime = Date()
-            let duration = Int(endTime.timeIntervalSince(todayRecords[index].startTime) / 60)
-            todayRecords[index] = SleepRecord(
-                id: napId,
-                babyId: todayRecords[index].babyId,
-                sleepType: todayRecords[index].sleepType,
-                startTime: todayRecords[index].startTime,
-                endTime: endTime,
-                duration: duration,
-                plannedDuration: todayRecords[index].plannedDuration,
-                nextNapTime: todayRecords[index].nextNapTime,
-                soothingReminderMinutes: todayRecords[index].soothingReminderMinutes,
-                quality: quality,
-                remark: todayRecords[index].remark,
-                createTime: todayRecords[index].createTime
-            )
-        }
-    }
-    
+        
     /// 添加睡眠记录（手动输入）
     func addSleepRecord(
         babyId: Int64?,
@@ -267,22 +223,7 @@ class SleepViewModel: ObservableObject {
             await loadTodayRecords(babyId: babyId)
             
         } catch {
-            // 模拟添加记录
-            let newRecord = SleepRecord(
-                id: -Int64(Date().timeIntervalSince1970),
-                babyId: babyId,
-                sleepType: sleepType,
-                startTime: startTime,
-                endTime: endTime,
-                duration: duration,
-                plannedDuration: nil,
-                nextNapTime: nil,
-                soothingReminderMinutes: nil,
-                quality: quality,
-                remark: remark.isEmpty ? nil : remark,
-                createTime: Date()
-            )
-            todayRecords.insert(newRecord, at: 0)
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -320,23 +261,7 @@ class SleepViewModel: ObservableObject {
             await loadTodayRecords(babyId: babyId)
             
         } catch {
-            // 本地模拟更新
-            if let index = todayRecords.firstIndex(where: { $0.id == id }) {
-                todayRecords[index] = SleepRecord(
-                    id: id,
-                    babyId: todayRecords[index].babyId,
-                    sleepType: sleepType,
-                    startTime: startTime,
-                    endTime: endTime,
-                    duration: duration,
-                    plannedDuration: todayRecords[index].plannedDuration,
-                    nextNapTime: todayRecords[index].nextNapTime,
-                    soothingReminderMinutes: todayRecords[index].soothingReminderMinutes,
-                    quality: quality,
-                    remark: remark.isEmpty ? nil : remark,
-                    createTime: todayRecords[index].createTime
-                )
-            }
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -352,8 +277,7 @@ class SleepViewModel: ObservableObject {
                 await loadTodayRecords(babyId: babyId)
             }
         } catch {
-            // 本地模拟删除
-            todayRecords.removeAll { $0.id == id }
+            // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
         }
     }
@@ -365,6 +289,13 @@ class SleepViewModel: ObservableObject {
             await deleteSleepRecord(id: record.id)
         }
     }
+}
+
+/// 开始小睡请求
+struct StartNapRequest: Encodable {
+    let babyId: Int64
+    let sleepType: Int
+    let startTime: Date
 }
 
 /// 添加睡眠记录请求

@@ -103,7 +103,7 @@ class HomeViewModel: ObservableObject {
             }
             
         } catch {
-            // 使用模拟数据
+            // 网络失败，数据清零并显示错误提示
             todayFeedingAmount = 0
             todayFeedingCount = 0
             todaySleepHours = "0分钟"
@@ -124,6 +124,7 @@ class HomeViewModel: ObservableObject {
             suggestion = insights.suggestion ?? ""
             
         } catch {
+            // 网络失败，清空洞察数据
             feedingInsight = ""
             sleepInsight = ""
             suggestion = ""

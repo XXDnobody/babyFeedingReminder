@@ -3,12 +3,27 @@ import SwiftUI
 struct SleepView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = SleepViewModel()
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @State private var showAddRecord = false
     @State private var editingRecord: SleepRecord? = nil
-    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // 网络状态提示
+                if !networkMonitor.isConnected {
+                    HStack {
+                        Image(systemName: "wifi.slash")
+                            .foregroundColor(.red)
+                        Text("网络不见了，请检查网络")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .background(Color.red.opacity(0.1))
+                }
+
                 // 当前睡眠状态卡片
                 CurrentSleepStatusCard(viewModel: viewModel)
                     .environmentObject(appState)
@@ -85,6 +100,15 @@ struct SleepView: View {
                 await viewModel.loadTodayRecords(babyId: appState.selectedBaby?.id)
             }
         }
+        .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("确定") {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
+        }
     }
 }
 
@@ -92,7 +116,8 @@ struct SleepView: View {
 struct CurrentSleepStatusCard: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject var viewModel: SleepViewModel
-    
+    @State private var showEndNapConfirmation = false
+
     var body: some View {
         VStack(spacing: 16) {
             if viewModel.isNapping {
@@ -129,9 +154,7 @@ struct CurrentSleepStatusCard: View {
                 
                 // 大按钮 - 结束小睡
                 Button(action: {
-                    Task {
-                        await viewModel.endNap()
-                    }
+                    showEndNapConfirmation = true
                 }) {
                     HStack {
                         Image(systemName: "stop.circle.fill")
@@ -195,7 +218,7 @@ struct CurrentSleepStatusCard: View {
                 // 大按钮 - 开始小睡
                 Button(action: {
                     Task {
-                        await viewModel.startNap(babyId: appState.selectedBaby?.id, shouldRemind: viewModel.shouldRemindNextNap)
+                        await viewModel.startNap(babyId: appState.selectedBaby?.id)
                     }
                 }) {
                     HStack {
@@ -218,8 +241,19 @@ struct CurrentSleepStatusCard: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .sheet(isPresented: $showEndNapConfirmation) {
+            EndNapConfirmationView(
+                viewModel: viewModel,
+                startTime: viewModel.currentNapStartTime ?? Date(),
+                onConfirm: { quality, endTime, remark in
+                    Task {
+                        await viewModel.endNap(quality: quality, endTime: endTime, remark: remark)
+                    }
+                }
+            )
+        }
     }
-    
+
     private func timeString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -505,5 +539,91 @@ struct QualityButton: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 结束小睡确认弹框
+struct EndNapConfirmationView: View {
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject var viewModel: SleepViewModel
+    let startTime: Date
+    let onConfirm: (Int, Date, String?) -> Void
+
+    @State private var endTime = Date()
+    @State private var quality = 1  // 1: 好, 2: 一般, 3: 差
+    @State private var remark = ""
+
+    private var duration: Int {
+        max(0, Int(endTime.timeIntervalSince(startTime) / 60))
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("睡眠信息") {
+                    HStack {
+                        Text("开始时间")
+                        Spacer()
+                        Text(timeString(startTime))
+                            .foregroundColor(.secondary)
+                    }
+
+                    DatePicker("结束时间", selection: $endTime, displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: "zh_CN"))
+
+                    HStack {
+                        Text("睡眠时长")
+                        Spacer()
+                        Text(formatDuration(duration))
+                            .foregroundColor(.purple)
+                            .fontWeight(.medium)
+                    }
+                }
+
+                Section("睡眠质量") {
+                    SleepQualitySelector(selectedQuality: $quality)
+                }
+
+                Section("备注") {
+                    TextField("添加备注...", text: $remark, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+            }
+            .navigationTitle("结束小睡")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("保存") {
+                        onConfirm(quality, endTime, remark.isEmpty ? nil : remark)
+                        dismiss()
+                    }
+                    .disabled(duration <= 0)
+                }
+            }
+            .onAppear {
+                endTime = Date()
+            }
+        }
+    }
+
+    private func timeString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    private func formatDuration(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let mins = minutes % 60
+        if hours > 0 {
+            return "\(hours)小时\(mins)分钟"
+        }
+        return "\(mins)分钟"
     }
 }
