@@ -87,27 +87,22 @@ struct LoginView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [AppTheme.primaryPink.opacity(0.3), AppTheme.primaryBlue.opacity(0.3)],
+                            colors: [AppTheme.primaryBlue, AppTheme.secondaryBlue],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 120, height: 120)
+                    .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
                 
                 Image(systemName: "heart.circle.fill")
                     .font(.system(size: 60))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [AppTheme.primaryPink, AppTheme.primaryBlue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .foregroundColor(.white)
             }
             
-            Text("宝宝成长记录")
+            Text("Baby Care")
                 .font(.system(size: 28, weight: .bold))
-                .foregroundColor(AppTheme.primaryText)
+                .foregroundColor(Color(red: 0.2, green: 0.33, blue: 0.47))
             
             Text("科学育儿，陪伴成长")
                 .font(.subheadline)
