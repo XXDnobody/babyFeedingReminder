@@ -44,19 +44,26 @@ struct MainTabView: View {
                 }
                 .tag(2)
             
+            ExcretionView()
+                .tabItem {
+                    Image(systemName: "toilet.fill")
+                    Text("排便")
+                }
+                .tag(3)
+            
             StatisticsView()
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
                     Text("统计")
                 }
-                .tag(3)
+                .tag(4)
             
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape.fill")
                     Text("设置")
                 }
-                .tag(4)
+                .tag(5)
         }
         .tint(AppTheme.primaryBlue)
     }

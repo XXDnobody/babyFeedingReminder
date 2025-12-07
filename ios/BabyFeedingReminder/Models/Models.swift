@@ -167,6 +167,35 @@ struct SleepSetting: Codable {
     var nextNapReminderEnabled: Int?
 }
 
+/// 排便排尿记录模型
+struct ExcretionRecord: Codable, Identifiable {
+    let id: Int64
+    var babyId: Int64
+    var excretionType: Int  // 1-大便 2-小便
+    var recordTime: Date
+    var color: String?      // 颜色（大便）
+    var texture: String?    // 性状（大便）
+    var amount: String?     // 量
+    var hasAbnormal: Int?   // 是否异常: 0-否 1-是
+    var remark: String?
+    var createTime: Date?
+    
+    /// 排泄类型描述
+    var excretionTypeDescription: String {
+        excretionType == 1 ? "大便" : "小便"
+    }
+    
+    /// 排泄类型图标
+    var excretionTypeIcon: String {
+        excretionType == 1 ? "toilet.fill" : "drop.fill"
+    }
+    
+    /// 是否有异常
+    var isAbnormal: Bool {
+        hasAbnormal == 1
+    }
+}
+
 /// 提醒模型
 struct Reminder: Codable, Identifiable {
     let id: Int64

@@ -290,6 +290,7 @@ struct TodayOverviewSection: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
             
+            // 第一行：喂养和睡眠
             HStack(spacing: 12) {
                 // 喂养统计
                 OverviewCard(
@@ -309,6 +310,29 @@ struct TodayOverviewSection: View {
                     value: viewModel.todaySleepHours,
                     subtitle: "\(viewModel.todayNapCount)次睡眠",
                     backgroundColor: AppTheme.sleepColor.opacity(0.1)
+                )
+            }
+            
+            // 第二行：排便统计
+            HStack(spacing: 12) {
+                // 大便统计
+                OverviewCard(
+                    icon: "toilet.fill",
+                    iconColor: AppTheme.excretionColor,
+                    title: "大便",
+                    value: "\(viewModel.todayPoopCount)次",
+                    subtitle: "今日记录",
+                    backgroundColor: AppTheme.excretionColor.opacity(0.1)
+                )
+                
+                // 小便统计
+                OverviewCard(
+                    icon: "drop.fill",
+                    iconColor: Color.yellow,
+                    title: "小便",
+                    value: "\(viewModel.todayPeeCount)次",
+                    subtitle: "今日记录",
+                    backgroundColor: Color.yellow.opacity(0.1)
                 )
             }
         }
@@ -670,8 +694,12 @@ struct QuickActionsSection: View {
                     appState.selectedTab = 2  // 跳转到睡眠页
                 }
                 
+                QuickActionButton(icon: "toilet.fill", title: "记录排便", color: AppTheme.excretionColor) {
+                    appState.selectedTab = 3  // 跳转到排便页
+                }
+                
                 QuickActionButton(icon: "chart.bar.fill", title: "查看统计", color: AppTheme.statsColor) {
-                    appState.selectedTab = 3  // 跳转到统计页
+                    appState.selectedTab = 4  // 跳转到统计页
                 }
             }
         }

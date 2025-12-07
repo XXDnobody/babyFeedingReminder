@@ -23,6 +23,12 @@ struct SleepOverview: Codable {
     let unit: String?
 }
 
+/// 排便统计响应
+struct ExcretionStatsResponse: Codable {
+    let poopCount: Int?
+    let peeCount: Int?
+}
+
 /// 智能洞察响应
 struct InsightsResponse: Codable {
     let feedingInsight: String?
@@ -38,6 +44,8 @@ class HomeViewModel: ObservableObject {
     @Published var todayFeedingCount: Int = 0
     @Published var todaySleepHours: String = "0分钟"
     @Published var todayNapCount: Int = 0
+    @Published var todayPoopCount: Int = 0
+    @Published var todayPeeCount: Int = 0
     @Published var upcomingReminders: [Reminder] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -76,8 +84,9 @@ class HomeViewModel: ObservableObject {
         async let overviewTask: () = loadOverview(babyId: babyId)
         async let insightsTask: () = loadInsights(babyId: babyId)
         async let remindersTask: () = loadUpcomingReminders(babyId: babyId)
+        async let excretionTask: () = loadExcretionStats(babyId: babyId)
         
-        _ = await (overviewTask, insightsTask, remindersTask)
+        _ = await (overviewTask, insightsTask, remindersTask, excretionTask)
         
         isLoading = false
     }
@@ -147,6 +156,21 @@ class HomeViewModel: ObservableObject {
         } catch {
             upcomingReminders = []
             print("❌ 加载提醒失败: \(error)")
+        }
+    }
+    
+    /// 加载排便统计
+    private func loadExcretionStats(babyId: Int64) async {
+        do {
+            let stats: ExcretionStatsResponse = try await network.request(
+                endpoint: "/excretion/today-stats/\(babyId)"
+            )
+            todayPoopCount = stats.poopCount ?? 0
+            todayPeeCount = stats.peeCount ?? 0
+        } catch {
+            todayPoopCount = 0
+            todayPeeCount = 0
+            print("⚠️ 加载排便统计失败: \(error.localizedDescription)")
         }
     }
     

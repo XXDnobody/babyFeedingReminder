@@ -31,6 +31,8 @@
 		F9VIEWS003 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR03 /* ForgotPasswordView.swift */; };
 		F9VIEWS004 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR04 /* LegalViews.swift */; };
 		F9VIEWS005 /* PhoneRegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR05 /* PhoneRegisterView.swift */; };
+		F9EXCRET01 /* ExcretionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EXCRETR01 /* ExcretionView.swift */; };
+		F9EXCRET02 /* ExcretionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EXCRETR02 /* ExcretionViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +62,8 @@
 		F9VIEWSR05 /* PhoneRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRegisterView.swift; sourceTree = "<group>"; };
 		F99DFFA02EE2F9FB008CAD69 /* BabyFeedingReminder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BabyFeedingReminder.entitlements; sourceTree = "<group>"; };
 		F9THEMER01 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F9EXCRETR01 /* ExcretionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcretionView.swift; sourceTree = "<group>"; };
+		F9EXCRETR02 /* ExcretionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcretionViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -110,6 +114,7 @@
 				1A0000015 /* HomeView.swift */,
 				1A0000016 /* FeedingView.swift */,
 				1A0000017 /* SleepView.swift */,
+				F9EXCRETR01 /* ExcretionView.swift */,
 				1A0000018 /* StatisticsView.swift */,
 				1A0000019 /* SettingsView.swift */,
 				1A000001A /* BabyFormView.swift */,
@@ -129,6 +134,7 @@
 				1A000001C /* FeedingViewModel.swift */,
 				F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */,
 				1A000001D /* SleepViewModel.swift */,
+				F9EXCRETR02 /* ExcretionViewModel.swift */,
 				1A000001E /* StatisticsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -237,6 +243,8 @@
 				F9VIEWS003 /* ForgotPasswordView.swift in Sources */,
 				F9VIEWS004 /* LegalViews.swift in Sources */,
 				F9VIEWS005 /* PhoneRegisterView.swift in Sources */,
+				F9EXCRET01 /* ExcretionView.swift in Sources */,
+				F9EXCRET02 /* ExcretionViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

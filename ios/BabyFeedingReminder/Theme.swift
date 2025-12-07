@@ -27,6 +27,7 @@ struct AppTheme {
     static let feedingColor = Color(red: 0.53, green: 0.81, blue: 0.98)     // 喂养-淡蓝
     static let sleepColor = Color(red: 0.85, green: 0.75, blue: 0.95)       // 睡眠-淡紫
     static let statsColor = Color(red: 1.0, green: 0.85, blue: 0.70)        // 统计-淡橙
+    static let excretionColor = Color(red: 0.76, green: 0.60, blue: 0.42)   // 排便-淡棕
     
     // MARK: - 按钮渐变
     static let primaryButtonGradient = LinearGradient(
@@ -42,6 +43,15 @@ struct AppTheme {
         colors: [
             Color(red: 1.0, green: 0.75, blue: 0.80),
             Color(red: 1.0, green: 0.85, blue: 0.88)
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+    
+    static let excretionButtonGradient = LinearGradient(
+        colors: [
+            Color(red: 0.76, green: 0.60, blue: 0.42),
+            Color(red: 0.85, green: 0.72, blue: 0.55)
         ],
         startPoint: .leading,
         endPoint: .trailing
