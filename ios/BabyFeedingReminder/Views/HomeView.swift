@@ -307,7 +307,7 @@ struct TodayOverviewSection: View {
                     iconColor: AppTheme.sleepColor,
                     title: "睡眠",
                     value: viewModel.todaySleepHours,
-                    subtitle: "\(viewModel.todayNapCount)次小睡",
+                    subtitle: "\(viewModel.todayNapCount)次睡眠",
                     backgroundColor: AppTheme.sleepColor.opacity(0.1)
                 )
             }
@@ -540,7 +540,7 @@ struct ReminderFormView: View {
         switch type {
         case 1: return "喂奶提醒"
         case 2: return "母乳解冻提醒"
-        case 3: return "小睡时间到"
+        case 3: return "睡眠时间到"
         case 4: return "准备哄睡"
         default: return ""
         }
@@ -552,7 +552,7 @@ struct ReminderFormView: View {
         switch type {
         case 1: return "\(babyName)该喝奶啦！"
         case 2: return "请提前准备母乳解冻加热"
-        case 3: return "\(babyName)该小睡啦！"
+        case 3: return "\(babyName)该睡眠啦！"
         case 4: return "请准备哄\(babyName)入睡"
         default: return ""
         }
@@ -666,7 +666,7 @@ struct QuickActionsSection: View {
                     appState.selectedTab = 1  // 跳转到喂养页
                 }
                 
-                QuickActionButton(icon: "moon.fill", title: "开始小睡", color: AppTheme.sleepColor) {
+                QuickActionButton(icon: "moon.fill", title: "记录睡眠", color: AppTheme.sleepColor) {
                     appState.selectedTab = 2  // 跳转到睡眠页
                 }
                 

@@ -24,12 +24,12 @@ public interface SleepRecordService extends IService<SleepRecord> {
     SleepRecord updateRecord(Long id, SleepRecordDTO dto);
     
     /**
-     * 开始小睡
+     * 开始睡眠
      */
     SleepRecord startNap(Long babyId, LocalDateTime startTime);
     
     /**
-     * 结束小睡
+     * 结束睡眠
      */
     SleepRecord endNap(Long id, LocalDateTime endTime, Integer quality, Boolean shouldRemind);
     
@@ -54,7 +54,7 @@ public interface SleepRecordService extends IService<SleepRecord> {
     SleepStatisticsVO getStatistics(Long babyId, LocalDate startDate, LocalDate endDate);
     
     /**
-     * 计算下次小睡时间
+     * 计算下次睡眠时间
      */
     LocalDateTime calculateNextNapTime(Long babyId, LocalDateTime wakeUpTime);
     

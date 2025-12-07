@@ -21,12 +21,12 @@ public class SleepSetting {
     private Long babyId;
     
     /**
-     * 默认小睡间隔（分钟）
+     * 默认睡眠间隔（分钟）
      */
     private Integer defaultNapInterval;
     
     /**
-     * 默认小睡时长（分钟）
+     * 默认睡眠时长（分钟）
      */
     private Integer defaultNapDuration;
     
@@ -51,7 +51,7 @@ public class SleepSetting {
     private Integer reminderEnabled;
     
     /**
-     * 是否启用下次小睡提醒: 0-否 1-是
+     * 是否启用下次睡眠提醒: 0-否 1-是
      */
     private Integer nextNapReminderEnabled;
     

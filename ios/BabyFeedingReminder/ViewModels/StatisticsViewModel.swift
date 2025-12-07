@@ -74,7 +74,7 @@ struct DailySleepData: Identifiable {
     let date: Date
     let dateLabel: String
     let hours: Double     // 睡眠时长（小时）
-    let napCount: Int     // 小睡次数
+    let napCount: Int     // 睡眠次数
 }
 
 struct SleepQualityData: Identifiable {

@@ -45,7 +45,7 @@ public class SleepRecordController {
         return Result.success(record);
     }
     
-    @Operation(summary = "开始小睡")
+    @Operation(summary = "开始睡眠")
     @PostMapping("/start/{babyId}")
     public Result<SleepRecord> startNap(@PathVariable Long babyId,
                                         @RequestParam(required = false) 
@@ -54,7 +54,7 @@ public class SleepRecordController {
         return Result.success(record);
     }
     
-    @Operation(summary = "结束小睡")
+    @Operation(summary = "结束睡眠")
     @PostMapping("/end/{id}")
     public Result<SleepRecord> endNap(@PathVariable Long id,
                                       @RequestParam(required = false)

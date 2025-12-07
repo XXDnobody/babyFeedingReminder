@@ -20,7 +20,7 @@ public class SleepRecord {
     private Long babyId;
     
     /**
-     * 睡眠类型: 1-小睡 2-夜间睡眠
+     * 睡眠类型: 1-睡眠 2-夜间睡眠
      */
     private Integer sleepType;
     
@@ -45,7 +45,7 @@ public class SleepRecord {
     private Integer plannedDuration;
     
     /**
-     * 下次小睡预计时间
+     * 下次睡眠预计时间
      */
     private LocalDateTime nextNapTime;
     

@@ -63,12 +63,12 @@ class NotificationService {
         }
     }
     
-    /// 安排小睡提醒
+    /// 安排睡眠提醒
     func scheduleNapReminder(babyName: String, napTime: Date, duration: Int, soothingTime: Date? = nil) {
-        // 小睡提醒
+        // 睡眠提醒
         let napContent = UNMutableNotificationContent()
-        napContent.title = "小睡时间到"
-        napContent.body = "\(babyName)该小睡啦！建议睡眠时长：\(duration)分钟"
+        napContent.title = "睡眠时间到"
+        napContent.body = "\(babyName)该睡眠啦！建议睡眠时长：\(duration)分钟"
         napContent.sound = .default
         napContent.categoryIdentifier = "NAP_REMINDER"
         
@@ -89,7 +89,7 @@ class NotificationService {
         if let soothingTime = soothingTime {
             let soothingContent = UNMutableNotificationContent()
             soothingContent.title = "准备哄睡"
-            soothingContent.body = "请准备哄\(babyName)入睡，马上就是小睡时间了"
+            soothingContent.body = "请准备哄\(babyName)入睡，马上就是睡眠时间了"
             soothingContent.sound = .default
             soothingContent.categoryIdentifier = "SOOTHING_REMINDER"
             
@@ -135,8 +135,8 @@ class NotificationService {
             options: []
         )
         
-        // 小睡提醒操作
-        let napStart = UNNotificationAction(identifier: "NAP_START", title: "开始小睡", options: [.foreground])
+        // 睡眠提醒操作
+        let napStart = UNNotificationAction(identifier: "NAP_START", title: "开始睡眠", options: [.foreground])
         let napSnooze = UNNotificationAction(identifier: "NAP_SNOOZE", title: "稍后提醒", options: [])
         let napCategory = UNNotificationCategory(
             identifier: "NAP_REMINDER",

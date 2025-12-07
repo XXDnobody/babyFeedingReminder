@@ -75,7 +75,7 @@ class SleepViewModel: ObservableObject {
             )
             todayRecords = records
             
-            // 加载睡眠设置，获取下次小睡提醒开关状态
+            // 加载睡眠设置，获取下次睡眠提醒开关状态
             let setting: SleepSetting = try await network.request(
                 endpoint: "/setting/sleep/\(babyId)"
             )
@@ -99,7 +99,7 @@ class SleepViewModel: ObservableObject {
                 }
             }
             
-            // 获取下次小睡时间
+            // 获取下次睡眠时间
             if let lastRecord = records.first, let nextNap = lastRecord.nextNapTime {
                 nextNapTime = nextNap
             }
@@ -108,7 +108,7 @@ class SleepViewModel: ObservableObject {
             // 网络失败，显示错误提示
             errorMessage = error.localizedDescription
 
-            // 如果当前正在小睡，确保定时器在运行
+            // 如果当前正在睡眠，确保定时器在运行
             if isNapping && timer == nil {
                 setupTimer()
             }
@@ -129,7 +129,7 @@ class SleepViewModel: ObservableObject {
             // 构建请求体，包含必要的睡眠信息
             let request = StartNapRequest(
                 babyId: babyId,
-                sleepType: 1,  // 1-小睡
+                sleepType: 1,  // 1-睡眠
                 startTime: Date()
             )
             
@@ -167,7 +167,7 @@ class SleepViewModel: ObservableObject {
             
             let request = UpdateSleepRecordRequest(
                 babyId: babyId,
-                sleepType: 1,  // 小睡
+                sleepType: 1,  // 睡眠
                 startTime: startTime,
                 endTime: actualEndTime,
                 duration: duration,
@@ -181,7 +181,7 @@ class SleepViewModel: ObservableObject {
                 body: request
             )
 
-            // 网络请求成功，停止小睡状态
+            // 网络请求成功，停止睡眠状态
             isNapping = false
             currentNapStartTime = nil
             currentNapId = nil
@@ -297,7 +297,7 @@ class SleepViewModel: ObservableObject {
         }
     }
     
-    /// 保存下次小睡提醒开关状态
+    /// 保存下次睡眠提醒开关状态
     func saveNextNapReminderEnabled(_ enabled: Bool) async {
         guard let babyId = babyId else { return }
         
@@ -323,7 +323,7 @@ class SleepViewModel: ObservableObject {
     }
 }
 
-/// 开始小睡请求
+/// 开始睡眠请求
 struct StartNapRequest: Encodable {
     let babyId: Int64
     let sleepType: Int

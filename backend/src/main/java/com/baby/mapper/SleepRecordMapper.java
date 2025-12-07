@@ -38,7 +38,7 @@ public interface SleepRecordMapper extends BaseMapper<SleepRecord> {
     Integer getTodayTotalDuration(@Param("babyId") Long babyId);
     
     /**
-     * 获取今日小睡次数
+     * 获取今日睡眠次数
      * @deprecated 使用 getNapCountByDateRange 替代，避免时区问题
      */
     @Select("SELECT COUNT(*) FROM sleep_record " +
@@ -58,7 +58,7 @@ public interface SleepRecordMapper extends BaseMapper<SleepRecord> {
                                          @Param("endTime") LocalDateTime endTime);
     
     /**
-     * 获取指定日期范围内的小睡次数（解决时区问题）
+     * 获取指定日期范围内的睡眠次数（解决时区问题）
      */
     @Select("SELECT COUNT(*) FROM sleep_record " +
             "WHERE baby_id = #{babyId} AND deleted = 0 " +

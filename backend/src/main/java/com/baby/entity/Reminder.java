@@ -25,7 +25,7 @@ public class Reminder {
     private Long userId;
     
     /**
-     * 提醒类型: 1-喂奶提醒 2-解冻提醒 3-小睡提醒 4-哄睡提醒
+     * 提醒类型: 1-喂奶提醒 2-解冻提醒 3-睡眠提醒 4-哄睡提醒
      */
     private Integer reminderType;
     

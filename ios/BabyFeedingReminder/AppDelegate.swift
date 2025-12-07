@@ -88,8 +88,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             scheduleSnoozeReminder(userInfo: userInfo)
             
         case "NAP_DONE":
-            // 小睡完成
-            print("✅ 用户标记小睡完成")
+            // 睡眠完成
+            print("✅ 用户标记睡眠完成")
             
         case "NAP_SNOOZE":
             // 稍后提醒

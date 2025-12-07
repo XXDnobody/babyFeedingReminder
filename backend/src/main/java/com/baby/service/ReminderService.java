@@ -23,7 +23,7 @@ public interface ReminderService extends IService<Reminder> {
     Reminder createThawReminder(FeedingRecord feedingRecord);
     
     /**
-     * 创建小睡提醒
+     * 创建睡眠提醒
      */
     Reminder createNapReminder(SleepRecord sleepRecord);
     

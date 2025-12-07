@@ -97,7 +97,7 @@ struct SleepView: View {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                            Text("添加小睡记录")
+                            Text("添加睡眠记录")
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.white)
@@ -171,7 +171,7 @@ struct CurrentSleepStatusCard: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("正在小睡")
+                        Text("正在睡眠")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(AppTheme.primaryText)
@@ -191,7 +191,7 @@ struct CurrentSleepStatusCard: View {
                 }
                 
                 // 建议睡眠时长提示
-                Text("建议本次小睡时长：\(viewModel.recommendedNapDuration)分钟")
+                Text("建议本次睡眠时长：\(viewModel.recommendedNapDuration)分钟")
                     .font(.subheadline)
                     .foregroundColor(AppTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -203,7 +203,7 @@ struct CurrentSleepStatusCard: View {
                     HStack {
                         Image(systemName: "stop.circle.fill")
                             .font(.system(size: 24))
-                        Text("结束小睡")
+                        Text("结束睡眠")
                             .font(.headline)
                     }
                     .foregroundColor(.white)
@@ -241,7 +241,7 @@ struct CurrentSleepStatusCard: View {
                             .foregroundColor(AppTheme.primaryText)
                         
                         if let nextNapTime = viewModel.nextNapTime {
-                            Text("预计下次小睡：\(timeString(nextNapTime))")
+                            Text("预计下次睡眠：\(timeString(nextNapTime))")
                                 .font(.subheadline)
                                 .foregroundColor(AppTheme.secondaryText)
                         }
@@ -256,12 +256,12 @@ struct CurrentSleepStatusCard: View {
                         .foregroundColor(viewModel.shouldRemindNextNap ? .orange : .gray)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("下次小睡提醒")
+                        Text("下次睡眠提醒")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(AppTheme.primaryText)
 
-                        Text(viewModel.shouldRemindNextNap ? "将在小睡结束前提醒" : "不会发送提醒")
+                        Text(viewModel.shouldRemindNextNap ? "开启后自动生成下次睡眠提醒" : "不会发送睡眠提醒")
                             .font(.caption)
                             .foregroundColor(AppTheme.secondaryText)
                     }
@@ -288,7 +288,7 @@ struct CurrentSleepStatusCard: View {
                     HStack {
                         Image(systemName: "moon.zzz.fill")
                             .font(.system(size: 24))
-                        Text("开始小睡")
+                        Text("开始睡眠")
                             .font(.headline)
                     }
                     .foregroundColor(.white)
@@ -418,7 +418,7 @@ struct EditSleepRecordView: View {
     @ObservedObject var viewModel: SleepViewModel
     let record: SleepRecord?  // nil 表示新增，否则是编辑
     
-    @State private var sleepType = 1  // 1: 小睡, 2: 夜间睡眠
+    @State private var sleepType = 1  // 1: 睡眠, 2: 夜间睡眠
     @State private var startTime = Date()
     @State private var endTime = Date()
     @State private var quality = 1  // 1: 好, 2: 一般, 3: 差
@@ -439,7 +439,7 @@ struct EditSleepRecordView: View {
             Form {
                 Section("睡眠信息") {
                     Picker("睡眠类型", selection: $sleepType) {
-                        Text("小睡").tag(1)
+                        Text("睡眠").tag(1)
                         Text("夜间睡眠").tag(2)
                     }
                     
@@ -673,7 +673,7 @@ struct EndNapConfirmationView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("结束小睡")
+            .navigationTitle("结束睡眠")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

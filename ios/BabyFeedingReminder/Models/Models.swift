@@ -98,7 +98,7 @@ struct FeedingRecord: Codable, Identifiable {
 struct SleepRecord: Codable, Identifiable {
     let id: Int64
     var babyId: Int64
-    var sleepType: Int  // 1-小睡 2-夜间睡眠
+    var sleepType: Int  // 1-睡眠 2-夜间睡眠
     var startTime: Date
     var endTime: Date?
     var duration: Int?  // 分钟
@@ -111,7 +111,7 @@ struct SleepRecord: Codable, Identifiable {
     
     /// 睡眠类型描述
     var sleepTypeDescription: String {
-        sleepType == 1 ? "小睡" : "夜间睡眠"
+        sleepType == 1 ? "睡眠" : "夜间睡眠"
     }
     
     /// 睡眠质量描述
@@ -172,7 +172,7 @@ struct Reminder: Codable, Identifiable {
     let id: Int64
     var babyId: Int64
     var userId: Int64
-    var reminderType: Int  // 1-喂奶提醒 2-解冻提醒 3-小睡提醒 4-哄睡提醒
+    var reminderType: Int  // 1-喂奶提醒 2-解冻提醒 3-睡眠提醒 4-哄睡提醒
     var title: String
     var content: String
     var scheduledTime: Date
@@ -189,7 +189,7 @@ struct Reminder: Codable, Identifiable {
         switch reminderType {
         case 1: return "喂奶提醒"
         case 2: return "解冻提醒"
-        case 3: return "小睡提醒"
+        case 3: return "睡眠提醒"
         case 4: return "哄睡提醒"
         default: return "未知"
         }
