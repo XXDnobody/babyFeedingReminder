@@ -117,8 +117,6 @@ CREATE TABLE IF NOT EXISTS `sleep_setting` (
     `reminder_end_time` TIME DEFAULT '20:00:00' COMMENT '提醒时段结束时间',
     `reminder_enabled` TINYINT DEFAULT 1 COMMENT '是否启用提醒: 0-否 1-是',
     `next_nap_reminder_enabled` TINYINT DEFAULT 1 COMMENT '是否启用下次小睡提醒: 0-否 1-是',
-    `bedtime_target` TIME DEFAULT '20:00:00' COMMENT '晚间入睡目标时间',
-    `wake_time_target` TIME DEFAULT '07:00:00' COMMENT '早晨起床目标时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除: 0-未删除 1-已删除'

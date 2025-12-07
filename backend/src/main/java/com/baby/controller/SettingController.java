@@ -105,8 +105,6 @@ public class SettingController {
             setting.setNextNapReminderEnabled(1);
             setting.setReminderStartTime(java.time.LocalTime.of(6, 0));
             setting.setReminderEndTime(java.time.LocalTime.of(20, 0));
-            setting.setBedtimeTarget(java.time.LocalTime.of(20, 0));
-            setting.setWakeTimeTarget(java.time.LocalTime.of(7, 0));
         }
         
         return Result.success(setting);

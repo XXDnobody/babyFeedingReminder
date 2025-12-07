@@ -55,16 +55,6 @@ public class SleepSetting {
      */
     private Integer nextNapReminderEnabled;
     
-    /**
-     * 晚间入睡目标时间
-     */
-    private LocalTime bedtimeTarget;
-    
-    /**
-     * 早晨起床目标时间
-     */
-    private LocalTime wakeTimeTarget;
-    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     

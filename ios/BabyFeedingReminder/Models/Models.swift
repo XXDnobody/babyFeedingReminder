@@ -165,8 +165,6 @@ struct SleepSetting: Codable {
     var reminderEndTime: String?
     var reminderEnabled: Int?
     var nextNapReminderEnabled: Int?
-    var bedtimeTarget: String?
-    var wakeTimeTarget: String?
 }
 
 /// 提醒模型

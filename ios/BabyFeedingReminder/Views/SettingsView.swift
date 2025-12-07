@@ -431,11 +431,6 @@ struct SleepSettingsView: View {
     @State private var defaultNapInterval = 120
     @State private var defaultNapDuration = 90
     @State private var soothingReminderMinutes = 15
-    @State private var bedtimeTarget = Calendar.current.date(from: DateComponents(hour: 20, minute: 0))!
-    @State private var wakeTimeTarget = Calendar.current.date(from: DateComponents(hour: 7, minute: 0))!
-    @State private var reminderEnabled = true
-    @State private var reminderStartTime = Calendar.current.date(from: DateComponents(hour: 6, minute: 0))!
-    @State private var reminderEndTime = Calendar.current.date(from: DateComponents(hour: 20, minute: 0))!
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var showSaveSuccess = false
@@ -450,34 +445,6 @@ struct SleepSettingsView: View {
                 LargeStepperView(title: "建议小睡时长", value: $defaultNapDuration, range: 30...180, step: 15, unit: "分钟", color: .purple)
                 
                 LargeStepperView(title: "哄睡提前提醒", value: $soothingReminderMinutes, range: 5...30, step: 5, unit: "分钟", color: .indigo)
-            }
-            
-            Section("作息目标") {
-                DatePicker("晚间入睡时间", selection: $bedtimeTarget, displayedComponents: .hourAndMinute)
-                    .datePickerStyle(.compact)
-                    .environment(\.locale, Locale(identifier: "zh_CN"))
-                
-                DatePicker("早晨起床时间", selection: $wakeTimeTarget, displayedComponents: .hourAndMinute)
-                    .datePickerStyle(.compact)
-                    .environment(\.locale, Locale(identifier: "zh_CN"))
-            }
-            
-            Section("提醒时段") {
-                Toggle("启用睡眠提醒", isOn: $reminderEnabled)
-                
-                if reminderEnabled {
-                    DatePicker("开始时间", selection: $reminderStartTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.compact)
-                        .environment(\.locale, Locale(identifier: "zh_CN"))
-                    
-                    DatePicker("结束时间", selection: $reminderEndTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.compact)
-                        .environment(\.locale, Locale(identifier: "zh_CN"))
-                    
-                    Text("在设定的时段外，系统不会生成睡眠提醒通知。")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
             
             Section {
@@ -498,7 +465,7 @@ struct SleepSettingsView: View {
             }
             
             Section {
-                Text("清醒间隔是指宝宝从上次醒来到下次入睡之间的推荐时间，系统会根据此设置计算下次小睡时间。")
+                Text("清醒间隔是指宝宝从上次醒来到下次入睡之间的推荐时间，系统会根据此设置计算下次小睡时间。提醒时段可在「睡眠提醒设置」中配置。")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -523,24 +490,6 @@ struct SleepSettingsView: View {
                     defaultNapInterval = setting.defaultNapInterval ?? 120
                     defaultNapDuration = setting.defaultNapDuration ?? 90
                     soothingReminderMinutes = setting.defaultSoothingReminderMinutes ?? 15
-                    reminderEnabled = (setting.reminderEnabled ?? 1) == 1
-                    
-                    // 解析作息目标时间
-                    if let bedtime = setting.bedtimeTarget {
-                        bedtimeTarget = parseTimeString(bedtime) ?? bedtimeTarget
-                    }
-                    if let wakeTime = setting.wakeTimeTarget {
-                        wakeTimeTarget = parseTimeString(wakeTime) ?? wakeTimeTarget
-                    }
-                    
-                    // 解析提醒时段
-                    if let startTime = setting.reminderStartTime {
-                        reminderStartTime = parseTimeString(startTime) ?? reminderStartTime
-                    }
-                    if let endTime = setting.reminderEndTime {
-                        reminderEndTime = parseTimeString(endTime) ?? reminderEndTime
-                    }
-                    
                     isLoading = false
                 }
             } catch {
@@ -561,12 +510,7 @@ struct SleepSettingsView: View {
                     babyId: babyId,
                     defaultNapInterval: defaultNapInterval,
                     defaultNapDuration: defaultNapDuration,
-                    defaultSoothingReminderMinutes: soothingReminderMinutes,
-                    bedtimeTarget: formatTime(bedtimeTarget),
-                    wakeTimeTarget: formatTime(wakeTimeTarget),
-                    reminderEnabled: reminderEnabled ? 1 : 0,
-                    reminderStartTime: formatTime(reminderStartTime),
-                    reminderEndTime: formatTime(reminderEndTime)
+                    defaultSoothingReminderMinutes: soothingReminderMinutes
                 )
                 
                 let _: SleepSetting = try await network.request(
@@ -608,11 +552,6 @@ struct SaveSleepSettingRequest: Encodable {
     let defaultNapInterval: Int
     let defaultNapDuration: Int
     let defaultSoothingReminderMinutes: Int
-    let bedtimeTarget: String
-    let wakeTimeTarget: String
-    let reminderEnabled: Int
-    let reminderStartTime: String
-    let reminderEndTime: String
 }
 
 // MARK: - 提醒设置视图
@@ -623,9 +562,15 @@ enum ReminderType {
 
 struct ReminderSettingsView: View {
     let type: ReminderType
+    @EnvironmentObject var appState: AppState
     @State private var reminderEnabled = true
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 6, minute: 0))!
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 22, minute: 0))!
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var showSaveSuccess = false
+    
+    private let network = NetworkService.shared
     
     var body: some View {
         Form {
@@ -648,10 +593,163 @@ struct ReminderSettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            
+            Section {
+                Button(action: saveSettings) {
+                    HStack {
+                        Spacer()
+                        if isSaving {
+                            ProgressView()
+                                .padding(.trailing, 8)
+                        }
+                        Text(showSaveSuccess ? "✓ 已保存" : "保存设置")
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                }
+                .disabled(isSaving)
+                .foregroundColor(showSaveSuccess ? .green : (type == .feeding ? .blue : .purple))
+            }
         }
         .navigationTitle(type == .feeding ? "喂养提醒" : "睡眠提醒")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadSettings()
+        }
     }
+    
+    private func loadSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                if type == .feeding {
+                    let setting: FeedingSetting = try await network.request(
+                        endpoint: "/setting/feeding/\(babyId)"
+                    )
+                    await MainActor.run {
+                        reminderEnabled = (setting.reminderEnabled) == 1
+                        if let start = parseTimeString(setting.reminderStartTime) {
+                            startTime = start
+                        }
+                        if let end = parseTimeString(setting.reminderEndTime) {
+                            endTime = end
+                        }
+                        isLoading = false
+                    }
+                } else {
+                    let setting: SleepSetting = try await network.request(
+                        endpoint: "/setting/sleep/\(babyId)"
+                    )
+                    await MainActor.run {
+                        reminderEnabled = (setting.reminderEnabled ?? 1) == 1
+                        if let start = setting.reminderStartTime, let startDate = parseTimeString(start) {
+                            startTime = startDate
+                        }
+                        if let end = setting.reminderEndTime, let endDate = parseTimeString(end) {
+                            endTime = endDate
+                        }
+                        isLoading = false
+                    }
+                }
+            } catch {
+                print("⚠️ 加载设置失败: \(error)")
+                isLoading = false
+            }
+        }
+    }
+    
+    private func saveSettings() {
+        guard let babyId = appState.selectedBaby?.id else { return }
+        isSaving = true
+        showSaveSuccess = false
+        
+        Task {
+            do {
+                if type == .feeding {
+                    // 需要先加载当前设置，然后更新提醒相关字段
+                    let currentSetting: FeedingSetting = try await network.request(
+                        endpoint: "/setting/feeding/\(babyId)"
+                    )
+                    
+                    let setting = SaveFeedingSettingRequest(
+                        babyId: babyId,
+                        defaultFeedingType: currentSetting.defaultFeedingType,
+                        defaultAmount: currentSetting.defaultAmount,
+                        defaultDuration: currentSetting.defaultDuration,
+                        defaultInterval: currentSetting.defaultInterval,
+                        reminderStartTime: formatTime(startTime),
+                        reminderEndTime: formatTime(endTime),
+                        refrigeratedThawMinutes: currentSetting.refrigeratedThawMinutes,
+                        frozenThawMinutes: currentSetting.frozenThawMinutes,
+                        reminderEnabled: reminderEnabled ? 1 : 0
+                    )
+                    
+                    let _: FeedingSetting = try await network.request(
+                        endpoint: "/setting/feeding",
+                        method: "POST",
+                        body: setting
+                    )
+                } else {
+                    // 需要先加载当前设置，然后更新提醒相关字段
+                    let currentSetting: SleepSetting = try await network.request(
+                        endpoint: "/setting/sleep/\(babyId)"
+                    )
+                    
+                    let setting = SaveSleepReminderSettingRequest(
+                        babyId: babyId,
+                        defaultNapInterval: currentSetting.defaultNapInterval ?? 120,
+                        defaultNapDuration: currentSetting.defaultNapDuration ?? 90,
+                        defaultSoothingReminderMinutes: currentSetting.defaultSoothingReminderMinutes ?? 15,
+                        reminderEnabled: reminderEnabled ? 1 : 0,
+                        reminderStartTime: formatTime(startTime),
+                        reminderEndTime: formatTime(endTime)
+                    )
+                    
+                    let _: SleepSetting = try await network.request(
+                        endpoint: "/setting/sleep",
+                        method: "POST",
+                        body: setting
+                    )
+                }
+                
+                await MainActor.run {
+                    isSaving = false
+                    showSaveSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                }
+            } catch {
+                print("❌ 保存设置失败: \(error)")
+                isSaving = false
+            }
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+    
+    private func parseTimeString(_ timeString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.date(from: timeString)
+    }
+}
+
+/// 保存睡眠提醒设置请求
+struct SaveSleepReminderSettingRequest: Encodable {
+    let babyId: Int64
+    let defaultNapInterval: Int
+    let defaultNapDuration: Int
+    let defaultSoothingReminderMinutes: Int
+    let reminderEnabled: Int
+    let reminderStartTime: String
+    let reminderEndTime: String
 }
 
 // MARK: - 指南说明视图

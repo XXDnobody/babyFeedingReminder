@@ -285,15 +285,25 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
     @Override
     @Transactional
     public void cleanupExpiredReminders() {
-        // 删除已发送或已取消且超过24小时的提醒
-        LocalDateTime cutoffTime = LocalDateTime.now().minusHours(24);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cutoffTime = now.minusHours(24);
         
-        update(new LambdaUpdateWrapper<Reminder>()
+        // 1. 删除已发送或已取消且超过24小时的提醒
+        int deletedSentOrCancelled = reminderMapper.update(null, 
+                new LambdaUpdateWrapper<Reminder>()
                 .in(Reminder::getStatus, 1, 2)  // 已发送或已取消
                 .lt(Reminder::getScheduledTime, cutoffTime)
                 .set(Reminder::getDeleted, 1));
         
-        log.info("清理过期提醒完成");
+        // 2. 删除待发送但已过期的提醒（scheduledTime < now 且 status = 0）
+        int deletedExpiredPending = reminderMapper.update(null,
+                new LambdaUpdateWrapper<Reminder>()
+                .eq(Reminder::getStatus, 0)  // 待发送
+                .lt(Reminder::getScheduledTime, now)  // 已过期
+                .set(Reminder::getDeleted, 1));
+        
+        log.info("清理过期提醒完成: 已发送/已取消={}, 待发送但已过期={}", 
+                deletedSentOrCancelled, deletedExpiredPending);
     }
     
     /**

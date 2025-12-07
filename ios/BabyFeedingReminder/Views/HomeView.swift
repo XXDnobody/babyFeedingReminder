@@ -39,9 +39,9 @@ struct HomeView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(AppTheme.primaryText)
                             
-                            Image(systemName: "sun.max.fill")
+                            Image(systemName: timeIcon)
                                 .font(.system(size: 16))
-                                .foregroundColor(.orange.opacity(0.8))
+                                .foregroundColor(timeIconColor)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -148,6 +148,26 @@ struct HomeView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         currentTime = formatter.string(from: Date())
+    }
+    
+    // 根据当前时间返回对应的图标
+    private var timeIcon: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour >= 6 && hour < 18 {
+            return "sun.max.fill"  // 白天6:00-18:00显示太阳
+        } else {
+            return "moon.stars.fill"  // 晚上18:00-6:00显示月亮
+        }
+    }
+    
+    // 根据当前时间返回对应的图标颜色
+    private var timeIconColor: Color {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour >= 6 && hour < 18 {
+            return .orange.opacity(0.8)  // 太阳橙色
+        } else {
+            return .indigo.opacity(0.8)  // 月亮靛蓝色
+        }
     }
 }
 
@@ -369,7 +389,7 @@ struct UpcomingRemindersSection: View {
                     .padding()
                     .frame(height: 80)
             } else {
-                // 可滚动的提醒列表
+                // 可滚动的提醒列表，固定高度确保2-3条提醒可见
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(viewModel.upcomingReminders) { reminder in
@@ -381,6 +401,7 @@ struct UpcomingRemindersSection: View {
                     }
                     .padding(.bottom, 8)
                 }
+                .frame(maxHeight: 200)
             }
         }
         .sheet(isPresented: $showAddReminder) {
@@ -545,7 +566,6 @@ struct ReminderFormView: View {
                         Picker("类型", selection: $reminderType) {
                             Text("喂奶提醒").tag(1)
                             Text("解冻提醒").tag(2)
-                            Text("小睡提醒").tag(3)
                             Text("哄睡提醒").tag(4)
                             Text("自定义").tag(5)
                         }
