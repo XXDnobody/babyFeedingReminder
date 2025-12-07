@@ -33,6 +33,8 @@
 		F9VIEWS005 /* PhoneRegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VIEWSR05 /* PhoneRegisterView.swift */; };
 		F9EXCRET01 /* ExcretionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EXCRETR01 /* ExcretionView.swift */; };
 		F9EXCRET02 /* ExcretionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EXCRETR02 /* ExcretionViewModel.swift */; };
+		F9GROWTH01 /* GrowthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9GROWTHR01 /* GrowthView.swift */; };
+		F9GROWTH02 /* GrowthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9GROWTHR02 /* GrowthViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +66,8 @@
 		F9THEMER01 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		F9EXCRETR01 /* ExcretionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcretionView.swift; sourceTree = "<group>"; };
 		F9EXCRETR02 /* ExcretionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcretionViewModel.swift; sourceTree = "<group>"; };
+		F9GROWTHR01 /* GrowthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthView.swift; sourceTree = "<group>"; };
+		F9GROWTHR02 /* GrowthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -115,6 +119,7 @@
 				1A0000016 /* FeedingView.swift */,
 				1A0000017 /* SleepView.swift */,
 				F9EXCRETR01 /* ExcretionView.swift */,
+				F9GROWTHR01 /* GrowthView.swift */,
 				1A0000018 /* StatisticsView.swift */,
 				1A0000019 /* SettingsView.swift */,
 				1A000001A /* BabyFormView.swift */,
@@ -135,6 +140,7 @@
 				F99DFF9E2EE2F699008CAD69 /* LoginViewModel.swift */,
 				1A000001D /* SleepViewModel.swift */,
 				F9EXCRETR02 /* ExcretionViewModel.swift */,
+				F9GROWTHR02 /* GrowthViewModel.swift */,
 				1A000001E /* StatisticsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -245,6 +251,8 @@
 				F9VIEWS005 /* PhoneRegisterView.swift in Sources */,
 				F9EXCRET01 /* ExcretionView.swift in Sources */,
 				F9EXCRET02 /* ExcretionViewModel.swift in Sources */,
+				F9GROWTH01 /* GrowthView.swift in Sources */,
+				F9GROWTH02 /* GrowthViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

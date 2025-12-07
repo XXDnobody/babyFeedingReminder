@@ -196,6 +196,63 @@ struct ExcretionRecord: Codable, Identifiable {
     }
 }
 
+/// 身高体重测量记录模型
+struct GrowthRecord: Codable, Identifiable {
+    let id: Int64
+    var babyId: Int64
+    var measureDate: Date
+    var height: Double?      // 身高（cm）
+    var weight: Double?      // 体重（kg）
+    var headCircumference: Double?  // 头围（cm）
+    var ageInMonths: Int?    // 测量时月龄
+    var remark: String?
+    var createTime: Date?
+    var updateTime: Date?
+}
+
+/// WHO生长曲线数据点
+struct WHOGrowthPoint: Identifiable {
+    let id = UUID()
+    let month: Double
+    let value: Double
+}
+
+/// WHO生长曲线标准数据
+struct WHOGrowthStandard {
+    let p3: [WHOGrowthPoint]
+    let p15: [WHOGrowthPoint]
+    let p50: [WHOGrowthPoint]
+    let p85: [WHOGrowthPoint]
+    let p97: [WHOGrowthPoint]
+    
+    init(from data: [String: [[Double]]]) {
+        p3 = (data["p3"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+        p15 = (data["p15"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+        p50 = (data["p50"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+        p85 = (data["p85"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+        p97 = (data["p97"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+    }
+}
+
+/// 生长曲线图表数据响应
+struct GrowthChartDataResponse: Codable {
+    let whoHeight: [String: [[Double]]]
+    let whoWeight: [String: [[Double]]]
+    let records: [GrowthRecord]
+    let percentile: GrowthPercentile?
+    let gender: Int
+}
+
+/// 生长百分位分析
+struct GrowthPercentile: Codable {
+    let heightPercentile: String?
+    let weightPercentile: String?
+    let height: Double?
+    let weight: Double?
+    let ageInMonths: Int?
+    let measureDate: Date?
+}
+
 /// 提醒模型
 struct Reminder: Codable, Identifiable {
     let id: Int64

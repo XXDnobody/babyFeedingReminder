@@ -5,32 +5,33 @@ struct StatisticsView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = StatisticsViewModel()
     @State private var selectedPeriod = 0  // 0: 7天, 1: 30天, 2: 全部
+    @State private var showingFeedingDetail = false
+    @State private var showingSleepDetail = false
+    @State private var showingGrowthDetail = false
+    @State private var showingInsightsDetail = false
     
     private var periodDays: Int {
         switch selectedPeriod {
         case 0: return 7
         case 1: return 30
-        case 2: return 365  // 全部使用365天代表
+        case 2: return 365
         default: return 7
         }
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
-                // 渐变背景
                 AppTheme.backgroundGradient
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // 固定标题区域
+                    // 标题
                     HStack {
                         Text("统计分析")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(AppTheme.primaryText)
                         Spacer()
-                        
-                        // 图表装饰图标
                         Image(systemName: "chart.bar.fill")
                             .font(.system(size: 24))
                             .foregroundColor(AppTheme.statsColor.opacity(0.6))
@@ -41,25 +42,55 @@ struct StatisticsView: View {
                     
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 20) {
-                            // 今日概览 - 放在最上方
+                            // 今日概览
                             TodayStatsCard(viewModel: viewModel)
                             
-                            // 时间段选择器
-                            Picker("统计周期", selection: $selectedPeriod) {
-                                Text("近7天").tag(0)
-                                Text("近30天").tag(1)
-                                Text("全部").tag(2)
+                            // 分析模块网格
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                                // 喂养分析模块
+                                StatModuleCard(
+                                    icon: "drop.fill",
+                                    title: "喂养分析",
+                                    value: "\(viewModel.dailyAverageFeedingAmount)ml",
+                                    subtitle: "日均奶量",
+                                    color: AppTheme.feedingColor
+                                ) {
+                                    showingFeedingDetail = true
+                                }
+                                
+                                // 睡眠分析模块
+                                StatModuleCard(
+                                    icon: "moon.fill",
+                                    title: "睡眠分析",
+                                    value: viewModel.dailyAverageSleepHours,
+                                    subtitle: "日均睡眠",
+                                    color: AppTheme.sleepColor
+                                ) {
+                                    showingSleepDetail = true
+                                }
+                                
+                                // 生长曲线模块
+                                StatModuleCard(
+                                    icon: "chart.line.uptrend.xyaxis",
+                                    title: "生长曲线",
+                                    value: "身高/体重",
+                                    subtitle: "WHO标准对比",
+                                    color: .green
+                                ) {
+                                    showingGrowthDetail = true
+                                }
+                                
+                                // 智能洞察模块
+                                StatModuleCard(
+                                    icon: "lightbulb.fill",
+                                    title: "智能建议",
+                                    value: viewModel.suggestion.isEmpty ? "0条" : "1条",
+                                    subtitle: "个性化建议",
+                                    color: AppTheme.statsColor
+                                ) {
+                                    showingInsightsDetail = true
+                                }
                             }
-                            .pickerStyle(.segmented)
-                            
-                            // 喂养统计 - 带图表
-                            FeedingStatsSection(viewModel: viewModel)
-                            
-                            // 睡眠统计 - 带图表
-                            SleepStatsSection(viewModel: viewModel)
-                            
-                            // 智能洞察
-                            InsightsSection(viewModel: viewModel)
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
@@ -73,6 +104,18 @@ struct StatisticsView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showingFeedingDetail) {
+                FeedingStatsDetailView(viewModel: viewModel, appState: appState)
+            }
+            .sheet(isPresented: $showingSleepDetail) {
+                SleepStatsDetailView(viewModel: viewModel, appState: appState)
+            }
+            .sheet(isPresented: $showingGrowthDetail) {
+                GrowthView()
+            }
+            .sheet(isPresented: $showingInsightsDetail) {
+                InsightsDetailView(viewModel: viewModel)
+            }
         }
         .onChange(of: selectedPeriod) { _, newValue in
             Task {
@@ -90,6 +133,261 @@ struct StatisticsView: View {
                 )
             }
         }
+    }
+}
+
+// MARK: - 统计模块卡片
+struct StatModuleCard: View {
+    let icon: String
+    let title: String
+    let value: String
+    let subtitle: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(color.opacity(0.15))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon)
+                            .font(.system(size: 18))
+                            .foregroundColor(color)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(AppTheme.primaryText)
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 6, x: 0, y: 3)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - 喂养统计详情页
+struct FeedingStatsDetailView: View {
+    @ObservedObject var viewModel: StatisticsViewModel
+    var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedPeriod = 0
+    
+    private var periodDays: Int {
+        switch selectedPeriod {
+        case 0: return 7
+        case 1: return 30
+        case 2: return 365
+        default: return 7
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 时间段选择器
+                    Picker("统计周期", selection: $selectedPeriod) {
+                        Text("近7天").tag(0)
+                        Text("近30天").tag(1)
+                        Text("全部").tag(2)
+                    }
+                    .pickerStyle(.segmented)
+                    
+                    // 喂养统计详情
+                    FeedingStatsSection(viewModel: viewModel)
+                }
+                .padding()
+            }
+            .background(AppTheme.backgroundGradient)
+            .navigationTitle("喂养分析")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+            .onChange(of: selectedPeriod) { _, _ in
+                Task {
+                    await viewModel.loadStatistics(
+                        babyId: appState.selectedBaby?.id,
+                        days: periodDays
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 睡眠统计详情页
+struct SleepStatsDetailView: View {
+    @ObservedObject var viewModel: StatisticsViewModel
+    var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedPeriod = 0
+    
+    private var periodDays: Int {
+        switch selectedPeriod {
+        case 0: return 7
+        case 1: return 30
+        case 2: return 365
+        default: return 7
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 时间段选择器
+                    Picker("统计周期", selection: $selectedPeriod) {
+                        Text("近7天").tag(0)
+                        Text("近30天").tag(1)
+                        Text("全部").tag(2)
+                    }
+                    .pickerStyle(.segmented)
+                    
+                    // 睡眠统计详情
+                    SleepStatsSection(viewModel: viewModel)
+                }
+                .padding()
+            }
+            .background(AppTheme.backgroundGradient)
+            .navigationTitle("睡眠分析")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+            .onChange(of: selectedPeriod) { _, _ in
+                Task {
+                    await viewModel.loadStatistics(
+                        babyId: appState.selectedBaby?.id,
+                        days: periodDays
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 智能建议详情页
+struct InsightsDetailView: View {
+    @ObservedObject var viewModel: StatisticsViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 喂养分析建议
+                    if !viewModel.feedingInsight.isEmpty {
+                        insightCard(
+                            icon: "drop.fill",
+                            title: "喂养分析",
+                            content: viewModel.feedingInsight,
+                            color: AppTheme.feedingColor
+                        )
+                    }
+                    
+                    // 睡眠分析建议
+                    if !viewModel.sleepInsight.isEmpty {
+                        insightCard(
+                            icon: "moon.fill",
+                            title: "睡眠分析",
+                            content: viewModel.sleepInsight,
+                            color: AppTheme.sleepColor
+                        )
+                    }
+                    
+                    // 综合建议
+                    if !viewModel.suggestion.isEmpty {
+                        insightCard(
+                            icon: "star.fill",
+                            title: "综合建议",
+                            content: viewModel.suggestion,
+                            color: AppTheme.statsColor
+                        )
+                    }
+                    
+                    if viewModel.feedingInsight.isEmpty && viewModel.sleepInsight.isEmpty && viewModel.suggestion.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "lightbulb")
+                                .font(.system(size: 50))
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                            Text("暂无建议")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.secondaryText)
+                            Text("继续记录宝宝的日常，\n我们将为您提供个性化建议")
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.secondaryText)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.vertical, 40)
+                    }
+                }
+                .padding()
+            }
+            .background(AppTheme.backgroundGradient)
+            .navigationTitle("智能建议")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
+    }
+    
+    private func insightCard(icon: String, title: String, content: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                        .foregroundColor(color)
+                }
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+            }
+            
+            Text(content)
+                .font(.body)
+                .foregroundColor(AppTheme.secondaryText)
+                .lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(AppTheme.cardRadius)
+        .shadow(color: AppTheme.cardShadowColor, radius: 6, x: 0, y: 3)
     }
 }
 

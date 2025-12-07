@@ -1,0 +1,110 @@
+package com.baby.controller;
+
+import com.baby.common.Result;
+import com.baby.dto.GrowthRecordDTO;
+import com.baby.entity.Baby;
+import com.baby.entity.GrowthRecord;
+import com.baby.service.BabyService;
+import com.baby.service.GrowthRecordService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 身高体重测量记录控制器
+ */
+@Tag(name = "身高体重测量记录")
+@RestController
+@RequestMapping("/growth")
+@RequiredArgsConstructor
+public class GrowthRecordController {
+    
+    private final GrowthRecordService growthRecordService;
+    private final BabyService babyService;
+    
+    @Operation(summary = "创建测量记录")
+    @PostMapping
+    public Result<GrowthRecord> create(@Valid @RequestBody GrowthRecordDTO dto) {
+        GrowthRecord record = growthRecordService.createRecord(dto);
+        return Result.success(record);
+    }
+    
+    @Operation(summary = "更新测量记录")
+    @PutMapping("/{id}")
+    public Result<GrowthRecord> update(@PathVariable Long id,
+                                       @Valid @RequestBody GrowthRecordDTO dto) {
+        GrowthRecord record = growthRecordService.updateRecord(id, dto);
+        return Result.success(record);
+    }
+    
+    @Operation(summary = "获取测量记录详情")
+    @GetMapping("/{id}")
+    public Result<GrowthRecord> getById(@PathVariable Long id) {
+        GrowthRecord record = growthRecordService.getById(id);
+        return Result.success(record);
+    }
+    
+    @Operation(summary = "获取宝宝所有测量记录")
+    @GetMapping("/all/{babyId}")
+    public Result<List<GrowthRecord>> getAllRecords(@PathVariable Long babyId) {
+        List<GrowthRecord> records = growthRecordService.getAllRecords(babyId);
+        return Result.success(records);
+    }
+    
+    @Operation(summary = "删除测量记录")
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        growthRecordService.removeById(id);
+        return Result.success();
+    }
+    
+    @Operation(summary = "获取WHO标准生长曲线数据")
+    @GetMapping("/who-standard/{babyId}")
+    public Result<Map<String, Object>> getWHOStandard(@PathVariable Long babyId) {
+        Baby baby = babyService.getById(babyId);
+        int gender = (baby != null && baby.getGender() != null) ? baby.getGender() : 1;
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("height", growthRecordService.getWHOHeightStandard(gender));
+        result.put("weight", growthRecordService.getWHOWeightStandard(gender));
+        result.put("gender", gender);
+        
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取宝宝生长曲线数据（含WHO标准和实际记录）")
+    @GetMapping("/chart-data/{babyId}")
+    public Result<Map<String, Object>> getChartData(@PathVariable Long babyId) {
+        Baby baby = babyService.getById(babyId);
+        int gender = (baby != null && baby.getGender() != null) ? baby.getGender() : 1;
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // WHO标准数据
+        result.put("whoHeight", growthRecordService.getWHOHeightStandard(gender));
+        result.put("whoWeight", growthRecordService.getWHOWeightStandard(gender));
+        
+        // 宝宝实际记录
+        List<GrowthRecord> records = growthRecordService.getAllRecords(babyId);
+        result.put("records", records);
+        
+        // 百分位分析
+        result.put("percentile", growthRecordService.calculatePercentile(babyId));
+        
+        result.put("gender", gender);
+        
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取最新百分位分析")
+    @GetMapping("/percentile/{babyId}")
+    public Result<Map<String, Object>> getPercentile(@PathVariable Long babyId) {
+        return Result.success(growthRecordService.calculatePercentile(babyId));
+    }
+}
