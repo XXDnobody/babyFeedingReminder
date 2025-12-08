@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 /**
  * 疫苗时间表VO
  */
@@ -50,6 +53,16 @@ public class VaccineScheduleVO {
     private Boolean required;
     
     /**
+     * 是否免费: true-国家免费 false-自费
+     */
+    private Boolean isFree;
+    
+    /**
+     * 参考价格（元）
+     */
+    private BigDecimal price;
+    
+    /**
      * 疫苗说明
      */
     private String description;
@@ -63,4 +76,48 @@ public class VaccineScheduleVO {
      * 注意事项
      */
     private String notes;
+    
+    /**
+     * 可替代的付费疫苗列表
+     */
+    private List<AlternativeVaccineVO> alternatives;
+    
+    /**
+     * 替代疫苗信息
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AlternativeVaccineVO {
+        /**
+         * 替代疫苗代码
+         */
+        private String vaccineCode;
+        
+        /**
+         * 替代疫苗名称
+         */
+        private String vaccineName;
+        
+        /**
+         * 疫苗全称
+         */
+        private String vaccineFullName;
+        
+        /**
+         * 参考价格（元）
+         */
+        private BigDecimal price;
+        
+        /**
+         * 优势说明
+         */
+        private String advantages;
+        
+        /**
+         * 减少接种次数（联合疫苗的优势）
+         */
+        private Integer reducedDoses;
+    }
 }

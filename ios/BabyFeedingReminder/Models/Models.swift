@@ -293,6 +293,9 @@ struct VaccinationRecord: Codable, Identifiable {
     var scheduledDate: Date?
     var actualDate: Date?
     var status: Int  // 0-待接种 1-已接种 2-已逾期 3-已跳过
+    var isFree: Int?  // 1-国家免费 0-自费
+    var originalVaccineCode: String?  // 原始疫苗代码
+    var price: Double?  // 疫苗价格
     var vaccinationSite: String?
     var batchNumber: String?
     var reaction: String?
@@ -326,6 +329,34 @@ struct VaccinationRecord: Codable, Identifiable {
     var canRecord: Bool {
         status == 0 || status == 2
     }
+    
+    /// 是否为自费疫苗
+    var isPaidVaccine: Bool {
+        isFree == 0
+    }
+    
+    /// 价格描述
+    var priceDescription: String? {
+        guard let p = price, p > 0 else { return nil }
+        return "¥\(Int(p))"
+    }
+}
+
+/// 替代疫苗信息
+struct AlternativeVaccine: Codable, Identifiable {
+    var id: String { vaccineCode }
+    var vaccineCode: String
+    var vaccineName: String
+    var vaccineFullName: String?
+    var price: Double?
+    var advantages: String?
+    var reducedDoses: Int?
+    
+    /// 价格描述
+    var priceDescription: String {
+        guard let p = price else { return "价格未知" }
+        return "¥\(Int(p))"
+    }
 }
 
 /// 疫苗时间表模型
@@ -338,7 +369,16 @@ struct VaccineSchedule: Codable, Identifiable {
     var ageInMonths: Int
     var ageDescription: String?
     var required: Bool?
+    var isFree: Bool?
+    var price: Double?
     var description: String?
     var injectionSite: String?
     var notes: String?
+    var alternatives: [AlternativeVaccine]?
+    
+    /// 是否有可替代疫苗
+    var hasAlternatives: Bool {
+        guard let alt = alternatives else { return false }
+        return !alt.isEmpty
+    }
 }

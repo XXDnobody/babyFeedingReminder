@@ -16,11 +16,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * 疫苗接种服务实现类
@@ -41,80 +45,96 @@ public class VaccinationServiceImpl implements VaccinationService {
      */
     private static final List<VaccineScheduleVO> VACCINE_SCHEDULE = new ArrayList<>();
     
+    /**
+     * 可替代的付费疫苗映射
+     */
+    private static final Map<String, List<VaccineScheduleVO.AlternativeVaccineVO>> ALTERNATIVE_VACCINES = new HashMap<>();
+    
     static {
+        // 先初始化替代疫苗列表
+        initAlternativeVaccines();
+        
         // 乙肝疫苗 (HepB)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("HepB").vaccineName("乙肝疫苗").vaccineFullName("重组乙型肝炎疫苗")
                 .doseNumber(1).ageInMonths(0).ageDescription("出生24小时内")
-                .required(true).description("预防乙型肝炎").injectionSite("上臂三角肌")
+                .required(true).isFree(true).description("预防乙型肝炎").injectionSite("上臂三角肌")
                 .notes("出生后24小时内尽早接种").build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("HepB").vaccineName("乙肝疫苗").vaccineFullName("重组乙型肝炎疫苗")
                 .doseNumber(2).ageInMonths(1).ageDescription("1月龄")
-                .required(true).description("预防乙型肝炎").injectionSite("上臂三角肌").build());
+                .required(true).isFree(true).description("预防乙型肝炎").injectionSite("上臂三角肌").build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("HepB").vaccineName("乙肝疫苗").vaccineFullName("重组乙型肝炎疫苗")
                 .doseNumber(3).ageInMonths(6).ageDescription("6月龄")
-                .required(true).description("预防乙型肝炎").injectionSite("上臂三角肌").build());
+                .required(true).isFree(true).description("预防乙型肝炎").injectionSite("上臂三角肌").build());
         
         // 卡介苗 (BCG)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("BCG").vaccineName("卡介苗").vaccineFullName("皮内注射用卡介苗")
                 .doseNumber(1).ageInMonths(0).ageDescription("出生时")
-                .required(true).description("预防结核病").injectionSite("上臂三角肌中部略下处")
+                .required(true).isFree(true).description("预防结核病").injectionSite("上臂三角肌中部略下处")
                 .notes("出生时接种，早产儿待体重达2500g后接种").build());
         
         // 脊灰疫苗 (IPV/bOPV)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("IPV").vaccineName("脊灰灭活疫苗").vaccineFullName("脊髓灰质炎灭活疫苗")
                 .doseNumber(1).ageInMonths(2).ageDescription("2月龄")
-                .required(true).description("预防脊髓灰质炎").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防脊髓灰质炎").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("IPV")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("bOPV").vaccineName("脊灰减毒活疫苗").vaccineFullName("二价脊髓灰质炎减毒活疫苗")
                 .doseNumber(2).ageInMonths(3).ageDescription("3月龄")
-                .required(true).description("预防脊髓灰质炎").injectionSite("口服").build());
+                .required(true).isFree(true).description("预防脊髓灰质炎").injectionSite("口服")
+                .alternatives(ALTERNATIVE_VACCINES.get("bOPV")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("bOPV").vaccineName("脊灰减毒活疫苗").vaccineFullName("二价脊髓灰质炎减毒活疫苗")
                 .doseNumber(3).ageInMonths(4).ageDescription("4月龄")
-                .required(true).description("预防脊髓灰质炎").injectionSite("口服").build());
+                .required(true).isFree(true).description("预防脊髓灰质炎").injectionSite("口服")
+                .alternatives(ALTERNATIVE_VACCINES.get("bOPV")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("bOPV").vaccineName("脊灰减毒活疫苗").vaccineFullName("二价脊髓灰质炎减毒活疫苗")
                 .doseNumber(4).ageInMonths(48).ageDescription("4周岁")
-                .required(true).description("预防脊髓灰质炎").injectionSite("口服").build());
+                .required(true).isFree(true).description("预防脊髓灰质炎").injectionSite("口服")
+                .alternatives(ALTERNATIVE_VACCINES.get("bOPV")).build());
         
         // 百白破疫苗 (DTaP)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("DTaP").vaccineName("百白破疫苗").vaccineFullName("吸附无细胞百白破联合疫苗")
                 .doseNumber(1).ageInMonths(3).ageDescription("3月龄")
-                .required(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("DTaP")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("DTaP").vaccineName("百白破疫苗").vaccineFullName("吸附无细胞百白破联合疫苗")
                 .doseNumber(2).ageInMonths(4).ageDescription("4月龄")
-                .required(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("DTaP")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("DTaP").vaccineName("百白破疫苗").vaccineFullName("吸附无细胞百白破联合疫苗")
                 .doseNumber(3).ageInMonths(5).ageDescription("5月龄")
-                .required(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("DTaP")).build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("DTaP").vaccineName("百白破疫苗").vaccineFullName("吸附无细胞百白破联合疫苗")
                 .doseNumber(4).ageInMonths(18).ageDescription("18月龄")
-                .required(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防百日咳、白喉、破伤风").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("DTaP")).build());
         
         // 白破疫苗 (DT)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("DT").vaccineName("白破疫苗").vaccineFullName("吸附白喉破伤风联合疫苗")
                 .doseNumber(1).ageInMonths(72).ageDescription("6周岁")
-                .required(true).description("预防白喉、破伤风").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防白喉、破伤风").injectionSite("上臂外侧三角肌").build());
         
         // 麻腮风疫苗 (MMR)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("MR").vaccineName("麻风疫苗").vaccineFullName("麻疹风疹联合减毒活疫苗")
                 .doseNumber(1).ageInMonths(8).ageDescription("8月龄")
-                .required(true).description("预防麻疹、风疹").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防麻疹、风疹").injectionSite("上臂外侧三角肌").build());
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("MMR").vaccineName("麻腮风疫苗").vaccineFullName("麻疹腮腺炎风疹联合减毒活疫苗")
                 .doseNumber(1).ageInMonths(18).ageDescription("18月龄")
-                .required(true).description("预防麻疹、腮腺炎、风疹").injectionSite("上臂外侧三角肌").build());
+                .required(true).isFree(true).description("预防麻疹、腮腺炎、风疹").injectionSite("上臂外侧三角肌").build());
         
         // 乙脑疫苗 (JE)
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
@@ -150,7 +170,107 @@ public class VaccinationServiceImpl implements VaccinationService {
         VACCINE_SCHEDULE.add(VaccineScheduleVO.builder()
                 .vaccineCode("HepA-L").vaccineName("甲肝减毒活疫苗").vaccineFullName("甲型肝炎减毒活疫苗")
                 .doseNumber(1).ageInMonths(18).ageDescription("18月龄")
-                .required(true).description("预防甲型肝炎").injectionSite("上臂外侧三角肌").build());
+                .required(true).description("预防甲型肝炎").injectionSite("上臂外侧三角肌")
+                .alternatives(ALTERNATIVE_VACCINES.get("HepA")).build());
+    }
+    
+    /**
+     * 初始化替代疫苗列表
+     */
+    private static void initAlternativeVaccines() {
+        // 脊灰疫苗替代方案：进口五联疫苗或全程IPV
+        ALTERNATIVE_VACCINES.put("IPV", Arrays.asList(
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("Pentaxim")
+                        .vaccineName("五联疫苗")
+                        .vaccineFullName("百白破-脊灰-Hib联合疫苗")
+                        .price(new BigDecimal("600"))
+                        .advantages("一针防五病，减少接种次数，进口品质")
+                        .reducedDoses(8)
+                        .build(),
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("IPV-Full")
+                        .vaccineName("全程脊灰灭活疫苗")
+                        .vaccineFullName("全程脊髓灰质炎灭活疫苗")
+                        .price(new BigDecimal("200"))
+                        .advantages("更安全，无疫苗相关麻痹风险")
+                        .reducedDoses(0)
+                        .build()
+        ));
+        
+        ALTERNATIVE_VACCINES.put("bOPV", ALTERNATIVE_VACCINES.get("IPV"));
+        
+        // 百白破替代方案：四联/五联/六联疫苗
+        ALTERNATIVE_VACCINES.put("DTaP", Arrays.asList(
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("Pentaxim")
+                        .vaccineName("五联疫苗")
+                        .vaccineFullName("百白破-脊灰-Hib联合疫苗")
+                        .price(new BigDecimal("600"))
+                        .advantages("一针防五病，减少接种次数，减轻宝宝痛苦")
+                        .reducedDoses(8)
+                        .build(),
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("Hexaxim")
+                        .vaccineName("六联疫苗")
+                        .vaccineFullName("百白破-脊灰-Hib-乙肝联合疫苗")
+                        .price(new BigDecimal("1200"))
+                        .advantages("一针防六病，最大化减少接种次数")
+                        .reducedDoses(11)
+                        .build(),
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("DTaP-Hib")
+                        .vaccineName("四联疫苗")
+                        .vaccineFullName("百白破-Hib联合疫苗")
+                        .price(new BigDecimal("350"))
+                        .advantages("一针防四病，中等价位")
+                        .reducedDoses(4)
+                        .build()
+        ));
+        
+        // A群流脑替代方案：AC结合疫苗
+        ALTERNATIVE_VACCINES.put("MPSV-A", Arrays.asList(
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("MenAC-C")
+                        .vaccineName("AC结合疫苗")
+                        .vaccineFullName("A群C群脑膜炎球菌结合疫苗")
+                        .price(new BigDecimal("280"))
+                        .advantages("结合疫苗免疫效果更好，适合小月龄宝宝")
+                        .reducedDoses(0)
+                        .build(),
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("MenACYW135")
+                        .vaccineName("四价流脑结合疫苗")
+                        .vaccineFullName("ACYW135群脑膜炎球菌多糖结合疫苗")
+                        .price(new BigDecimal("400"))
+                        .advantages("保护范围更广，覆盖4种血清群")
+                        .reducedDoses(0)
+                        .build()
+        ));
+        
+        // 乙脑替代方案：乙脑灭活疫苗
+        ALTERNATIVE_VACCINES.put("JE-L", Arrays.asList(
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("JE-I")
+                        .vaccineName("乙脑灭活疫苗")
+                        .vaccineFullName("乙型脑炎灭活疫苗")
+                        .price(new BigDecimal("300"))
+                        .advantages("灭活疫苗更安全，适合免疫功能较弱宝宝")
+                        .reducedDoses(0)
+                        .build()
+        ));
+        
+        // 甲肝替代方案：甲肝灭活疫苗
+        ALTERNATIVE_VACCINES.put("HepA", Arrays.asList(
+                VaccineScheduleVO.AlternativeVaccineVO.builder()
+                        .vaccineCode("HepA-I")
+                        .vaccineName("甲肝灭活疫苗")
+                        .vaccineFullName("甲型肝炎灭活疫苗")
+                        .price(new BigDecimal("200"))
+                        .advantages("灭活疫苗更安全，需接种2剂")
+                        .reducedDoses(-1) // 实际需要多接种1剂
+                        .build()
+        ));
     }
     
     @Override
@@ -437,5 +557,72 @@ public class VaccinationServiceImpl implements VaccinationService {
                 vaccinationRecordMapper.updateById(record);
             }
         }
+    }
+    
+    @Override
+    @Transactional
+    public VaccinationRecord switchToAlternativeVaccine(Long id, String alternativeVaccineCode, String alternativeVaccineName, BigDecimal price) {
+        VaccinationRecord record = vaccinationRecordMapper.selectById(id);
+        if (record == null) {
+            throw new RuntimeException("接种记录不存在");
+        }
+        
+        // 保存原始疫苗信息
+        if (record.getOriginalVaccineCode() == null) {
+            record.setOriginalVaccineCode(record.getVaccineCode());
+        }
+        
+        // 切换为替代疫苗
+        record.setVaccineCode(alternativeVaccineCode);
+        record.setVaccineName(alternativeVaccineName);
+        record.setIsFree(0); // 自费
+        record.setPrice(price);
+        
+        vaccinationRecordMapper.updateById(record);
+        log.info("切换为替代疫苗: id={}, from={} to={}", id, record.getOriginalVaccineCode(), alternativeVaccineCode);
+        
+        return record;
+    }
+    
+    @Override
+    @Transactional
+    public VaccinationRecord restoreToFreeVaccine(Long id) {
+        VaccinationRecord record = vaccinationRecordMapper.selectById(id);
+        if (record == null) {
+            throw new RuntimeException("接种记录不存在");
+        }
+        
+        if (record.getOriginalVaccineCode() == null) {
+            throw new RuntimeException("该记录未切换过替代疫苗");
+        }
+        
+        // 查找原始疫苗信息
+        String originalCode = record.getOriginalVaccineCode();
+        VaccineScheduleVO originalVaccine = VACCINE_SCHEDULE.stream()
+                .filter(v -> v.getVaccineCode().equals(originalCode) && v.getDoseNumber().equals(record.getDoseNumber()))
+                .findFirst()
+                .orElse(null);
+        
+        if (originalVaccine != null) {
+            record.setVaccineCode(originalVaccine.getVaccineCode());
+            record.setVaccineName(originalVaccine.getVaccineName());
+        } else {
+            record.setVaccineCode(originalCode);
+        }
+        
+        record.setIsFree(1); // 免费
+        record.setPrice(null);
+        record.setOriginalVaccineCode(null);
+        
+        vaccinationRecordMapper.updateById(record);
+        log.info("恢复为免费疫苗: id={}, code={}", id, record.getVaccineCode());
+        
+        return record;
+    }
+    
+    @Override
+    public List<VaccineScheduleVO.AlternativeVaccineVO> getAlternativeVaccines(String vaccineCode) {
+        List<VaccineScheduleVO.AlternativeVaccineVO> alternatives = ALTERNATIVE_VACCINES.get(vaccineCode);
+        return alternatives != null ? alternatives : new ArrayList<>();
     }
 }

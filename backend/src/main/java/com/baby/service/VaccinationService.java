@@ -3,6 +3,7 @@ package com.baby.service;
 import com.baby.dto.VaccinationRecordDTO;
 import com.baby.entity.VaccinationRecord;
 import com.baby.vo.VaccineScheduleVO;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -31,7 +32,7 @@ public interface VaccinationService {
     List<VaccinationRecord> getPendingVaccinations(Long babyId);
     
     /**
-     * 获取即将到期的疫苗（未来7天内）
+     * 获取即将到期的疫苗（未柧7天内）
      */
     List<VaccinationRecord> getUpcomingVaccinations(Long babyId);
     
@@ -64,4 +65,19 @@ public interface VaccinationService {
      * 生成疫苗接种提醒
      */
     void generateVaccinationReminders(Long babyId);
+    
+    /**
+     * 切换为替代疫苗（付费疫苗）
+     */
+    VaccinationRecord switchToAlternativeVaccine(Long id, String alternativeVaccineCode, String alternativeVaccineName, BigDecimal price);
+    
+    /**
+     * 恢复为免费疫苗
+     */
+    VaccinationRecord restoreToFreeVaccine(Long id);
+    
+    /**
+     * 获取可替代的付费疫苗列表
+     */
+    List<VaccineScheduleVO.AlternativeVaccineVO> getAlternativeVaccines(String vaccineCode);
 }

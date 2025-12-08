@@ -7,6 +7,9 @@ struct VaccinationView: View {
     @State private var selectedTab = 0  // 0-接种计划 1-疫苗时间表
     @State private var showRecordSheet = false
     @State private var selectedRecord: VaccinationRecord?
+    @State private var showAddSheet = false
+    @State private var selectedSchedule: VaccineSchedule?
+    @State private var showAlternativeSheet = false
     
     var body: some View {
         NavigationView {
@@ -43,6 +46,15 @@ struct VaccinationView: View {
             }
             .navigationTitle("疫苗接种")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
         }
         .onAppear {
             Task {
@@ -62,6 +74,17 @@ struct VaccinationView: View {
                     viewModel: viewModel
                 )
                 .environment(\.locale, Locale(identifier: "zh_CN"))
+            }
+        }
+        .sheet(isPresented: $showAddSheet) {
+            if let babyId = appState.selectedBaby?.id {
+                AddVaccinationSheet(babyId: babyId, viewModel: viewModel)
+                    .environment(\.locale, Locale(identifier: "zh_CN"))
+            }
+        }
+        .sheet(isPresented: $showAlternativeSheet) {
+            if let schedule = selectedSchedule {
+                AlternativeVaccineSheet(schedule: schedule)
             }
         }
     }
@@ -199,7 +222,12 @@ struct VaccinationView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.vaccineSchedule) { schedule in
-                    VaccineScheduleRow(schedule: schedule)
+                    VaccineScheduleRow(schedule: schedule) {
+                        if schedule.hasAlternatives {
+                            selectedSchedule = schedule
+                            showAlternativeSheet = true
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -319,6 +347,7 @@ struct VaccinationRecordRow: View {
 
 struct VaccineScheduleRow: View {
     let schedule: VaccineSchedule
+    var onTapAlternative: (() -> Void)? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -334,6 +363,17 @@ struct VaccineScheduleRow: View {
                     .background(Color.blue.opacity(0.1))
                     .foregroundColor(.blue)
                     .cornerRadius(4)
+                
+                // 免费/自费标识
+                if schedule.isFree == true {
+                    Text("免费")
+                        .font(.caption2)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(4)
+                }
                 
                 Spacer()
                 
@@ -369,6 +409,23 @@ struct VaccineScheduleRow: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .padding(.top, 4)
+            }
+            
+            // 替代疫苗按钮
+            if schedule.hasAlternatives {
+                Button {
+                    onTapAlternative?()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("查看付费替代方案")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.purple)
+                    .padding(.top, 4)
+                }
             }
         }
         .padding()
@@ -509,6 +566,228 @@ struct VaccinationRecordSheet: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - 新增疫苗记录表单
+
+struct AddVaccinationSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let babyId: Int64
+    @ObservedObject var viewModel: VaccinationViewModel
+    
+    @State private var vaccineName = ""
+    @State private var vaccineCode = ""
+    @State private var doseNumber = 1
+    @State private var actualDate = Date()
+    @State private var vaccinationSite = ""
+    @State private var batchNumber = ""
+    @State private var price = ""
+    @State private var remark = ""
+    @State private var isSaving = false
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("疫苗信息") {
+                    TextField("疫苗名称", text: $vaccineName)
+                    TextField("疫苗代码（可选）", text: $vaccineCode)
+                    Stepper("剂次：第\(doseNumber)剂", value: $doseNumber, in: 1...10)
+                }
+                
+                Section("接种信息") {
+                    DatePicker("接种日期", selection: $actualDate, displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: "zh_CN"))
+                    
+                    TextField("接种地点", text: $vaccinationSite)
+                    TextField("疫苗批号", text: $batchNumber)
+                    TextField("价格（元，可选）", text: $price)
+                        .keyboardType(.decimalPad)
+                }
+                
+                Section("备注") {
+                    TextField("备注信息（可选）", text: $remark, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+            }
+            .navigationTitle("新增疫苗记录")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") { dismiss() }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("保存") {
+                        saveRecord()
+                    }
+                    .disabled(vaccineName.isEmpty || isSaving)
+                }
+            }
+        }
+    }
+    
+    private func saveRecord() {
+        isSaving = true
+        let code = vaccineCode.isEmpty ? "CUSTOM_\(UUID().uuidString.prefix(8))" : vaccineCode
+        
+        Task {
+            let success = await viewModel.recordVaccination(
+                babyId: babyId,
+                vaccineCode: code,
+                vaccineName: vaccineName,
+                doseNumber: doseNumber,
+                actualDate: actualDate,
+                vaccinationSite: vaccinationSite.isEmpty ? nil : vaccinationSite,
+                batchNumber: batchNumber.isEmpty ? nil : batchNumber,
+                reaction: nil,
+                remark: remark.isEmpty ? nil : remark,
+                recordId: nil
+            )
+            
+            isSaving = false
+            if success {
+                dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - 替代疫苗选择表单
+
+struct AlternativeVaccineSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let schedule: VaccineSchedule
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // 当前疫苗信息
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("当前免费疫苗")
+                            .font(.headline)
+                        
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(schedule.vaccineName)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                if let fullName = schedule.vaccineFullName {
+                                    Text(fullName)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Text("免费")
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.green.opacity(0.1))
+                                .foregroundColor(.green)
+                                .cornerRadius(8)
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                    }
+                    
+                    // 可替代的付费疫苗
+                    if let alternatives = schedule.alternatives, !alternatives.isEmpty {
+                        Text("可替代的付费疫苗")
+                            .font(.headline)
+                            .padding(.top, 8)
+                        
+                        ForEach(alternatives) { alt in
+                            AlternativeVaccineCard(alternative: alt)
+                        }
+                    }
+                    
+                    // 提示信息
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("温馨提示", systemImage: "info.circle")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                        
+                        Text("付费疫苗通常具有更好的保护效果或更少的副作用，建议根据医生建议和宝宝实际情况选择。")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.05))
+                    .cornerRadius(12)
+                }
+                .padding()
+            }
+            .background(AppTheme.backgroundGradient.ignoresSafeArea())
+            .navigationTitle("替代疫苗方案")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 替代疫苗卡片
+
+struct AlternativeVaccineCard: View {
+    let alternative: AlternativeVaccine
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(alternative.vaccineName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    if let fullName = alternative.vaccineFullName {
+                        Text(fullName)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+                Text(alternative.priceDescription)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+            }
+            
+            if let advantages = alternative.advantages {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                    Text(advantages)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            if let reducedDoses = alternative.reducedDoses, reducedDoses > 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                    Text("可减少\(reducedDoses)次接种")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 package com.baby.dto;
 
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -45,6 +46,21 @@ public class VaccinationRecordDTO {
      * 状态: 0-待接种 1-已接种 2-已逾期 3-已跳过
      */
     private Integer status;
+    
+    /**
+     * 是否免费: 1-国家免费 0-自费
+     */
+    private Integer isFree;
+    
+    /**
+     * 原始疫苗代码（如果选择了替代疫苗）
+     */
+    private String originalVaccineCode;
+    
+    /**
+     * 疫苗价格（元）
+     */
+    private BigDecimal price;
     
     /**
      * 接种地点

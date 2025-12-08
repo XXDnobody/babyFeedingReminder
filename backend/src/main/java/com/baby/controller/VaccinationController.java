@@ -99,4 +99,29 @@ public class VaccinationController {
         vaccinationService.generateVaccinationReminders(babyId);
         return Result.success();
     }
+    
+    @Operation(summary = "切换为替代疫苗（付费疫苗）")
+    @PostMapping("/switch-alternative/{id}")
+    public Result<VaccinationRecord> switchToAlternative(
+            @PathVariable Long id,
+            @RequestParam String alternativeVaccineCode,
+            @RequestParam String alternativeVaccineName,
+            @RequestParam(required = false) java.math.BigDecimal price) {
+        VaccinationRecord record = vaccinationService.switchToAlternativeVaccine(id, alternativeVaccineCode, alternativeVaccineName, price);
+        return Result.success(record);
+    }
+    
+    @Operation(summary = "恢复为免费疫苗")
+    @PostMapping("/restore-free/{id}")
+    public Result<VaccinationRecord> restoreToFreeVaccine(@PathVariable Long id) {
+        VaccinationRecord record = vaccinationService.restoreToFreeVaccine(id);
+        return Result.success(record);
+    }
+    
+    @Operation(summary = "获取可替代的付费疫苗列表")
+    @GetMapping("/alternatives/{vaccineCode}")
+    public Result<List<VaccineScheduleVO.AlternativeVaccineVO>> getAlternatives(@PathVariable String vaccineCode) {
+        List<VaccineScheduleVO.AlternativeVaccineVO> alternatives = vaccinationService.getAlternativeVaccines(vaccineCode);
+        return Result.success(alternatives);
+    }
 }
