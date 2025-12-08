@@ -680,6 +680,9 @@ struct ReminderFormView: View {
 // MARK: - 快捷操作
 struct QuickActionsSection: View {
     @ObservedObject var appState: AppState
+    @State private var showFeedingView = false
+    @State private var showSleepView = false
+    @State private var showExcretionView = false
     @State private var showVaccinationView = false
     @State private var showGrowthView = false
     
@@ -692,19 +695,19 @@ struct QuickActionsSection: View {
             // 第一行
             HStack(spacing: 12) {
                 QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: AppTheme.feedingColor) {
-                    appState.selectedTab = 1  // 跳转到喂养页
+                    showFeedingView = true
                 }
                 
                 QuickActionButton(icon: "moon.fill", title: "记录睡眠", color: AppTheme.sleepColor) {
-                    appState.selectedTab = 2  // 跳转到睡眠页
+                    showSleepView = true
                 }
                 
                 QuickActionButton(icon: "toilet.fill", title: "记录排便", color: AppTheme.excretionColor) {
-                    appState.selectedTab = 3  // 跳转到排便页
+                    showExcretionView = true
                 }
                 
-                QuickActionButton(icon: "chart.bar.fill", title: "查看统计", color: AppTheme.statsColor) {
-                    appState.selectedTab = 4  // 跳转到统计页
+                QuickActionButton(icon: "chart.bar.fill", title: "查看分析", color: AppTheme.statsColor) {
+                    appState.selectedTab = 2  // 跳转到分析页
                 }
             }
             
@@ -722,6 +725,18 @@ struct QuickActionsSection: View {
                 Color.clear.frame(maxWidth: .infinity)
                 Color.clear.frame(maxWidth: .infinity)
             }
+        }
+        .sheet(isPresented: $showFeedingView) {
+            FeedingView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $showSleepView) {
+            SleepView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $showExcretionView) {
+            ExcretionView()
+                .environmentObject(appState)
         }
         .sheet(isPresented: $showVaccinationView) {
             VaccinationView()

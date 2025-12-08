@@ -30,40 +30,26 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            FeedingView()
+            RecordView()
                 .tabItem {
-                    Image(systemName: "drop.fill")
-                    Text("喂养")
+                    Image(systemName: "square.and.pencil")
+                    Text("记录")
                 }
                 .tag(1)
-            
-            SleepView()
-                .tabItem {
-                    Image(systemName: "moon.fill")
-                    Text("睡眠")
-                }
-                .tag(2)
-            
-            ExcretionView()
-                .tabItem {
-                    Image(systemName: "toilet.fill")
-                    Text("排便")
-                }
-                .tag(3)
             
             StatisticsView()
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
-                    Text("统计")
+                    Text("分析")
                 }
-                .tag(4)
+                .tag(2)
             
             SettingsView()
                 .tabItem {
-                    Image(systemName: "gearshape.fill")
-                    Text("设置")
+                    Image(systemName: "person.fill")
+                    Text("我的")
                 }
-                .tag(5)
+                .tag(3)
         }
         .tint(AppTheme.primaryBlue)
     }
