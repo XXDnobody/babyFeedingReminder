@@ -8,7 +8,6 @@ struct StatisticsView: View {
     @State private var showingFeedingDetail = false
     @State private var showingSleepDetail = false
     @State private var showingGrowthDetail = false
-    @State private var showingInsightsDetail = false
     @State private var showingExcretionDetail = false
     
     private var periodDays: Int {
@@ -91,17 +90,6 @@ struct StatisticsView: View {
                                 ) {
                                     showingGrowthDetail = true
                                 }
-                                
-                                // 智能洞察模块
-                                StatModuleCard(
-                                    icon: "lightbulb.fill",
-                                    title: "智能建议",
-                                    value: viewModel.suggestion.isEmpty ? "0条" : "1条",
-                                    subtitle: "个性化建议",
-                                    color: AppTheme.statsColor
-                                ) {
-                                    showingInsightsDetail = true
-                                }
                             }
                         }
                         .padding(.horizontal, 20)
@@ -124,9 +112,6 @@ struct StatisticsView: View {
             }
             .sheet(isPresented: $showingGrowthDetail) {
                 GrowthView()
-            }
-            .sheet(isPresented: $showingInsightsDetail) {
-                InsightsDetailView(viewModel: viewModel)
             }
             .sheet(isPresented: $showingExcretionDetail) {
                 ExcretionStatsDetailView(viewModel: viewModel, appState: appState)
@@ -308,103 +293,6 @@ struct SleepStatsDetailView: View {
     }
 }
 
-// MARK: - 智能建议详情页
-struct InsightsDetailView: View {
-    @ObservedObject var viewModel: StatisticsViewModel
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // 喂养分析建议
-                    if !viewModel.feedingInsight.isEmpty {
-                        insightCard(
-                            icon: "drop.fill",
-                            title: "喂养分析",
-                            content: viewModel.feedingInsight,
-                            color: AppTheme.feedingColor
-                        )
-                    }
-                    
-                    // 睡眠分析建议
-                    if !viewModel.sleepInsight.isEmpty {
-                        insightCard(
-                            icon: "moon.fill",
-                            title: "睡眠分析",
-                            content: viewModel.sleepInsight,
-                            color: AppTheme.sleepColor
-                        )
-                    }
-                    
-                    // 综合建议
-                    if !viewModel.suggestion.isEmpty {
-                        insightCard(
-                            icon: "star.fill",
-                            title: "综合建议",
-                            content: viewModel.suggestion,
-                            color: AppTheme.statsColor
-                        )
-                    }
-                    
-                    if viewModel.feedingInsight.isEmpty && viewModel.sleepInsight.isEmpty && viewModel.suggestion.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "lightbulb")
-                                .font(.system(size: 50))
-                                .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                            Text("暂无建议")
-                                .font(.headline)
-                                .foregroundColor(AppTheme.secondaryText)
-                            Text("继续记录宝宝的日常，\n我们将为您提供个性化建议")
-                                .font(.subheadline)
-                                .foregroundColor(AppTheme.secondaryText)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.vertical, 40)
-                    }
-                }
-                .padding()
-            }
-            .background(AppTheme.backgroundGradient)
-            .navigationTitle("智能建议")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("关闭") { dismiss() }
-                }
-            }
-        }
-    }
-    
-    private func insightCard(icon: String, title: String, content: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: icon)
-                        .font(.system(size: 16))
-                        .foregroundColor(color)
-                }
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(AppTheme.primaryText)
-            }
-            
-            Text(content)
-                .font(.body)
-                .foregroundColor(AppTheme.secondaryText)
-                .lineSpacing(6)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(AppTheme.cardRadius)
-        .shadow(color: AppTheme.cardShadowColor, radius: 6, x: 0, y: 3)
-    }
-}
 
 // MARK: - 今日统计卡片
 struct TodayStatsCard: View {
@@ -469,40 +357,6 @@ struct TodayStatsCard: View {
                     .fill(Color.white)
                     .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
             )
-            
-            // 今日分析建议
-            if !viewModel.suggestion.isEmpty {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppTheme.statsColor)
-                        .frame(width: 24, height: 24)
-                        .padding(.top, 2)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("今日建议")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(AppTheme.primaryText)
-                        
-                        Text(viewModel.suggestion)
-                            .font(.callout)
-                            .foregroundColor(AppTheme.secondaryText)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                        .fill(AppTheme.statsColor.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
-                                .strokeBorder(AppTheme.statsColor.opacity(0.2), lineWidth: 1)
-                        )
-                )
-            }
         }
     }
 }
@@ -1732,58 +1586,6 @@ struct QualityIndicator: View {
     }
 }
 
-// MARK: - 智能洞察部分
-struct InsightsSection: View {
-    @ObservedObject var viewModel: StatisticsViewModel
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundColor(AppTheme.statsColor)
-                Text("智能洞察")
-                    .font(.headline)
-                    .foregroundColor(AppTheme.primaryText)
-            }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                if !viewModel.feedingInsight.isEmpty {
-                    InsightRow(icon: "drop.fill", color: AppTheme.feedingColor, text: viewModel.feedingInsight)
-                }
-                
-                if !viewModel.sleepInsight.isEmpty {
-                    InsightRow(icon: "moon.fill", color: AppTheme.sleepColor, text: viewModel.sleepInsight)
-                }
-                
-                if !viewModel.suggestion.isEmpty {
-                    InsightRow(icon: "star.fill", color: AppTheme.statsColor, text: viewModel.suggestion)
-                }
-            }
-            .padding()
-            .background(Color.white)
-            .cornerRadius(AppTheme.cardRadius)
-            .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
-        }
-    }
-}
-
-struct InsightRow: View {
-    let icon: String
-    let color: Color
-    let text: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 24)
-            
-            Text(text)
-                .font(.subheadline)
-                .foregroundColor(AppTheme.primaryText)
-        }
-    }
-}
 
 // MARK: - 排便统计详情页
 struct ExcretionStatsDetailView: View {

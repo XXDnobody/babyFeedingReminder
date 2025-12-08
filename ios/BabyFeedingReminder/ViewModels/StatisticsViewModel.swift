@@ -157,11 +157,7 @@ class StatisticsViewModel: ObservableObject {
     @Published var textureDistribution: [String: Double] = [:]
     @Published var abnormalCount: Int = 0
     
-    // 智能洞察
-    @Published var feedingInsight: String = ""
-    @Published var sleepInsight: String = ""
-    @Published var suggestion: String = ""
-    
+
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var currentDays: Int = 7  // 当前选择的天数
@@ -230,9 +226,8 @@ class StatisticsViewModel: ObservableObject {
         async let feedingStatsTask: () = loadFeedingStatistics(babyId: babyId, days: days)
         async let sleepStatsTask: () = loadSleepStatistics(babyId: babyId, days: days)
         async let excretionStatsTask: () = loadExcretionStatistics(babyId: babyId, days: days)
-        async let insightsTask: () = loadInsights(babyId: babyId)
         
-        _ = await (overviewTask, feedingStatsTask, sleepStatsTask, excretionStatsTask, insightsTask)
+        _ = await (overviewTask, feedingStatsTask, sleepStatsTask, excretionStatsTask)
         
         // 生成图表数据
         generateChartData(days: days)
@@ -346,21 +341,7 @@ class StatisticsViewModel: ObservableObject {
             print("⚠️ 加载排便统计失败: \(error.localizedDescription)")
         }
     }
-    
-    /// 加载智能洞察
-    private func loadInsights(babyId: Int64) async {
-        do {
-            let insights: InsightsResponse = try await network.request(
-                endpoint: "/statistics/insights/\(babyId)"
-            )
-            
-            feedingInsight = insights.feedingInsight ?? ""
-            sleepInsight = insights.sleepInsight ?? ""
-            suggestion = insights.suggestion ?? ""
-        } catch {
-            print("⚠️ 加载洞察失败: \(error.localizedDescription)")
-        }
-    }
+
     
     /// 日期格式化
     private func formatDate(_ date: Date) -> String {

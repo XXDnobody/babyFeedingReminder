@@ -56,11 +56,7 @@ class HomeViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // 智能洞察数据
-    @Published var feedingInsight: String = ""
-    @Published var sleepInsight: String = ""
-    @Published var suggestion: String = ""
-    
+
     private let network = NetworkService.shared
     
     /// 格式化睡眠时长显示
@@ -88,11 +84,10 @@ class HomeViewModel: ObservableObject {
         
         // 并行加载所有数据
         async let overviewTask: () = loadOverview(babyId: babyId)
-        async let insightsTask: () = loadInsights(babyId: babyId)
         async let remindersTask: () = loadUpcomingReminders(babyId: babyId)
         async let excretionTask: () = loadExcretionStats(babyId: babyId)
         
-        _ = await (overviewTask, insightsTask, remindersTask, excretionTask)
+        _ = await (overviewTask, remindersTask, excretionTask)
         
         isLoading = false
     }
@@ -126,26 +121,7 @@ class HomeViewModel: ObservableObject {
             print("⚠️ 加载概览失败: \(error.localizedDescription)")
         }
     }
-    
-    /// 加载智能洞察
-    private func loadInsights(babyId: Int64) async {
-        do {
-            let insights: InsightsResponse = try await network.request(
-                endpoint: "/statistics/insights/\(babyId)"
-            )
-            
-            feedingInsight = insights.feedingInsight ?? ""
-            sleepInsight = insights.sleepInsight ?? ""
-            suggestion = insights.suggestion ?? ""
-            
-        } catch {
-            // 网络失败，清空洞察数据
-            feedingInsight = ""
-            sleepInsight = ""
-            suggestion = ""
-            print("⚠️ 加载洞察失败: \(error.localizedDescription)")
-        }
-    }
+
     
     /// 加载即将到来的提醒
     private func loadUpcomingReminders(babyId: Int64) async {

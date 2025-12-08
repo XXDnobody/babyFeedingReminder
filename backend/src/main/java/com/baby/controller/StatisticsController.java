@@ -128,61 +128,7 @@ public class StatisticsController {
         return Result.success(statistics);
     }
     
-    @Operation(summary = "获取智能洞察")
-    @GetMapping("/insights/{babyId}")
-    public Result<Map<String, Object>> getInsights(@PathVariable Long babyId) {
-        Map<String, Object> insights = new HashMap<>();
-        
-        int ageInMonths = babyService.calculateAgeInMonths(babyId);
-        LocalDate today = LocalDate.now();
-        LocalDate weekAgo = today.minusDays(7);
-        
-        // 获取过去一周的数据
-        FeedingStatisticsVO feedingStats = feedingRecordService.getStatistics(babyId, weekAgo, today);
-        SleepStatisticsVO sleepStats = sleepRecordService.getStatistics(babyId, weekAgo, today);
-        
-        // 生成洞察
-        StringBuilder feedingInsight = new StringBuilder();
-        if (feedingStats.getDailyAverageAmount() != null) {
-            feedingInsight.append("过去一周日均奶量").append(String.format("%.0f", feedingStats.getDailyAverageAmount())).append("ml，");
-            feedingInsight.append(feedingStats.getComparisonWithRecommended());
-        }
-        
-        StringBuilder sleepInsight = new StringBuilder();
-        if (sleepStats.getDailyAverageHours() != null) {
-            sleepInsight.append("过去一周日均睡眠").append(String.format("%.1f", sleepStats.getDailyAverageHours())).append("小时，");
-            sleepInsight.append(sleepStats.getComparisonWithRecommended());
-        }
-        
-        // 生成建议
-        String suggestion = generateSuggestion(ageInMonths, feedingStats, sleepStats);
-        
-        insights.put("feedingInsight", feedingInsight.toString());
-        insights.put("sleepInsight", sleepInsight.toString());
-        insights.put("suggestion", suggestion);
-        insights.put("ageInMonths", ageInMonths);
-        insights.put("analysisDate", today.toString());
-        
-        return Result.success(insights);
-    }
-    
-    private String generateSuggestion(int ageInMonths, FeedingStatisticsVO feedingStats, SleepStatisticsVO sleepStats) {
-        StringBuilder suggestion = new StringBuilder();
-        
-        if (ageInMonths < 6) {
-            suggestion.append("宝宝处于纯母乳/配方奶阶段，建议按需喂养。");
-        } else if (ageInMonths < 12) {
-            suggestion.append("宝宝已进入辅食添加阶段，可逐步增加辅食，奶量可适当减少。");
-        } else {
-            suggestion.append("宝宝已满1岁，可以开始尝试更多固体食物，但仍需保证充足的奶量。");
-        }
-        
-        if (sleepStats.getDailyAverageHours() != null && sleepStats.getDailyAverageHours() < 12) {
-            suggestion.append("注意保证宝宝充足的睡眠时间。");
-        }
-        
-        return suggestion.toString();
-    }
+
     
     private String generateExcretionComparison(ExcretionStatisticsVO stats, int ageInMonths) {
         if (stats.getDailyAveragePoopCount() == null) {
