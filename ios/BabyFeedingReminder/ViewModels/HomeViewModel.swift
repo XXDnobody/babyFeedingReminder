@@ -5,6 +5,7 @@ struct OverviewResponse: Codable {
     let date: String?
     let feeding: FeedingOverview?
     let sleep: SleepOverview?
+    let excretion: ExcretionOverview?
     let ageInMonths: Int?
 }
 
@@ -21,6 +22,11 @@ struct SleepOverview: Codable {
     let napCount: Int?
     let recommendedNapDuration: Int?
     let unit: String?
+}
+
+struct ExcretionOverview: Codable {
+    let poopCount: Int?
+    let peeCount: Int?
 }
 
 /// 排便统计响应

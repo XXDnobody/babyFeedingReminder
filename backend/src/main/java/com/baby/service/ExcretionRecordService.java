@@ -3,6 +3,7 @@ package com.baby.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baby.dto.ExcretionRecordDTO;
 import com.baby.entity.ExcretionRecord;
+import com.baby.vo.ExcretionStatisticsVO;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -40,4 +41,19 @@ public interface ExcretionRecordService extends IService<ExcretionRecord> {
      * 获取今日小便次数
      */
     int getTodayPeeCount(Long babyId);
+    
+    /**
+     * 获取排便统计数据
+     */
+    ExcretionStatisticsVO getStatistics(Long babyId, LocalDate startDate, LocalDate endDate);
+    
+    /**
+     * 获取推荐大便次数范围（根据月龄）
+     */
+    String getRecommendedPoopCount(int ageInMonths);
+    
+    /**
+     * 获取推荐小便次数范围（根据月龄）
+     */
+    String getRecommendedPeeCount(int ageInMonths);
 }

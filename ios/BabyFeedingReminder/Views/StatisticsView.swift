@@ -9,6 +9,7 @@ struct StatisticsView: View {
     @State private var showingSleepDetail = false
     @State private var showingGrowthDetail = false
     @State private var showingInsightsDetail = false
+    @State private var showingExcretionDetail = false
     
     private var periodDays: Int {
         switch selectedPeriod {
@@ -69,6 +70,17 @@ struct StatisticsView: View {
                                     showingSleepDetail = true
                                 }
                                 
+                                // 排便分析模块
+                                StatModuleCard(
+                                    icon: "leaf.fill",
+                                    title: "排便分析",
+                                    value: String(format: "%.1f次", viewModel.dailyAveragePoopCount),
+                                    subtitle: "日均大便",
+                                    color: AppTheme.excretionColor
+                                ) {
+                                    showingExcretionDetail = true
+                                }
+                                
                                 // 生长曲线模块
                                 StatModuleCard(
                                     icon: "chart.line.uptrend.xyaxis",
@@ -115,6 +127,9 @@ struct StatisticsView: View {
             }
             .sheet(isPresented: $showingInsightsDetail) {
                 InsightsDetailView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingExcretionDetail) {
+                ExcretionStatsDetailView(viewModel: viewModel, appState: appState)
             }
         }
         .onChange(of: selectedPeriod) { _, newValue in
@@ -1766,6 +1781,523 @@ struct InsightRow: View {
             Text(text)
                 .font(.subheadline)
                 .foregroundColor(AppTheme.primaryText)
+        }
+    }
+}
+
+// MARK: - 排便统计详情页
+struct ExcretionStatsDetailView: View {
+    @ObservedObject var viewModel: StatisticsViewModel
+    var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedPeriod = 0
+    
+    private var periodDays: Int {
+        switch selectedPeriod {
+        case 0: return 7
+        case 1: return 30
+        case 2: return 365
+        default: return 7
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 时间段选择器
+                    Picker("统计周期", selection: $selectedPeriod) {
+                        Text("近7天").tag(0)
+                        Text("近30天").tag(1)
+                        Text("全部").tag(2)
+                    }
+                    .pickerStyle(.segmented)
+                    
+                    // 排便统计详情
+                    ExcretionStatsSection(viewModel: viewModel)
+                }
+                .padding()
+            }
+            .background(AppTheme.backgroundGradient)
+            .navigationTitle("排便分析")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+            .onChange(of: selectedPeriod) { _, _ in
+                Task {
+                    await viewModel.loadStatistics(
+                        babyId: appState.selectedBaby?.id,
+                        days: periodDays
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 排便统计部分
+struct ExcretionStatsSection: View {
+    @ObservedObject var viewModel: StatisticsViewModel
+    @State private var selectedChartType = 0  // 0: 大便次数, 1: 小便次数, 2: 颜色分布
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("排便分析")
+                .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
+            
+            VStack(alignment: .leading, spacing: 16) {
+                // 日均数据
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("日均大便")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(String(format: "%.1f次", viewModel.dailyAveragePoopCount))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppTheme.primaryText)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing) {
+                        Text("推荐范围")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(viewModel.recommendedPoopCount)
+                            .font(.title2)
+                            .foregroundColor(AppTheme.excretionColor)
+                    }
+                }
+                
+                // 对比提示
+                if !viewModel.excretionComparisonText.isEmpty {
+                    Text(viewModel.excretionComparisonText)
+                        .font(.caption)
+                        .foregroundColor(viewModel.excretionComparisonColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(viewModel.excretionComparisonColor.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                
+                // 小便统计
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("日均小便")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(String(format: "%.1f次", viewModel.dailyAveragePeeCount))
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundColor(AppTheme.primaryText)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing) {
+                        Text("推荐范围")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(viewModel.recommendedPeeCount)
+                            .font(.title3)
+                            .foregroundColor(AppTheme.excretionColor.opacity(0.8))
+                    }
+                }
+                
+                // 图表类型切换器
+                Picker("图表类型", selection: $selectedChartType) {
+                    Text("大便").tag(0)
+                    Text("小便").tag(1)
+                    Text("颜色分布").tag(2)
+                }
+                .pickerStyle(.segmented)
+                
+                // 图表区域
+                if !viewModel.dailyExcretionData.isEmpty {
+                    switch selectedChartType {
+                    case 0:
+                        PoopCountChart(data: viewModel.dailyExcretionData)
+                    case 1:
+                        PeeCountChart(data: viewModel.dailyExcretionData)
+                    case 2:
+                        ColorDistributionView(distribution: viewModel.colorDistribution)
+                    default:
+                        PoopCountChart(data: viewModel.dailyExcretionData)
+                    }
+                } else {
+                    Text("暂无数据")
+                        .foregroundColor(AppTheme.secondaryText)
+                        .frame(height: 180)
+                        .frame(maxWidth: .infinity)
+                }
+                
+                // 性状分布
+                if !viewModel.textureDistribution.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("大便性状分布")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                        HStack(spacing: 16) {
+                            ForEach(Array(viewModel.textureDistribution.keys.sorted()), id: \.self) { key in
+                                if let value = viewModel.textureDistribution[key] {
+                                    VStack {
+                                        Text(String(format: "%.0f%%", value))
+                                            .font(.headline)
+                                            .foregroundColor(colorForTexture(key))
+                                        Text(key)
+                                            .font(.caption)
+                                            .foregroundColor(AppTheme.secondaryText)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 异常提示
+                if viewModel.abnormalCount > 0 {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("发现 \(viewModel.abnormalCount) 次异常记录")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            .padding()
+            .background(Color.white)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(color: AppTheme.cardShadowColor, radius: 8, x: 0, y: 4)
+        }
+    }
+    
+    private func colorForTexture(_ texture: String) -> Color {
+        switch texture {
+        case "稀": return .orange
+        case "软": return .green
+        case "硬": return .brown
+        case "颗粒状": return .gray
+        default: return AppTheme.excretionColor
+        }
+    }
+}
+
+// MARK: - 大便次数图表
+struct PoopCountChart: View {
+    let data: [DailyExcretionData]
+    @State private var selectedItem: DailyExcretionData?
+    
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("每日大便次数")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            if let selected = selectedItem {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(selected.poopCount)次")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.excretionColor)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(AppTheme.excretionColor.opacity(0.1))
+                .cornerRadius(6)
+            }
+            
+            if isLargeDataSet {
+                Chart(data) { item in
+                    AreaMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.poopCount)
+                    )
+                    .foregroundStyle(AppTheme.excretionColor.opacity(0.2))
+                    
+                    LineMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.poopCount)
+                    )
+                    .foregroundStyle(AppTheme.excretionColor)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    
+                    PointMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.poopCount)
+                    )
+                    .foregroundStyle(AppTheme.excretionColor)
+                    .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(formatAxisDate(date))
+                                    .font(.caption2)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                    }
+                            )
+                    }
+                }
+            } else {
+                Chart(data) { item in
+                    BarMark(
+                        x: .value("日期", item.dateLabel),
+                        y: .value("次数", item.poopCount)
+                    )
+                    .foregroundStyle(AppTheme.excretionColor.gradient)
+                    .cornerRadius(4)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+            }
+        }
+    }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
+        }
+    }
+}
+
+// MARK: - 小便次数图表
+struct PeeCountChart: View {
+    let data: [DailyExcretionData]
+    @State private var selectedItem: DailyExcretionData?
+    
+    private var isLargeDataSet: Bool { data.count > 10 }
+    
+    private var labelStride: Int {
+        ChartAggregationHelper.smartLabelStride(for: data.count)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("每日小便次数")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            if let selected = selectedItem {
+                HStack {
+                    Text(selected.dateLabel)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(selected.peeCount)次")
+                        .font(.caption)
+                        .foregroundColor(.cyan)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.cyan.opacity(0.1))
+                .cornerRadius(6)
+            }
+            
+            if isLargeDataSet {
+                Chart(data) { item in
+                    AreaMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.peeCount)
+                    )
+                    .foregroundStyle(Color.cyan.opacity(0.2))
+                    
+                    LineMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.peeCount)
+                    )
+                    .foregroundStyle(Color.cyan)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    
+                    PointMark(
+                        x: .value("日期", item.date),
+                        y: .value("次数", item.peeCount)
+                    )
+                    .foregroundStyle(Color.cyan)
+                    .symbolSize(selectedItem?.id == item.id ? 80 : 30)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: labelStride)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel {
+                                Text(formatAxisDate(date))
+                                    .font(.caption2)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        selectItem(at: value.location, proxy: proxy, geometry: geometry)
+                                    }
+                            )
+                    }
+                }
+            } else {
+                Chart(data) { item in
+                    BarMark(
+                        x: .value("日期", item.dateLabel),
+                        y: .value("次数", item.peeCount)
+                    )
+                    .foregroundStyle(Color.cyan.gradient)
+                    .cornerRadius(4)
+                }
+                .frame(height: 180)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+            }
+        }
+    }
+    
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+    
+    private func selectItem(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        let xPosition = location.x - geometry[proxy.plotFrame!].origin.x
+        guard let date: Date = proxy.value(atX: xPosition) else { return }
+        
+        if let closest = data.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+            selectedItem = closest
+        }
+    }
+}
+
+// MARK: - 颜色分布视图
+struct ColorDistributionView: View {
+    let distribution: [String: Double]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("大便颜色分布")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            if distribution.isEmpty {
+                Text("暂无颜色记录")
+                    .foregroundColor(AppTheme.secondaryText)
+                    .frame(height: 140)
+                    .frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 20) {
+                    // 环形图
+                    ZStack {
+                        ForEach(Array(distribution.enumerated()), id: \.offset) { index, item in
+                            let startAngle = calculateStartAngle(for: index)
+                            let endAngle = startAngle + (item.value / 100.0 * 360.0)
+                            
+                            Circle()
+                                .trim(from: startAngle / 360.0, to: endAngle / 360.0)
+                                .stroke(colorForPoopColor(item.key), style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                        }
+                    }
+                    .frame(width: 100, height: 100)
+                    
+                    // 图例
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(distribution.keys.sorted()), id: \.self) { key in
+                            if let value = distribution[key] {
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(colorForPoopColor(key))
+                                        .frame(width: 12, height: 12)
+                                    Text(key)
+                                        .font(.subheadline)
+                                    Spacer()
+                                    Text(String(format: "%.0f%%", value))
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(height: 140)
+            }
+        }
+    }
+    
+    private func calculateStartAngle(for index: Int) -> Double {
+        let sortedKeys = distribution.keys.sorted()
+        var angle: Double = 0
+        for i in 0..<index {
+            if let value = distribution[sortedKeys[i]] {
+                angle += value / 100.0 * 360.0
+            }
+        }
+        return angle
+    }
+    
+    private func colorForPoopColor(_ color: String) -> Color {
+        switch color {
+        case "黄色": return .yellow
+        case "绿色": return .green
+        case "棕色": return .brown
+        case "黑色": return .black
+        case "白色": return .gray
+        default: return AppTheme.excretionColor
         }
     }
 }
