@@ -277,7 +277,68 @@ struct Reminder: Codable, Identifiable {
         case 2: return "解冻提醒"
         case 3: return "睡眠提醒"
         case 4: return "哄睡提醒"
+        case 6: return "疫苗提醒"
         default: return "未知"
         }
     }
+}
+
+/// 疫苗接种记录模型
+struct VaccinationRecord: Codable, Identifiable {
+    let id: Int64
+    var babyId: Int64
+    var vaccineCode: String
+    var vaccineName: String
+    var doseNumber: Int
+    var scheduledDate: Date?
+    var actualDate: Date?
+    var status: Int  // 0-待接种 1-已接种 2-已逾期 3-已跳过
+    var vaccinationSite: String?
+    var batchNumber: String?
+    var reaction: String?
+    var remark: String?
+    var createTime: Date?
+    var updateTime: Date?
+    
+    /// 状态描述
+    var statusDescription: String {
+        switch status {
+        case 0: return "待接种"
+        case 1: return "已接种"
+        case 2: return "已逾期"
+        case 3: return "已跳过"
+        default: return "未知"
+        }
+    }
+    
+    /// 状态颜色
+    var statusColor: String {
+        switch status {
+        case 0: return "blue"     // 待接种 - 蓝色
+        case 1: return "green"    // 已接种 - 绿色
+        case 2: return "red"      // 已逾期 - 红色
+        case 3: return "gray"     // 已跳过 - 灰色
+        default: return "gray"
+        }
+    }
+    
+    /// 是否可以记录接种
+    var canRecord: Bool {
+        status == 0 || status == 2
+    }
+}
+
+/// 疫苗时间表模型
+struct VaccineSchedule: Codable, Identifiable {
+    var id: String { "\(vaccineCode)_\(doseNumber)" }
+    var vaccineCode: String
+    var vaccineName: String
+    var vaccineFullName: String?
+    var doseNumber: Int
+    var ageInMonths: Int
+    var ageDescription: String?
+    var required: Bool?
+    var description: String?
+    var injectionSite: String?
+    var notes: String?
 }

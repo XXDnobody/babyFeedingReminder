@@ -293,8 +293,8 @@ class StatisticsViewModel: ObservableObject {
     }
     
     private func generateChartData(days: Int) {
-        let calendar = Calendar.current
-        let today = Date()
+        _ = Calendar.current
+        _ = Date()
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "zh_CN")
         dateFormatter.dateFormat = "M/d"

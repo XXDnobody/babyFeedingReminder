@@ -512,6 +512,7 @@ struct ReminderRow: View {
         case 3: return "moon.fill"
         case 4: return "bed.double.fill"
         case 5: return "bell.fill"  // 自定义提醒
+        case 6: return "syringe.fill"  // 疫苗提醒
         default: return "bell.fill"
         }
     }
@@ -523,6 +524,7 @@ struct ReminderRow: View {
         case 3: return .purple
         case 4: return .indigo
         case 5: return .pink  // 自定义提醒
+        case 6: return .teal  // 疫苗提醒
         default: return .gray
         }
     }
@@ -678,6 +680,8 @@ struct ReminderFormView: View {
 // MARK: - 快捷操作
 struct QuickActionsSection: View {
     @ObservedObject var appState: AppState
+    @State private var showVaccinationView = false
+    @State private var showGrowthView = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -685,6 +689,7 @@ struct QuickActionsSection: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
             
+            // 第一行
             HStack(spacing: 12) {
                 QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: AppTheme.feedingColor) {
                     appState.selectedTab = 1  // 跳转到喂养页
@@ -702,6 +707,29 @@ struct QuickActionsSection: View {
                     appState.selectedTab = 4  // 跳转到统计页
                 }
             }
+            
+            // 第二行
+            HStack(spacing: 12) {
+                QuickActionButton(icon: "syringe.fill", title: "疫苗接种", color: Color.teal) {
+                    showVaccinationView = true
+                }
+                
+                QuickActionButton(icon: "ruler.fill", title: "生长记录", color: Color.orange) {
+                    showGrowthView = true
+                }
+                
+                // 占位
+                Color.clear.frame(maxWidth: .infinity)
+                Color.clear.frame(maxWidth: .infinity)
+            }
+        }
+        .sheet(isPresented: $showVaccinationView) {
+            VaccinationView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $showGrowthView) {
+            GrowthView()
+                .environmentObject(appState)
         }
     }
 }

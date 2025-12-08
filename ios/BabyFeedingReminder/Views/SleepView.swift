@@ -270,7 +270,7 @@ struct CurrentSleepStatusCard: View {
 
                     Toggle("", isOn: $viewModel.shouldRemindNextNap)
                         .labelsHidden()
-                        .onChange(of: viewModel.shouldRemindNextNap) { newValue in
+                        .onChange(of: viewModel.shouldRemindNextNap) { _, newValue in
                             // 当开关变化时保存到后端
                             Task {
                                 await viewModel.saveNextNapReminderEnabled(newValue)

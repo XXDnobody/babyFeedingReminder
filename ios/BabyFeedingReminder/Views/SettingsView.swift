@@ -358,8 +358,8 @@ struct FeedingSettingsView: View {
                     defaultAmount = setting.defaultAmount
                     defaultDuration = setting.defaultDuration
                     defaultInterval = setting.defaultInterval
-                    refrigeratedThawMinutes = setting.refrigeratedThawMinutes ?? 15
-                    frozenThawMinutes = setting.frozenThawMinutes ?? 30
+                    refrigeratedThawMinutes = setting.refrigeratedThawMinutes
+                    frozenThawMinutes = setting.frozenThawMinutes
                     isLoading = false
                 }
             } catch {
