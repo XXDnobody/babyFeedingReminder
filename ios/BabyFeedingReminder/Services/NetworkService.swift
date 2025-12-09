@@ -45,7 +45,7 @@ class NetworkService {
         // 配置基础URL，根据实际部署情况修改
         #if DEBUG
         // 开发模式：使用生产服务器（真机测试）
-        self.baseURL = "http://111.228.32.116:8080/api"
+        self.baseURL = "http://127.0.0.1:8080/api"
         #else
         // 生产模式
         self.baseURL = "http://111.228.32.116:8080/api"

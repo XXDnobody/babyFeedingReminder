@@ -24,6 +24,9 @@ class GrowthViewModel: ObservableObject {
     @Published var headCircumference: String = ""
     @Published var remark: String = ""
     
+    // 删除成功状态
+    @Published var deleteSuccess = false
+    
     // MARK: - Private
     private let network = NetworkService.shared
     
@@ -125,13 +128,14 @@ class GrowthViewModel: ObservableObject {
     
     func deleteRecord(_ record: GrowthRecord, babyId: Int64) async {
         do {
-            let _: EmptyResponse? = try await network.request(
+            try await network.requestVoid(
                 endpoint: "/growth/\(record.id)",
                 method: "DELETE"
             )
+            deleteSuccess = true
             await loadChartData(babyId: babyId)
         } catch {
-            errorMessage = "删除失败"
+            errorMessage = "删除失败: \(error.localizedDescription)"
         }
     }
     

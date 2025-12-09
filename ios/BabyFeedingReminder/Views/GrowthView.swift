@@ -8,6 +8,9 @@ struct GrowthView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedTab = 0  // 0-身高 1-体重
+    @State private var showDeleteConfirmAlert = false
+    @State private var recordToDelete: GrowthRecord?
+    @State private var showErrorAlert = false
     
     private var selectedBabyId: Int64 {
         Int64(selectedBabyIdString) ?? 0
@@ -46,6 +49,33 @@ struct GrowthView: View {
             }
             .sheet(isPresented: $viewModel.showingAddRecord) {
                 addRecordSheet
+            }
+            .alert("确认删除", isPresented: $showDeleteConfirmAlert) {
+                Button("取消", role: .cancel) {
+                    recordToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let record = recordToDelete {
+                        Task {
+                            await viewModel.deleteRecord(record, babyId: selectedBabyId)
+                        }
+                    }
+                    recordToDelete = nil
+                }
+            } message: {
+                Text("确定要删除这条生长记录吗？此操作不可撤销。")
+            }
+            .alert("错误", isPresented: $showErrorAlert) {
+                Button("确定", role: .cancel) {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                }
+            }
+            .onChange(of: viewModel.errorMessage) { _, error in
+                showErrorAlert = error != nil
             }
             .task {
                 await viewModel.loadChartData(babyId: selectedBabyId)
@@ -478,9 +508,8 @@ struct GrowthView: View {
                 }
                 
                 Button(role: .destructive) {
-                    Task {
-                        await viewModel.deleteRecord(record, babyId: selectedBabyId)
-                    }
+                    recordToDelete = record
+                    showDeleteConfirmAlert = true
                 } label: {
                     Label("删除", systemImage: "trash")
                 }
