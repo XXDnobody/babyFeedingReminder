@@ -24,6 +24,15 @@ services:
     networks:
       - baby-network
     restart: unless-stopped
+    # 资源限制配置（2核4G服务器优化）
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'        # 后端最多使用1.5核
+          memory: 2G         # 后端最多使用2GB内存
+        reservations:
+          cpus: '0.5'        # 至少预留0.5核
+          memory: 512M       # 至少预留512MB
 
   # MySQL数据库
   mysql:
@@ -48,6 +57,15 @@ services:
     networks:
       - baby-network
     restart: unless-stopped
+    # 资源限制配置
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'        # MySQL最多使用1核
+          memory: 1.5G       # MySQL最多使用1.5GB内存
+        reservations:
+          cpus: '0.3'
+          memory: 512M
 
   # Redis缓存
   redis:
@@ -60,6 +78,15 @@ services:
     networks:
       - baby-network
     restart: unless-stopped
+    # 资源限制配置
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'        # Redis最多使用0.3核
+          memory: 256M       # Redis最多使用256MB内存
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   # Nginx反向代理（可选，用于生产环境）
   nginx:

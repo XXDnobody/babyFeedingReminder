@@ -402,6 +402,33 @@ open ios/BabyFeedingReminder.xcodeproj
 
 ### 核心表结构
 - `user` - 用户表（支持Apple、微信、手机号多种登录方式）
+
+### 性能优化
+
+#### 缓存策略（Redis）
+- **今日概览**: 5分钟缓存（高频访问）
+- **统计数据**: 1小时缓存（允许延迟）
+- **喂养/睡眠指南**: 24小时缓存（基于月龄）
+- **宝宝信息**: 30分钟缓存
+- **用户设置**: 30分钟缓存
+
+#### 数据库索引优化
+已创建11个复合索引优化查询性能：
+- `idx_feeding_baby_time_deleted` - 喂养记录时间范围查询
+- `idx_sleep_baby_type_time` - 睡眠记录类型统计
+- `idx_excretion_baby_type_time` - 排便记录类型统计
+- `idx_reminder_status_time` - 提醒任务执行扫描
+- 更多索引详见 `db/migration/V002__add_performance_indexes.sql`
+
+#### 资源分配（2核4G服务器）
+- **后端服务**: 1.5核CPU + 2GB内存
+- **MySQL**: 1.0核CPU + 1.5GB内存
+- **Redis**: 0.3核CPU + 256MB内存
+
+#### 预期性能提升
+- 统计查询响应时间: **减少70-90%**（缓存命中时）
+- 数据库查询效率: **提升40-60%**（索引优化）
+- 支持并发用户: **1000-5000日活**
 - `baby` - 宝宝信息表（支持多宝宝管理）
 - `feeding_record` - 喂养记录表（记录喂养类型、奶量、时长等）
 - `sleep_record` - 睡眠记录表（记录睡眠类型、时长、质量等）

@@ -12,6 +12,7 @@ import com.baby.service.ReminderService;
 import com.baby.service.SleepRecordService;
 import com.baby.vo.SleepStatisticsVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,7 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
     
     @Override
     @Transactional
+    @CacheEvict(value = {"todayOverview", "statistics"}, allEntries = true)
     public SleepRecord createRecord(SleepRecordDTO dto) {
         SleepRecord record = new SleepRecord();
         record.setBabyId(dto.getBabyId());

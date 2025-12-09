@@ -44,9 +44,11 @@ class NetworkService {
     private init() {
         // 配置基础URL，根据实际部署情况修改
         #if DEBUG
-        self.baseURL = "http://localhost:8080/api"
+        // 开发模式：使用生产服务器（真机测试）
+        self.baseURL = "http://111.228.32.116:8080/api"
         #else
-        self.baseURL = "https://api.babyfeedingreminder.com/api"
+        // 生产模式
+        self.baseURL = "http://111.228.32.116:8080/api"
         #endif
         
         // 配置URLSession

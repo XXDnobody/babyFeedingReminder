@@ -14,6 +14,7 @@ import com.baby.vo.SleepStatisticsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +42,7 @@ public class StatisticsController {
     
     @Operation(summary = "获取今日概览")
     @GetMapping("/overview/{babyId}")
+    @Cacheable(value = "todayOverview", key = "#babyId + ':' + T(java.time.LocalDate).now().toString()")
     public Result<Map<String, Object>> getTodayOverview(@PathVariable Long babyId) {
         Map<String, Object> overview = new HashMap<>();
         
@@ -90,6 +92,7 @@ public class StatisticsController {
     
     @Operation(summary = "获取喂养分析")
     @GetMapping("/feeding/{babyId}")
+    @Cacheable(value = "statistics", key = "'feeding:' + #babyId + ':' + #startDate + ':' + #endDate")
     public Result<FeedingStatisticsVO> getFeedingAnalysis(
             @PathVariable Long babyId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -100,6 +103,7 @@ public class StatisticsController {
     
     @Operation(summary = "获取睡眠分析")
     @GetMapping("/sleep/{babyId}")
+    @Cacheable(value = "statistics", key = "'sleep:' + #babyId + ':' + #startDate + ':' + #endDate")
     public Result<SleepStatisticsVO> getSleepAnalysis(
             @PathVariable Long babyId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -110,6 +114,7 @@ public class StatisticsController {
     
     @Operation(summary = "获取排便分析")
     @GetMapping("/excretion/{babyId}")
+    @Cacheable(value = "statistics", key = "'excretion:' + #babyId + ':' + #startDate + ':' + #endDate")
     public Result<ExcretionStatisticsVO> getExcretionAnalysis(
             @PathVariable Long babyId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
