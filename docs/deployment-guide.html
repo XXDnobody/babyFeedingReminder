@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baby Care 后端部署指南</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.8;
+            color: #333;
+        }
+        h1 { text-align: center; color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 20px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; }
+        h3 { color: #34495e; margin-top: 25px; }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        code { font-family: 'Monaco', 'Menlo', 'Consolas', monospace; }
+        .inline-code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; color: #e74c3c; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .info { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .danger { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .header-info { text-align: center; color: #666; margin-bottom: 40px; }
+        @media print {
+            body { padding: 20px; }
+            pre { font-size: 12px; }
+            h2 { page-break-before: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Baby Care 后端部署指南</h1>
+<div class="header-info">
+    <p><strong>项目名称：</strong>Baby Care 婴幼儿成长管理应用</p>
+    <p><strong>服务器IP：</strong>111.228.32.116（京东云）</p>
+    <p><strong>域名：</strong>wuyibaby.com（备案中）</p>
+    <p><strong>文档版本：</strong>v1.0 | 更新日期：2025年12月</p>
+</div>
+
+<h2>一、服务器环境要求</h2>
+
+<h3>1.1 硬件配置</h3>
+<table>
+    <tr><th>配置项</th><th>最低要求</th><th>推荐配置</th></tr>
+    <tr><td>CPU</td><td>2核</td><td>4核</td></tr>
+    <tr><td>内存</td><td>4GB</td><td>8GB</td></tr>
+    <tr><td>硬盘</td><td>50GB SSD</td><td>150GB SSD</td></tr>
+    <tr><td>带宽</td><td>3Mbps</td><td>5Mbps</td></tr>
+</table>
+
+<h3>1.2 软件依赖</h3>
+<table>
+    <tr><th>组件</th><th>版本</th><th>说明</th></tr>
+    <tr><td>操作系统</td><td>Ubuntu 20.04+</td><td>或 CentOS 7+</td></tr>
+    <tr><td>Docker</td><td>20.10+</td><td>容器运行时</td></tr>
+    <tr><td>Docker Compose</td><td>v2.0+</td><td>服务编排</td></tr>
+</table>
+
+<h2>二、服务器初始化</h2>
+
+<h3>2.1 连接服务器</h3>
+<pre><code># 使用SSH连接服务器
+ssh root@111.228.32.116
+
+# 或使用密钥登录
+ssh -i ~/.ssh/your_key.pem root@111.228.32.116</code></pre>
+
+<h3>2.2 安装Docker（国内服务器）</h3>
+<div class="warning">
+    <strong>注意：</strong>国内服务器使用官方源经常超时，建议使用阿里云镜像源
+</div>
+<pre><code># 方式一：使用阿里云镜像源安装（推荐）
+curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+
+# 方式二：手动安装
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io</code></pre>
+
+<h3>2.3 配置Docker镜像加速</h3>
+<pre><code># 创建或编辑 Docker 配置文件
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+EOF
+
+# 重启Docker服务
+systemctl daemon-reload
+systemctl restart docker
+
+# 验证配置
+docker info | grep -A 5 "Registry Mirrors"</code></pre>
+
+<h3>2.4 安装Docker Compose</h3>
+<pre><code># Docker Compose v2 已集成在 Docker 中
+docker compose version
+
+# 如果没有，手动安装
+apt-get install docker-compose-plugin</code></pre>
+
+<h2>三、项目部署</h2>
+
+<h3>3.1 创建项目目录</h3>
+<pre><code># 创建部署目录
+mkdir -p /root/baby-feeding
+cd /root/baby-feeding</code></pre>
+
+<h3>3.2 上传项目文件</h3>
+<pre><code># 在本地执行，打包项目（排除不需要的文件）
+cd /path/to/babyFeedingReminder
+tar --exclude='./ios' \
+    --exclude='./node_modules' \
+    --exclude='./.git' \
+    --exclude='./backend/target' \
+    -czvf baby-feeding.tar.gz .
+
+# 上传到服务器
+scp baby-feeding.tar.gz root@111.228.32.116:/root/baby-feeding/
+
+# 在服务器上解压
+cd /root/baby-feeding
+tar -xzvf baby-feeding.tar.gz</code></pre>
+
+<h3>3.3 创建环境配置文件</h3>
+<pre><code># 创建 .env 文件
+cat > .env << 'EOF'
+# MySQL配置
+MYSQL_ROOT_PASSWORD=YourStrongPassword123!
+
+# JWT密钥（建议生成随机字符串）
+JWT_SECRET=YourRandomJWTSecretKey2025VerySecure
+
+# 环境标识
+SPRING_PROFILES_ACTIVE=prod
+EOF
+
+# 设置权限（仅root可读）
+chmod 600 .env</code></pre>
+
+<div class="danger">
+    <strong>安全提醒：</strong>请修改默认密码！生产环境切勿使用示例中的弱密码。
+</div>
+
+<h3>3.4 简化docker-compose.yml（轻量服务器）</h3>
+<div class="warning">
+    <strong>注意：</strong>如果服务器内核不支持 CPU CFS 调度器（如轻量级虚拟机），需要移除资源限制配置。
+</div>
+<pre><code># 创建简化版 docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: baby-feeding-mysql
+    ports:
+      - "3306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root123}
+      - MYSQL_DATABASE=baby_feeding
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - baby-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: baby-feeding-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - baby-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: baby-feeding-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/baby_feeding?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root123}
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - baby-network
+    restart: unless-stopped
+
+networks:
+  baby-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+EOF</code></pre>
+
+<h3>3.5 优化Dockerfile（加速构建）</h3>
+<pre><code># 编辑 backend/Dockerfile
+cat > backend/Dockerfile << 'EOF'
+# 使用预装Maven的镜像加速构建
+FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+
+WORKDIR /app
+
+# 配置阿里云Maven镜像
+RUN mkdir -p /root/.m2 && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > /root/.m2/settings.xml && \
+    echo '<settings><mirrors><mirror>' >> /root/.m2/settings.xml && \
+    echo '<id>aliyun</id><mirrorOf>*</mirrorOf>' >> /root/.m2/settings.xml && \
+    echo '<url>https://maven.aliyun.com/repository/public</url>' >> /root/.m2/settings.xml && \
+    echo '</mirror></mirrors></settings>' >> /root/.m2/settings.xml
+
+# 先复制pom.xml下载依赖（利用Docker缓存）
+COPY pom.xml .
+RUN mvn dependency:go-offline -B || true
+
+# 再复制源码编译
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# 运行阶段
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=builder /app/target/*.jar app.jar
+RUN chown -R appuser:appgroup /app
+USER appuser
+EXPOSE 8080
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+EOF</code></pre>
+
+<h3>3.6 启动服务</h3>
+<pre><code># 启动所有服务（后台运行）
+docker compose up -d
+
+# 首次构建需要时间，查看构建进度
+docker compose logs -f backend
+
+# 等待所有服务健康
+docker compose ps</code></pre>
+
+<h2>四、常用运维命令</h2>
+
+<h3>4.1 服务管理命令</h3>
+<table>
+    <tr><th>操作</th><th>命令</th></tr>
+    <tr><td>启动所有服务</td><td><code>docker compose up -d</code></td></tr>
+    <tr><td>停止所有服务</td><td><code>docker compose down</code></td></tr>
+    <tr><td>重启所有服务</td><td><code>docker compose restart</code></td></tr>
+    <tr><td>查看服务状态</td><td><code>docker compose ps</code></td></tr>
+    <tr><td>重启单个服务</td><td><code>docker compose restart backend</code></td></tr>
+    <tr><td>停止单个服务</td><td><code>docker compose stop backend</code></td></tr>
+</table>
+
+<h3>4.2 重新构建与部署</h3>
+<pre><code># 重新构建并启动（代码更新后）
+docker compose up -d --build backend
+
+# 强制重新构建（清除缓存）
+docker compose build --no-cache backend
+docker compose up -d backend
+
+# 拉取最新镜像
+docker compose pull</code></pre>
+
+<h3>4.3 进入容器</h3>
+<pre><code># 进入后端容器
+docker exec -it baby-feeding-backend sh
+
+# 进入MySQL容器
+docker exec -it baby-feeding-mysql bash
+
+# 进入Redis容器
+docker exec -it baby-feeding-redis sh</code></pre>
+
+<h2>五、日志查看</h2>
+
+<h3>5.1 查看服务日志</h3>
+<pre><code># 查看所有服务日志
+docker compose logs
+
+# 查看特定服务日志
+docker compose logs backend
+docker compose logs mysql
+docker compose logs redis
+
+# 实时跟踪日志（Ctrl+C 退出）
+docker compose logs -f backend
+
+# 查看最近100行日志
+docker compose logs --tail 100 backend
+
+# 查看指定时间段日志
+docker compose logs --since "2025-12-09T10:00:00" backend</code></pre>
+
+<h3>5.2 日志关键信息解读</h3>
+<div class="info">
+    <strong>正常启动日志示例：</strong>
+    <pre>Started BabyFeedingReminderApplication in 8.234 seconds</pre>
+</div>
+
+<div class="danger">
+    <strong>常见错误日志：</strong>
+    <ul>
+        <li><code>Connection refused: redis:6379</code> - Redis未启动或网络不通</li>
+        <li><code>Access denied for user 'root'</code> - MySQL密码错误</li>
+        <li><code>Table 'baby_feeding.xxx' doesn't exist</code> - 数据库表未初始化</li>
+    </ul>
+</div>
+
+<h3>5.3 导出日志到文件</h3>
+<pre><code># 导出后端日志
+docker compose logs backend > /root/backend.log 2>&1
+
+# 按日期保存日志
+docker compose logs backend > /root/logs/backend_$(date +%Y%m%d).log</code></pre>
+
+<h2>六、数据库管理</h2>
+
+<h3>6.1 连接数据库</h3>
+<pre><code># 从服务器本地连接
+docker exec -it baby-feeding-mysql mysql -uroot -p
+
+# 输入密码后进入MySQL命令行
+mysql> USE baby_feeding;
+mysql> SHOW TABLES;
+mysql> SELECT * FROM user LIMIT 10;</code></pre>
+
+<h3>6.2 远程连接配置</h3>
+<div class="warning">
+    <strong>安全提醒：</strong>生产环境不建议开放3306端口到公网，如需远程连接请使用SSH隧道。
+</div>
+<pre><code># 方式一：SSH隧道（推荐）
+# 在本地执行
+ssh -L 3307:localhost:3306 root@111.228.32.116
+# 然后用本地工具连接 localhost:3307
+
+# 方式二：开放端口（需在云控制台安全组放行3306）
+# 连接信息：
+# Host: 111.228.32.116
+# Port: 3306
+# User: root
+# Password: 你设置的密码</code></pre>
+
+<h3>6.3 数据备份与恢复</h3>
+<pre><code># 备份数据库
+docker exec baby-feeding-mysql mysqldump -uroot -p"${MYSQL_ROOT_PASSWORD}" baby_feeding > backup_$(date +%Y%m%d).sql
+
+# 恢复数据库
+docker exec -i baby-feeding-mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" baby_feeding < backup.sql</code></pre>
+
+<h2>七、健康检查与监控</h2>
+
+<h3>7.1 API健康检查</h3>
+<pre><code># 检查后端服务是否正常
+curl http://localhost:8080/api/auth/check
+
+# 期望返回：
+# {"code":200,"msg":"success","data":"服务正常运行"}
+
+# 从外网检查
+curl http://111.228.32.116:8080/api/auth/check</code></pre>
+
+<h3>7.2 容器资源监控</h3>
+<pre><code># 查看容器资源使用情况
+docker stats
+
+# 查看特定容器
+docker stats baby-feeding-backend baby-feeding-mysql baby-feeding-redis</code></pre>
+
+<h3>7.3 磁盘空间检查</h3>
+<pre><code># 查看磁盘使用
+df -h
+
+# 查看Docker占用空间
+docker system df
+
+# 清理未使用的镜像和容器
+docker system prune -a</code></pre>
+
+<h2>八、安全配置</h2>
+
+<h3>8.1 防火墙配置</h3>
+<pre><code># 开放必要端口
+ufw allow 22/tcp    # SSH
+ufw allow 80/tcp    # HTTP
+ufw allow 443/tcp   # HTTPS
+ufw allow 8080/tcp  # API服务
+
+# 启用防火墙
+ufw enable
+
+# 查看状态
+ufw status</code></pre>
+
+<h3>8.2 云平台安全组</h3>
+<div class="info">
+    <strong>京东云安全组配置：</strong>
+    <table>
+        <tr><th>端口</th><th>协议</th><th>来源</th><th>说明</th></tr>
+        <tr><td>22</td><td>TCP</td><td>你的IP</td><td>SSH管理</td></tr>
+        <tr><td>8080</td><td>TCP</td><td>0.0.0.0/0</td><td>API服务</td></tr>
+        <tr><td>80</td><td>TCP</td><td>0.0.0.0/0</td><td>HTTP（备案后）</td></tr>
+        <tr><td>443</td><td>TCP</td><td>0.0.0.0/0</td><td>HTTPS（备案后）</td></tr>
+    </table>
+</div>
+
+<h2>九、故障排查</h2>
+
+<h3>9.1 常见问题速查表</h3>
+<table>
+    <tr><th>问题</th><th>可能原因</th><th>解决方案</th></tr>
+    <tr>
+        <td>容器启动失败</td>
+        <td>端口被占用</td>
+        <td><code>lsof -i :8080</code> 查找并终止占用进程</td>
+    </tr>
+    <tr>
+        <td>NanoCPUs错误</td>
+        <td>内核不支持CFS调度器</td>
+        <td>移除docker-compose.yml中的cpus配置</td>
+    </tr>
+    <tr>
+        <td>镜像拉取超时</td>
+        <td>网络问题</td>
+        <td>配置Docker镜像加速器</td>
+    </tr>
+    <tr>
+        <td>Redis连接失败</td>
+        <td>配置错误</td>
+        <td>检查SPRING_REDIS_HOST环境变量是否为redis</td>
+    </tr>
+    <tr>
+        <td>数据库连接失败</td>
+        <td>MySQL未就绪</td>
+        <td>检查MySQL健康状态，等待初始化完成</td>
+    </tr>
+</table>
+
+<h3>9.2 排查流程</h3>
+<pre><code># 1. 检查容器状态
+docker compose ps
+
+# 2. 查看错误日志
+docker compose logs --tail 50 backend
+
+# 3. 检查网络连通性
+docker exec baby-feeding-backend ping -c 3 mysql
+docker exec baby-feeding-backend ping -c 3 redis
+
+# 4. 检查端口监听
+docker exec baby-feeding-backend nc -zv redis 6379
+docker exec baby-feeding-backend nc -zv mysql 3306
+
+# 5. 检查环境变量
+docker exec baby-feeding-backend env | grep SPRING</code></pre>
+
+<h2>十、更新部署</h2>
+
+<h3>10.1 代码更新流程</h3>
+<pre><code># 1. 本地打包新代码
+cd /path/to/babyFeedingReminder
+tar --exclude='./ios' --exclude='./.git' --exclude='./backend/target' \
+    -czvf baby-feeding.tar.gz .
+
+# 2. 上传到服务器
+scp baby-feeding.tar.gz root@111.228.32.116:/root/baby-feeding/
+
+# 3. 在服务器上更新
+cd /root/baby-feeding
+tar -xzvf baby-feeding.tar.gz
+
+# 4. 重新构建并启动
+docker compose up -d --build backend
+
+# 5. 验证更新
+docker compose logs -f backend</code></pre>
+
+<h3>10.2 回滚操作</h3>
+<pre><code># 查看历史镜像
+docker images | grep baby-feeding
+
+# 如果需要回滚，重新部署旧版本代码
+# 或使用之前备份的镜像</code></pre>
+
+<h2>附录：快速命令参考</h2>
+
+<div class="success">
+    <h4>日常运维速查</h4>
+    <pre><code># 查看状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f backend
+
+# 重启服务
+docker compose restart backend
+
+# 进入容器
+docker exec -it baby-feeding-backend sh
+
+# 健康检查
+curl http://localhost:8080/api/auth/check</code></pre>
+</div>
+
+<hr>
+<p style="text-align: center; color: #666; font-size: 12px;">
+    Baby Care 后端部署指南 | 版本 1.0 | 2025年12月<br>
+    如有问题请联系技术支持
+</p>
+
+</body>
+</html>
