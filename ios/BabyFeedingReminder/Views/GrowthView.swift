@@ -7,7 +7,7 @@ struct GrowthView: View {
     @AppStorage("selectedBabyId") private var selectedBabyIdString: String = "0"
     @Environment(\.dismiss) private var dismiss
     
-    @State private var selectedTab = 0  // 0-身高 1-体重 2-BMI
+    @State private var selectedTab = 0  // 0-历史记录 1-身高 2-体重 3-BMI
     @State private var showDeleteConfirmAlert = false
     @State private var recordToDelete: GrowthRecord?
     @State private var showErrorAlert = false
@@ -29,35 +29,49 @@ struct GrowthView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // 标准选择卡片
-                    standardSelectorCard
-                    
-                    // 最新数据卡片
-                    latestDataCard
-                    
-                    // 图表切换
-                    chartSegmentPicker
-                    
-                    // 生长曲线图表
-                    chartCard
-                    
-                    // 历史记录列表
-                    recordsListCard
+            TabView(selection: $selectedTab) {
+                // 历史记录Tab（默认展示）
+                historyRecordsTab
+                    .tabItem {
+                        Label("历史记录", systemImage: "list.bullet")
+                    }
+                    .tag(0)
+
+                // 身高曲线Tab
+                heightCurveTab
+                    .tabItem {
+                        Label("身高曲线", systemImage: "arrow.up")
+                    }
+                    .tag(1)
+
+                // 体重曲线Tab
+                weightCurveTab
+                    .tabItem {
+                        Label("体重曲线", systemImage: "scalemass")
+                    }
+                    .tag(2)
+
+                // BMI曲线Tab（如果支持）
+                if viewModel.supportsBmi {
+                    bmiCurveTab
+                        .tabItem {
+                            Label("BMI曲线", systemImage: "figure.stand")
+                        }
+                        .tag(3)
                 }
-                .padding()
             }
-            .background(AppTheme.backgroundGradient)
             .navigationTitle("生长曲线")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        viewModel.prepareAddRecord()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(AppTheme.primaryBlue)
+                // 仅在历史记录tab显示添加按钮
+                if selectedTab == 0 {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            viewModel.prepareAddRecord()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(AppTheme.primaryBlue)
+                        }
                     }
                 }
             }
@@ -96,12 +110,86 @@ struct GrowthView: View {
                 // 加载完成后自动定位到宝宝当前月龄
                 positionToCurrentAge()
             }
-            .refreshable {
-                await viewModel.loadChartData(babyId: selectedBabyId)
-            }
         }
     }
-    
+
+    // MARK: - Tab视图组件
+
+    // 历史记录Tab
+    private var historyRecordsTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // 标准选择卡片
+                standardSelectorCard
+
+                // 最新数据卡片
+                latestDataCard
+
+                // 历史记录列表
+                recordsListCard
+            }
+            .padding()
+        }
+        .background(AppTheme.backgroundGradient)
+        .refreshable {
+            await viewModel.loadChartData(babyId: selectedBabyId)
+        }
+    }
+
+    // 身高曲线Tab
+    private var heightCurveTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // 标准选择卡片
+                standardSelectorCard
+
+                // 身高生长曲线图表
+                heightChartCard
+            }
+            .padding()
+        }
+        .background(AppTheme.backgroundGradient)
+        .refreshable {
+            await viewModel.loadChartData(babyId: selectedBabyId)
+        }
+    }
+
+    // 体重曲线Tab
+    private var weightCurveTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // 标准选择卡片
+                standardSelectorCard
+
+                // 体重生长曲线图表
+                weightChartCard
+            }
+            .padding()
+        }
+        .background(AppTheme.backgroundGradient)
+        .refreshable {
+            await viewModel.loadChartData(babyId: selectedBabyId)
+        }
+    }
+
+    // BMI曲线Tab
+    private var bmiCurveTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // 标准选择卡片
+                standardSelectorCard
+
+                // BMI曲线图表
+                bmiChartCard
+            }
+            .padding()
+        }
+        .background(AppTheme.backgroundGradient)
+        .refreshable {
+            await viewModel.loadChartData(babyId: selectedBabyId)
+        }
+    }
+
     // MARK: - 最新数据卡片
     private var latestDataCard: some View {
         VStack(spacing: 16) {
@@ -231,19 +319,7 @@ struct GrowthView: View {
             return .green
         }
     }
-    
-    // MARK: - 图表切换
-    private var chartSegmentPicker: some View {
-        Picker("类型", selection: $selectedTab) {
-            Text("身高曲线").tag(0)
-            Text("体重曲线").tag(1)
-            if viewModel.supportsBmi {
-                Text("BMI曲线").tag(2)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-    
+
     // MARK: - 标准选择卡片
     private var standardSelectorCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -370,11 +446,13 @@ struct GrowthView: View {
         }
     }
     
-    // MARK: - 生长曲线图表
-    private var chartCard: some View {
+    // MARK: - 图表卡片
+
+    // 身高生长曲线图表卡片
+    private var heightChartCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(chartTitle)
+                Text("身高生长曲线")
                     .font(.headline)
                     .foregroundColor(AppTheme.primaryText)
                 Spacer()
@@ -382,18 +460,12 @@ struct GrowthView: View {
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
             }
-            
-            if selectedTab == 0 {
-                heightChart
-            } else if selectedTab == 1 {
-                weightChart
-            } else if selectedTab == 2 {
-                bmiChart
-            }
-            
+
+            heightChart
+
             // 图例
             chartLegend
-            
+
             // 操作提示
             Text("拖动图表查看数据点详情")
                 .font(.caption2)
@@ -404,14 +476,63 @@ struct GrowthView: View {
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
     }
-    
-    private var chartTitle: String {
-        switch selectedTab {
-        case 0: return "身高生长曲线"
-        case 1: return "体重生长曲线"
-        case 2: return "BMI曲线"
-        default: return "生长曲线"
+
+    // 体重生长曲线图表卡片
+    private var weightChartCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("体重生长曲线")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                Spacer()
+                Text(viewModel.selectedStandardType.displayName)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+
+            weightChart
+
+            // 图例
+            chartLegend
+
+            // 操作提示
+            Text("拖动图表查看数据点详情")
+                .font(.caption2)
+                .foregroundColor(AppTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
+    }
+
+    // BMI曲线图表卡片
+    private var bmiChartCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("BMI曲线")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                Spacer()
+                Text(viewModel.selectedStandardType.displayName)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+
+            bmiChart
+
+            // 图例
+            chartLegend
+
+            // 操作提示
+            Text("拖动图表查看数据点详情")
+                .font(.caption2)
+                .foregroundColor(AppTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
     }
     
     private var heightChart: some View {
@@ -1232,7 +1353,7 @@ struct GrowthView: View {
                 .frame(height: 30)
             
             // 根据当前选中的Tab显示对应数据
-            if selectedTab == 0 {
+            if selectedTab == 1 {
                 // 身高
                 if let height = record.height {
                     VStack(alignment: .leading, spacing: 2) {
@@ -1258,7 +1379,7 @@ struct GrowthView: View {
                             .foregroundColor(.green)
                     }
                 }
-            } else if selectedTab == 1 {
+            } else if selectedTab == 2 {
                 // 体重
                 if let weight = record.weight {
                     VStack(alignment: .leading, spacing: 2) {
@@ -1284,7 +1405,7 @@ struct GrowthView: View {
                             .foregroundColor(.green)
                     }
                 }
-            } else if selectedTab == 2 {
+            } else if selectedTab == 3 {
                 // BMI
                 if let height = record.height, let weight = record.weight, height > 0 {
                     let heightM = height / 100.0
