@@ -198,7 +198,6 @@ struct FeedingStatsDetailView: View {
         switch selectedPeriod {
         case 0: return 7
         case 1: return 30
-        case 2: return 365
         default: return 7
         }
     }
@@ -211,7 +210,6 @@ struct FeedingStatsDetailView: View {
                     Picker("统计周期", selection: $selectedPeriod) {
                         Text("近7天").tag(0)
                         Text("近30天").tag(1)
-                        Text("全部").tag(2)
                     }
                     .pickerStyle(.segmented)
                     
@@ -251,7 +249,6 @@ struct SleepStatsDetailView: View {
         switch selectedPeriod {
         case 0: return 7
         case 1: return 30
-        case 2: return 365
         default: return 7
         }
     }
@@ -264,7 +261,6 @@ struct SleepStatsDetailView: View {
                     Picker("统计周期", selection: $selectedPeriod) {
                         Text("近7天").tag(0)
                         Text("近30天").tag(1)
-                        Text("全部").tag(2)
                     }
                     .pickerStyle(.segmented)
                     
@@ -1598,7 +1594,6 @@ struct ExcretionStatsDetailView: View {
         switch selectedPeriod {
         case 0: return 7
         case 1: return 30
-        case 2: return 365
         default: return 7
         }
     }
@@ -1611,7 +1606,6 @@ struct ExcretionStatsDetailView: View {
                     Picker("统计周期", selection: $selectedPeriod) {
                         Text("近7天").tag(0)
                         Text("近30天").tag(1)
-                        Text("全部").tag(2)
                     }
                     .pickerStyle(.segmented)
                     
