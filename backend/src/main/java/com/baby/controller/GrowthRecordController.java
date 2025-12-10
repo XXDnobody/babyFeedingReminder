@@ -7,6 +7,7 @@ import com.baby.entity.GrowthRecord;
 import com.baby.service.BabyService;
 import com.baby.service.GrowthRecordService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -78,33 +79,52 @@ public class GrowthRecordController {
         return Result.success(result);
     }
     
-    @Operation(summary = "获取宝宝生长曲线数据（含WHO标准和实际记录）")
+    @Operation(summary = "获取宝宝生长曲线数据（含标准和实际记录）")
     @GetMapping("/chart-data/{babyId}")
-    public Result<Map<String, Object>> getChartData(@PathVariable Long babyId) {
+    public Result<Map<String, Object>> getChartData(
+            @PathVariable Long babyId,
+            @Parameter(description = "标准类型: WHO, CHINA_2025") 
+            @RequestParam(defaultValue = "CHINA_2025") String standardType) {
+        
         Baby baby = babyService.getById(babyId);
         int gender = (baby != null && baby.getGender() != null) ? baby.getGender() : 1;
         
         Map<String, Object> result = new HashMap<>();
         
-        // WHO标准数据
-        result.put("whoHeight", growthRecordService.getWHOHeightStandard(gender));
-        result.put("whoWeight", growthRecordService.getWHOWeightStandard(gender));
+        // 标准数据（根据指定标准类型）
+        result.put("heightStandard", growthRecordService.getHeightStandard(gender, standardType));
+        result.put("weightStandard", growthRecordService.getWeightStandard(gender, standardType));
+        result.put("bmiStandard", growthRecordService.getBmiStandard(gender, standardType));
+        
+        // 兼容旧版本字段名
+        result.put("whoHeight", result.get("heightStandard"));
+        result.put("whoWeight", result.get("weightStandard"));
         
         // 宝宝实际记录
         List<GrowthRecord> records = growthRecordService.getAllRecords(babyId);
         result.put("records", records);
         
-        // 百分位分析
-        result.put("percentile", growthRecordService.calculatePercentile(babyId));
+        // 百分位分析（使用指定标准）
+        result.put("percentile", growthRecordService.calculatePercentile(babyId, standardType));
         
         result.put("gender", gender);
+        result.put("standardType", standardType);
         
         return Result.success(result);
     }
     
     @Operation(summary = "获取最新百分位分析")
     @GetMapping("/percentile/{babyId}")
-    public Result<Map<String, Object>> getPercentile(@PathVariable Long babyId) {
-        return Result.success(growthRecordService.calculatePercentile(babyId));
+    public Result<Map<String, Object>> getPercentile(
+            @PathVariable Long babyId,
+            @Parameter(description = "标准类型: WHO, CHINA_2025")
+            @RequestParam(defaultValue = "CHINA_2025") String standardType) {
+        return Result.success(growthRecordService.calculatePercentile(babyId, standardType));
+    }
+    
+    @Operation(summary = "获取可用的参考标准列表")
+    @GetMapping("/standards")
+    public Result<List<Map<String, Object>>> getAvailableStandards() {
+        return Result.success(growthRecordService.getAvailableStandards());
     }
 }

@@ -8,12 +8,16 @@ class GrowthViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var records: [GrowthRecord] = []
-    @Published var whoHeightStandard: WHOGrowthStandard?
-    @Published var whoWeightStandard: WHOGrowthStandard?
+    @Published var heightStandard: GrowthStandard?
+    @Published var weightStandard: GrowthStandard?
+    @Published var bmiStandard: GrowthStandard?
     @Published var percentile: GrowthPercentile?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var gender: Int = 1  // 1-男 0-女
+    
+    // 标准类型选择
+    @Published var selectedStandardType: GrowthStandardType = .china2025
     
     // 添加记录表单
     @Published var showingAddRecord = false
@@ -27,30 +31,52 @@ class GrowthViewModel: ObservableObject {
     // 删除成功状态
     @Published var deleteSuccess = false
     
+    // 兼容旧版本
+    var whoHeightStandard: GrowthStandard? { heightStandard }
+    var whoWeightStandard: GrowthStandard? { weightStandard }
+    
     // MARK: - Private
     private let network = NetworkService.shared
     
     // MARK: - Computed Properties
     
     /// 宝宝身高数据点（用于图表）
-    var babyHeightPoints: [WHOGrowthPoint] {
+    var babyHeightPoints: [GrowthPoint] {
         records.compactMap { record in
             guard let height = record.height, let months = record.ageInMonths else { return nil }
-            return WHOGrowthPoint(month: Double(months), value: height)
+            return GrowthPoint(month: Double(months), value: height)
         }
     }
     
     /// 宝宝体重数据点（用于图表）
-    var babyWeightPoints: [WHOGrowthPoint] {
+    var babyWeightPoints: [GrowthPoint] {
         records.compactMap { record in
             guard let weight = record.weight, let months = record.ageInMonths else { return nil }
-            return WHOGrowthPoint(month: Double(months), value: weight)
+            return GrowthPoint(month: Double(months), value: weight)
+        }
+    }
+    
+    /// 宝宝BMI数据点（用于图表）
+    var babyBmiPoints: [GrowthPoint] {
+        records.compactMap { record in
+            guard let height = record.height, 
+                  let weight = record.weight,
+                  let months = record.ageInMonths,
+                  height > 0 else { return nil }
+            let heightM = height / 100.0
+            let bmi = weight / (heightM * heightM)
+            return GrowthPoint(month: Double(months), value: bmi)
         }
     }
     
     /// 最新记录
     var latestRecord: GrowthRecord? {
         records.last
+    }
+    
+    /// 当前标准是否支持BMI
+    var supportsBmi: Bool {
+        selectedStandardType.supportsBmi
     }
     
     // MARK: - Methods
@@ -61,12 +87,15 @@ class GrowthViewModel: ObservableObject {
         
         do {
             let response: GrowthChartDataResponse = try await network.request(
-                endpoint: "/growth/chart-data/\(babyId)"
+                endpoint: "/growth/chart-data/\(babyId)?standardType=\(selectedStandardType.rawValue)"
             )
             
             records = response.records
-            whoHeightStandard = WHOGrowthStandard(from: response.whoHeight)
-            whoWeightStandard = WHOGrowthStandard(from: response.whoWeight)
+            heightStandard = GrowthStandard(from: response.heightData)
+            weightStandard = GrowthStandard(from: response.weightData)
+            if let bmiData = response.bmiStandard {
+                bmiStandard = GrowthStandard(from: bmiData)
+            }
             percentile = response.percentile
             gender = response.gender
             

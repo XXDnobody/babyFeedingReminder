@@ -210,47 +210,124 @@ struct GrowthRecord: Codable, Identifiable {
     var updateTime: Date?
 }
 
-/// WHO生长曲线数据点
-struct WHOGrowthPoint: Identifiable {
+// MARK: - 生长曲线标准类型
+
+/// 参考标准类型
+enum GrowthStandardType: String, CaseIterable {
+    case who = "WHO"
+    case china2025 = "CHINA_2025"
+    
+    var displayName: String {
+        switch self {
+        case .who: return "WHO国际标准"
+        case .china2025: return "中国卫健委2025"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .who:
+            return "WHO儿童生长标准，国际通用，覆盖0-24月龄"
+        case .china2025:
+            return "国家卫健委2025年发布，基于中国儿童数据，覆盖0-36月龄，支持BMI"
+        }
+    }
+    
+    var source: String {
+        switch self {
+        case .who:
+            return "WHO Child Growth Standards"
+        case .china2025:
+            return "《婴幼儿营养喂养评估服务指南（试行）》2025年2月"
+        }
+    }
+    
+    var supportsBmi: Bool {
+        switch self {
+        case .who: return false
+        case .china2025: return true
+        }
+    }
+}
+
+/// 生长曲线数据点
+struct GrowthPoint: Identifiable {
     let id = UUID()
     let month: Double
     let value: Double
 }
 
-/// WHO生长曲线标准数据
-struct WHOGrowthStandard {
-    let p3: [WHOGrowthPoint]
-    let p15: [WHOGrowthPoint]
-    let p50: [WHOGrowthPoint]
-    let p85: [WHOGrowthPoint]
-    let p97: [WHOGrowthPoint]
+/// 生长曲线标准数据
+struct GrowthStandard {
+    let p3: [GrowthPoint]
+    let p15: [GrowthPoint]
+    let p50: [GrowthPoint]
+    let p85: [GrowthPoint]
+    let p97: [GrowthPoint]
     
     init(from data: [String: [[Double]]]) {
-        p3 = (data["p3"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
-        p15 = (data["p15"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
-        p50 = (data["p50"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
-        p85 = (data["p85"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
-        p97 = (data["p97"] ?? []).map { WHOGrowthPoint(month: $0[0], value: $0[1]) }
+        p3 = (data["p3"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p15 = (data["p15"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p50 = (data["p50"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p85 = (data["p85"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p97 = (data["p97"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
     }
 }
 
+// 别名保持兼容性
+typealias WHOGrowthPoint = GrowthPoint
+typealias WHOGrowthStandard = GrowthStandard
+
 /// 生长曲线图表数据响应
 struct GrowthChartDataResponse: Codable {
-    let whoHeight: [String: [[Double]]]
-    let whoWeight: [String: [[Double]]]
+    // 新字段
+    let heightStandard: [String: [[Double]]]?
+    let weightStandard: [String: [[Double]]]?
+    let bmiStandard: [String: [[Double]]]?
+    let standardType: String?
+    
+    // 兼容旧字段
+    let whoHeight: [String: [[Double]]]?
+    let whoWeight: [String: [[Double]]]?
+    
     let records: [GrowthRecord]
     let percentile: GrowthPercentile?
     let gender: Int
+    
+    /// 获取身高标准数据（优先使用新字段）
+    var heightData: [String: [[Double]]] {
+        heightStandard ?? whoHeight ?? [:]
+    }
+    
+    /// 获取体重标准数据（优先使用新字段）
+    var weightData: [String: [[Double]]] {
+        weightStandard ?? whoWeight ?? [:]
+    }
 }
 
 /// 生长百分位分析
 struct GrowthPercentile: Codable {
     let heightPercentile: String?
     let weightPercentile: String?
+    let bmiPercentile: String?
     let height: Double?
     let weight: Double?
+    let bmi: Double?
     let ageInMonths: Int?
     let measureDate: Date?
+    let standardType: String?
+}
+
+/// 参考标准信息
+struct GrowthStandardInfo: Codable, Identifiable {
+    var id: String { code }
+    let code: String
+    let name: String
+    let description: String
+    let source: String
+    let ageRange: String
+    let supportsBmi: Bool
+    let recommendation: String
 }
 
 /// 提醒模型
