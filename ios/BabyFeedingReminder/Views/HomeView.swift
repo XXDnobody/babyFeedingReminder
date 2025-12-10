@@ -6,9 +6,6 @@ struct HomeView: View {
     @State private var showAddBaby = false
     @State private var showBabyManager = false  // 宝宝管理弹窗
     @State private var babyToEdit: Baby? = nil  // 要编辑的宝宝
-    @State private var currentTime: String = ""
-    
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         NavigationView {
@@ -18,60 +15,15 @@ struct HomeView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // 顶部标题区域
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Baby Care")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(AppTheme.primaryText)
-                            
-                            if let baby = appState.selectedBaby {
-                                Text("你好，\(baby.nickname)")
-                                    .font(.subheadline)
-                                    .foregroundColor(AppTheme.secondaryText)
-                            }
-                        }
-                        Spacer()
-                        
-                        // 时间显示
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(currentTime)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(AppTheme.primaryText)
-                            
-                            Image(systemName: timeIcon)
-                                .font(.system(size: 16))
-                                .foregroundColor(timeIconColor)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white.opacity(0.8))
-                                .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
-                        )
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
+                    // 顶部宝宝选择器
+                    BabySelectorHeader(showBabyManager: $showBabyManager)
+                        .environmentObject(appState)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                        .padding(.bottom, 16)
                     
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
-                            // 宝宝信息卡片
-                            if appState.isLoadingBabies {
-                                LoadingBabyCard()
-                            } else if let baby = appState.selectedBaby {
-                                BabyCardView(baby: baby, babyCount: appState.babies.count)
-                                    .onTapGesture {
-                                        showBabyManager = true
-                                    }
-                            } else {
-                                AddBabyCard()
-                                    .onTapGesture {
-                                        showAddBaby = true
-                                    }
-                            }
-                            
+                        VStack(spacing: 12) {
                             // 今日概览
                             if appState.selectedBaby != nil {
                                 TodayOverviewSection(viewModel: viewModel)
@@ -132,41 +84,11 @@ struct HomeView: View {
         }
         .onAppear {
             print("🏠 HomeView onAppear, selectedBaby: \(String(describing: appState.selectedBaby?.id))")
-            updateTime()
             if appState.selectedBaby != nil {
                 Task {
                     await viewModel.loadData(babyId: appState.selectedBaby?.id)
                 }
             }
-        }
-        .onReceive(timer) { _ in
-            updateTime()
-        }
-    }
-    
-    private func updateTime() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        currentTime = formatter.string(from: Date())
-    }
-    
-    // 根据当前时间返回对应的图标
-    private var timeIcon: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 6 && hour < 18 {
-            return "sun.max.fill"  // 白天6:00-18:00显示太阳
-        } else {
-            return "moon.stars.fill"  // 晚上18:00-6:00显示月亮
-        }
-    }
-    
-    // 根据当前时间返回对应的图标颜色
-    private var timeIconColor: Color {
-        let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 6 && hour < 18 {
-            return .orange.opacity(0.8)  // 太阳橙色
-        } else {
-            return .indigo.opacity(0.8)  // 月亮靛蓝色
         }
     }
 }
@@ -285,13 +207,14 @@ struct TodayOverviewSection: View {
     @ObservedObject var viewModel: HomeViewModel
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("今日概览")
-                .font(.headline)
+                .font(.subheadline)
+                .fontWeight(.semibold)
                 .foregroundColor(AppTheme.primaryText)
             
             // 第一行：喂养和睡眠
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // 喂养统计
                 OverviewCard(
                     icon: "drop.fill",
@@ -314,7 +237,7 @@ struct TodayOverviewSection: View {
             }
             
             // 第二行：排便统计
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // 大便统计
                 OverviewCard(
                     icon: "toilet.fill",
@@ -349,38 +272,38 @@ struct OverviewCard: View {
     var backgroundColor: Color = Color.white
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(iconColor.opacity(0.2))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 28, height: 28)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 18))
+                        .font(.system(size: 14))
                         .foregroundColor(iconColor)
                 }
                 
                 Text(title)
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(AppTheme.primaryText)
                 
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(AppTheme.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+        .padding(10)
         .background(backgroundColor)
         .cornerRadius(AppTheme.cardRadius)
-        .shadow(color: AppTheme.cardShadowColor, radius: 6, x: 0, y: 3)
+        .shadow(color: AppTheme.cardShadowColor, radius: 3, x: 0, y: 1)
     }
 }
 
@@ -392,30 +315,43 @@ struct UpcomingRemindersSection: View {
     @State private var reminderToEdit: Reminder?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("即将提醒")
-                    .font(.headline)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
                 Spacer()
                 Button {
                     showAddReminder = true
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.pink)
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.primaryBlue.opacity(0.6), AppTheme.primaryBlue.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 24, height: 24)
+                        
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
                 }
             }
             
             if viewModel.upcomingReminders.isEmpty {
                 Text("暂无待发送的提醒")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
-                    .frame(height: 80)
+                    .padding(.vertical, 16)
             } else {
-                // 可滚动的提醒列表，固定高度确保2-3条提醒可见
+                // 可滚动的提醒列表，限制高度确保2-3条提醒可见
                 ScrollView {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 8) {
                         ForEach(viewModel.upcomingReminders) { reminder in
                             ReminderRow(reminder: reminder, viewModel: viewModel)
                                 .onTapGesture {
@@ -423,9 +359,8 @@ struct UpcomingRemindersSection: View {
                                 }
                         }
                     }
-                    .padding(.bottom, 8)
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: 180)
             }
         }
         .sheet(isPresented: $showAddReminder) {
@@ -446,37 +381,37 @@ struct ReminderRow: View {
     @State private var showDeleteAlert = false
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             // 图标
             Image(systemName: reminderIcon)
-                .font(.title2)
+                .font(.system(size: 16))
                 .foregroundColor(reminderColor)
-                .frame(width: 36, height: 36)
+                .frame(width: 32, height: 32)
                 .background(reminderColor.opacity(0.15))
                 .clipShape(Circle())
             
             // 内容
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(reminder.title)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Spacer()
-                    Text(timeString)
                         .font(.caption)
                         .fontWeight(.medium)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(timeString)
+                        .font(.caption2)
+                        .fontWeight(.medium)
                         .foregroundColor(reminderColor)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(reminderColor.opacity(0.1))
                         .cornerRadius(4)
                 }
                 
                 Text(reminder.content)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(.secondary)
-                    .lineLimit(2)  // 允许2行显示
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
             }
             
             // 删除按钮
@@ -485,13 +420,14 @@ struct ReminderRow: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary.opacity(0.5))
-                    .font(.title3)
+                    .font(.system(size: 18))
             }
             .buttonStyle(.plain)
         }
-        .padding()
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(10)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         .alert("确认删除", isPresented: $showDeleteAlert) {
             Button("取消", role: .cancel) { }
@@ -687,13 +623,14 @@ struct QuickActionsSection: View {
     @State private var showGrowthView = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("快捷操作")
-                .font(.headline)
+                .font(.subheadline)
+                .fontWeight(.semibold)
                 .foregroundColor(AppTheme.primaryText)
             
             // 第一行
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: AppTheme.feedingColor) {
                     showFeedingView = true
                 }
@@ -712,7 +649,7 @@ struct QuickActionsSection: View {
             }
             
             // 第二行
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 QuickActionButton(icon: "syringe.fill", title: "疫苗接种", color: Color.teal) {
                     showVaccinationView = true
                 }
@@ -758,7 +695,7 @@ struct QuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            VStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(
@@ -768,31 +705,26 @@ struct QuickActionButton: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 50, height: 50)
+                        .frame(width: 36, height: 36)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 22))
+                        .font(.system(size: 16))
                         .foregroundColor(.white)
                 }
                 
                 Text(title)
-                    .font(.caption)
+                    .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(AppTheme.primaryText)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 10)
             .background(Color.white)
             .cornerRadius(AppTheme.cardRadius)
-            .shadow(color: AppTheme.cardShadowColor, radius: 6, x: 0, y: 3)
+            .shadow(color: AppTheme.cardShadowColor, radius: 3, x: 0, y: 1)
         }
         .buttonStyle(.plain)
     }
-}
-
-#Preview {
-    HomeView()
-        .environmentObject(AppState())
 }
 
 // MARK: - 宝宝管理视图
@@ -948,5 +880,94 @@ struct BabyListRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - 宝宝选择器头部
+struct BabySelectorHeader: View {
+    @EnvironmentObject var appState: AppState
+    @Binding var showBabyManager: Bool
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            if appState.isLoadingBabies {
+                // 加载中
+                ProgressView()
+                    .frame(width: 50, height: 50)
+            } else if let baby = appState.selectedBaby {
+                // 当前宝宝头像
+                Button {
+                    showBabyManager = true
+                } label: {
+                    BabyAvatarView(baby: baby, size: 50)
+                }
+                .buttonStyle(.plain)
+                
+                // 宝宝信息
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(baby.nickname)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(AppTheme.primaryText)
+                    
+                    Text(baby.ageText)
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                Spacer()
+            } else {
+                // 没有宝宝时显示添加按钮
+                Button {
+                    showBabyManager = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppTheme.primaryBlue)
+                        
+                        Text("添加宝宝")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(AppTheme.primaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.9))
+                            .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - 宝宝头像视图
+struct BabyAvatarView: View {
+    let baby: Baby
+    var size: CGFloat = 50
+    
+    var body: some View {
+        Circle()
+            .fill(
+                LinearGradient(
+                    colors: baby.gender == 1
+                        ? [AppTheme.primaryBlue.opacity(0.3), AppTheme.secondaryBlue.opacity(0.5)]
+                        : [AppTheme.primaryPink.opacity(0.3), AppTheme.secondaryPink.opacity(0.5)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay(
+                Image(systemName: baby.gender == 1 ? "figure.child" : "figure.child.circle")
+                    .font(.system(size: size * 0.5))
+                    .foregroundColor(baby.gender == 1 ? AppTheme.primaryBlue : AppTheme.primaryPink)
+            )
+            .overlay(
+                Circle()
+                    .stroke(Color.white, lineWidth: 2)
+            )
     }
 }

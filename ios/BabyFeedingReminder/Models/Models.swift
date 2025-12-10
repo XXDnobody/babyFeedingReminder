@@ -51,6 +51,11 @@ struct Baby: Codable, Identifiable {
         }
     }
     
+    /// 年龄文本（别名，与ageDescription一致）
+    var ageText: String {
+        return ageDescription
+    }
+    
     /// 性别描述
     var genderDescription: String {
         gender == 1 ? "男宝宝" : "女宝宝"
