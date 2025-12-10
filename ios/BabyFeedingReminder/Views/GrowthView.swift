@@ -29,87 +29,103 @@ struct GrowthView: View {
     
     var body: some View {
         NavigationStack {
-            TabView(selection: $selectedTab) {
-                // 历史记录Tab（默认展示）
-                historyRecordsTab
-                    .tabItem {
-                        Label("历史记录", systemImage: "list.bullet")
+            mainTabView
+                .navigationTitle("生长曲线")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    toolbarContent
+                }
+                .sheet(isPresented: $viewModel.showingAddRecord) {
+                    addRecordSheet
+                }
+                .alert("确认删除", isPresented: $showDeleteConfirmAlert) {
+                    deleteAlertButtons
+                } message: {
+                    Text("确定要删除这条生长记录吗？此操作不可撤销。")
+                }
+                .alert("错误", isPresented: $showErrorAlert) {
+                    Button("确定", role: .cancel) {
+                        viewModel.errorMessage = nil
                     }
-                    .tag(0)
+                } message: {
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                    }
+                }
+                .onChange(of: viewModel.errorMessage) { _, error in
+                    showErrorAlert = error != nil
+                }
+                .task {
+                    await viewModel.loadChartData(babyId: selectedBabyId)
+                    // 加载完成后自动定位到宝宝当前月龄
+                    positionToCurrentAge()
+                }
+        }
+    }
+    
+    // MARK: - Body子视图
+    
+    private var mainTabView: some View {
+        TabView(selection: $selectedTab) {
+            // 历史记录Tab（默认展示）
+            historyRecordsTab
+                .tabItem {
+                    Label("历史记录", systemImage: "list.bullet")
+                }
+                .tag(0)
 
-                // 身高曲线Tab
-                heightCurveTab
-                    .tabItem {
-                        Label("身高曲线", systemImage: "arrow.up")
-                    }
-                    .tag(1)
+            // 身高曲线Tab
+            heightCurveTab
+                .tabItem {
+                    Label("身高曲线", systemImage: "arrow.up")
+                }
+                .tag(1)
 
-                // 体重曲线Tab
-                weightCurveTab
-                    .tabItem {
-                        Label("体重曲线", systemImage: "scalemass")
-                    }
-                    .tag(2)
+            // 体重曲线Tab
+            weightCurveTab
+                .tabItem {
+                    Label("体重曲线", systemImage: "scalemass")
+                }
+                .tag(2)
 
-                // BMI曲线Tab（如果支持）
-                if viewModel.supportsBmi {
-                    bmiCurveTab
-                        .tabItem {
-                            Label("BMI曲线", systemImage: "figure.stand")
-                        }
-                        .tag(3)
-                }
-            }
-            .navigationTitle("生长曲线")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // 仅在历史记录tab显示添加按钮
-                if selectedTab == 0 {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            viewModel.prepareAddRecord()
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(AppTheme.primaryBlue)
-                        }
+            // BMI曲线Tab（如果支持）
+            if viewModel.supportsBmi {
+                bmiCurveTab
+                    .tabItem {
+                        Label("BMI曲线", systemImage: "figure.stand")
                     }
+                    .tag(3)
+            }
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        // 仅在历史记录tab显示添加按钮
+        if selectedTab == 0 {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    viewModel.prepareAddRecord()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(AppTheme.primaryBlue)
                 }
             }
-            .sheet(isPresented: $viewModel.showingAddRecord) {
-                addRecordSheet
-            }
-            .alert("确认删除", isPresented: $showDeleteConfirmAlert) {
-                Button("取消", role: .cancel) {
-                    recordToDelete = nil
-                }
-                Button("删除", role: .destructive) {
-                    if let record = recordToDelete {
-                        Task {
-                            await viewModel.deleteRecord(record, babyId: selectedBabyId)
-                        }
-                    }
-                    recordToDelete = nil
-                }
-            } message: {
-                Text("确定要删除这条生长记录吗？此操作不可撤销。")
-            }
-            .alert("错误", isPresented: $showErrorAlert) {
-                Button("确定", role: .cancel) {
-                    viewModel.errorMessage = nil
-                }
-            } message: {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
+        }
+    }
+    
+    @ViewBuilder
+    private var deleteAlertButtons: some View {
+        Button("取消", role: .cancel) {
+            recordToDelete = nil
+        }
+        Button("删除", role: .destructive) {
+            if let record = recordToDelete {
+                Task {
+                    await viewModel.deleteRecord(record, babyId: selectedBabyId)
                 }
             }
-            .onChange(of: viewModel.errorMessage) { _, error in
-                showErrorAlert = error != nil
-            }
-            .task {
-                await viewModel.loadChartData(babyId: selectedBabyId)
-                // 加载完成后自动定位到宝宝当前月龄
-                positionToCurrentAge()
-            }
+            recordToDelete = nil
         }
     }
 
@@ -747,14 +763,6 @@ struct GrowthView: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.white)
                 .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
-        )
-        .overlay(
-            // 小三角指示器
-            Triangle()
-                .fill(Color.white)
-                .frame(width: 10, height: 6)
-                .offset(y: 3),
-            alignment: .bottom
         )
     }
     
@@ -1471,16 +1479,4 @@ struct GrowthView: View {
 
 #Preview {
     GrowthView()
-}
-
-/// 三角形形状（用于悬浮气泡指示器）
-struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.closeSubpath()
-        return path
-    }
 }
