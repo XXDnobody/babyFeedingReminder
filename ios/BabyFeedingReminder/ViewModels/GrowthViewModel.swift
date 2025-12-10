@@ -79,6 +79,19 @@ class GrowthViewModel: ObservableObject {
         selectedStandardType.supportsBmi
     }
     
+    /// 宝宝当前月龄（从最新记录或percentile获取）
+    var babyCurrentMonths: Double? {
+        // 优先从 percentile 获取
+        if let months = percentile?.ageInMonths {
+            return Double(months)
+        }
+        // 其次从最新记录获取
+        if let months = latestRecord?.ageInMonths {
+            return Double(months)
+        }
+        return nil
+    }
+    
     // MARK: - Methods
     
     func loadChartData(babyId: Int64) async {

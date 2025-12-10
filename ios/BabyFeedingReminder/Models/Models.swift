@@ -248,6 +248,14 @@ enum GrowthStandardType: String, CaseIterable {
         case .china2025: return true
         }
     }
+    
+    /// 最大月龄范围
+    var maxMonths: Double {
+        switch self {
+        case .who: return 24
+        case .china2025: return 36
+        }
+    }
 }
 
 /// 生长曲线数据点
