@@ -232,7 +232,7 @@ enum GrowthStandardType: String, CaseIterable {
     var description: String {
         switch self {
         case .china2025:
-            return "国家卫健委2025年发布，基于中国儿童数据，覆盖0-36月龄"
+            return "国家卫健委2025年发布，基于中国儿童数据，覆盖0-36月龄，支持BMI和头围"
         case .wst423:
             return "《7岁以下儿童生长标准》，覆盖0-84月龄，支持BMI和头围(0-36月)"
         }
@@ -256,7 +256,7 @@ enum GrowthStandardType: String, CaseIterable {
     
     var supportsHead: Bool {
         switch self {
-        case .china2025: return false
+        case .china2025: return true
         case .wst423: return true
         }
     }
@@ -358,9 +358,11 @@ struct GrowthPercentile: Codable {
     let heightPercentile: String?
     let weightPercentile: String?
     let bmiPercentile: String?
+    let headPercentile: String?
     let height: Double?
     let weight: Double?
     let bmi: Double?
+    let headCircumference: Double?
     let ageInMonths: Int?
     let measureDate: Date?
     let standardType: String?

@@ -58,10 +58,21 @@ struct GrowthView: View {
                 .onChange(of: viewModel.errorMessage) { _, error in
                     showErrorAlert = error != nil
                 }
+                .sheet(isPresented: $showStandardPicker) {
+                    standardPickerSheet
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
                 .task {
                     await viewModel.loadChartData(babyId: selectedBabyId)
                     // 加载完成后平滑定位到宝宝当前月龄
                     withAnimation(.easeOut(duration: 0.5)) {
+                        positionToCurrentAge()
+                    }
+                }
+                .onChange(of: selectedTab) { _, _ in
+                    // Tab切换时重新计算缩放范围（头围和其他曲线使用不同的最大范围）
+                    withAnimation(.easeOut(duration: 0.3)) {
                         positionToCurrentAge()
                     }
                 }
@@ -149,9 +160,6 @@ struct GrowthView: View {
     private var historyRecordsTab: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // 标准选择卡片
-                standardSelectorCard
-
                 // 最新数据卡片
                 latestDataCard
 
@@ -254,7 +262,8 @@ struct GrowthView: View {
             }
             
             if let record = viewModel.latestRecord {
-                HStack(spacing: 20) {
+                // 第一行：身高、体重、头围
+                HStack(spacing: 12) {
                     // 身高
                     measurementItem(
                         icon: "arrow.up",
@@ -276,24 +285,27 @@ struct GrowthView: View {
                         percentile: viewModel.percentile?.weightPercentile
                     )
                     
-                    if record.headCircumference != nil {
+                    if let head = record.headCircumference {
                         Divider()
                             .frame(height: 60)
                         
-                        // 头围
+                        // 头围（添加百分位）
                         measurementItem(
                             icon: "circle",
                             title: "头围",
-                            value: String(format: "%.1f", record.headCircumference!),
+                            value: String(format: "%.1f", head),
                             unit: "cm",
-                            percentile: nil
+                            percentile: viewModel.percentile?.headPercentile
                         )
                     }
                 }
                 
-                // BMI显示（仅当支持时）
+                // 第二行：BMI（仅当支持时）
                 if viewModel.supportsBmi, let bmi = viewModel.percentile?.bmi {
-                    HStack(spacing: 20) {
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    HStack {
                         measurementItem(
                             icon: "figure.stand",
                             title: "BMI",
@@ -301,8 +313,8 @@ struct GrowthView: View {
                             unit: "kg/m²",
                             percentile: viewModel.percentile?.bmiPercentile
                         )
+                        Spacer()
                     }
-                    .padding(.top, 8)
                 }
             } else {
                 VStack(spacing: 8) {
@@ -407,27 +419,43 @@ struct GrowthView: View {
         .padding()
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
-        .sheet(isPresented: $showStandardPicker) {
-            standardPickerSheet
-        }
     }
     
     // MARK: - 标准选择弹窗
     private var standardPickerSheet: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // 自定义标题栏
+            HStack {
+                Text("选择参考标准")
+                    .font(.headline)
+                Spacer()
+                Button("关闭") {
+                    showStandardPicker = false
+                }
+                .foregroundColor(AppTheme.primaryBlue)
+            }
+            .padding()
+            .background(Color(UIColor.systemGroupedBackground))
+            
             List {
                 ForEach(GrowthStandardType.allCases, id: \.self) { standard in
                     Button {
+                        // 先更新选中的标准
+                        viewModel.selectedStandardType = standard
+                        
                         // 关闭弹窗
                         showStandardPicker = false
                         
-                        // 延迟更新数据，避免弹窗关闭动画与图表更新冲突
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                viewModel.selectedStandardType = standard
-                            }
+                        // 延迟加载数据，等待弹窗完全关闭
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             Task {
                                 await viewModel.loadChartData(babyId: selectedBabyId)
+                                // 数据加载完成后重新计算缩放范围
+                                DispatchQueue.main.async {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        positionToCurrentAge()
+                                    }
+                                }
                             }
                         }
                     } label: {
@@ -495,15 +523,6 @@ struct GrowthView: View {
                     .foregroundColor(AppTheme.secondaryText)
                 } header: {
                     Text("使用说明")
-                }
-            }
-            .navigationTitle("选择参考标准")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("关闭") {
-                        showStandardPicker = false
-                    }
                 }
             }
         }
@@ -1093,7 +1112,7 @@ struct GrowthView: View {
     
     /// 头围X轴范围（使用动态缩放，最大范围36月）
     private var headVisibleXRange: ClosedRange<Double> {
-        let maxRange = 36.0
+        let maxRange = headMaxMonthRange
         let visibleRange = maxRange / chartScale
         
         var startMonth = chartOffset
@@ -1348,6 +1367,20 @@ struct GrowthView: View {
         viewModel.selectedStandardType.maxMonths
     }
     
+    /// 头围最大范围（固定36月，不随标准变化）
+    private var headMaxMonthRange: Double {
+        36.0
+    }
+    
+    /// 当前Tab对应的最大月龄范围
+    private var currentTabMaxMonthRange: Double {
+        // Tab 4 是头围曲线，使用固定的36月
+        if selectedTab == 4 {
+            return headMaxMonthRange
+        }
+        return maxMonthRange
+    }
+    
     /// 可见的X轴范围
     private var visibleXRange: ClosedRange<Double> {
         let totalRange = maxMonthRange
@@ -1466,7 +1499,8 @@ struct GrowthView: View {
         guard !isPositioning else { return }
         isPositioning = true
         
-        let maxRange = maxMonthRange
+        // 根据当前Tab使用正确的最大范围
+        let maxRange = currentTabMaxMonthRange
         
         // 最大缩放倍数：确保最少显示6个月
         let maxScaleLimit = maxRange / 6.0
@@ -1482,9 +1516,9 @@ struct GrowthView: View {
         
         // 智能计算显示范围
         if dataMaxMonth > 0 {
-            // 有数据点：显示范围为最大月龄+6个月（至少12个月）
+            // 有数据点：显示范围为最大月龄+4个月（至少9个月）
             // 保证数据点在可见范围内且有足够空间显示趋势
-            let targetEndMonth = max(dataMaxMonth + 6, 12)
+            let targetEndMonth = max(dataMaxMonth + 4, 9)
             
             // 计算缩放比例
             let newScale = maxRange / targetEndMonth
@@ -1499,7 +1533,7 @@ struct GrowthView: View {
             selectedMonth = dataMaxMonth
         } else if let currentMonths = viewModel.babyCurrentMonths {
             // 没有数据点但有当前月龄：显示当前月龄前后范围
-            let targetEndMonth = max(currentMonths + 6, 12)
+            let targetEndMonth = max(currentMonths + 4, 9)
             let newScale = maxRange / targetEndMonth
             chartScale = max(1.0, min(newScale, maxScaleLimit))
             lastScale = chartScale
@@ -1553,22 +1587,30 @@ struct GrowthView: View {
     /// 获取选中记录的百分位信息
     private func getPercentileInfo(for record: GrowthRecord, type: Int) -> String {
         // type: 0-身高, 1-体重, 2-BMI, 3-头围
+        
+        // 根据当前标准决定使用哪个百分位计算方法
+        let useWstMethod = viewModel.selectedStandardType == .wst423
+        
         switch type {
         case 0:
             guard let height = record.height,
                   let months = record.ageInMonths,
-                  let standard = viewModel.whoHeightStandard else {
+                  let standard = viewModel.heightStandard else {
                 return "-"
             }
-            return estimatePercentile(value: height, month: Double(months), standard: standard)
+            return useWstMethod ? 
+                estimatePercentileWst(value: height, month: Double(months), standard: standard) :
+                estimatePercentile(value: height, month: Double(months), standard: standard)
             
         case 1:
             guard let weight = record.weight,
                   let months = record.ageInMonths,
-                  let standard = viewModel.whoWeightStandard else {
+                  let standard = viewModel.weightStandard else {
                 return "-"
             }
-            return estimatePercentile(value: weight, month: Double(months), standard: standard)
+            return useWstMethod ? 
+                estimatePercentileWst(value: weight, month: Double(months), standard: standard) :
+                estimatePercentile(value: weight, month: Double(months), standard: standard)
             
         case 2:
             guard let height = record.height, let weight = record.weight,
@@ -1579,7 +1621,9 @@ struct GrowthView: View {
             }
             let heightM = height / 100.0
             let bmi = weight / (heightM * heightM)
-            return estimatePercentile(value: bmi, month: Double(months), standard: standard)
+            return useWstMethod ? 
+                estimatePercentileWst(value: bmi, month: Double(months), standard: standard) :
+                estimatePercentile(value: bmi, month: Double(months), standard: standard)
             
         case 3:
             guard let head = record.headCircumference,

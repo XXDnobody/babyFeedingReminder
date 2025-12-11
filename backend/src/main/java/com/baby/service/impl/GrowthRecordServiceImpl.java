@@ -174,7 +174,16 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
             String bmiPercentile = growthStandardService.calculatePercentileDescription(
                 bmi, standardType, gender, "BMI", ageInMonths);
             result.put("bmiPercentile", bmiPercentile);
-            result.put("bmi", Math.round(bmi * 10.0) / 10.0); // 保留1位小数
+            result.put("bmi", Math.round(bmi * 10.0) / 10.0); // 保疙1位小数
+        }
+                
+        // 计算头围百分位
+        if (latest.getHeadCircumference() != null) {
+            double headValue = latest.getHeadCircumference().doubleValue();
+            String headPercentile = growthStandardService.calculatePercentileDescription(
+                headValue, standardType, gender, "HEAD", ageInMonths);
+            result.put("headPercentile", headPercentile);
+            result.put("headCircumference", headValue);
         }
         
         result.put("ageInMonths", ageInMonths);

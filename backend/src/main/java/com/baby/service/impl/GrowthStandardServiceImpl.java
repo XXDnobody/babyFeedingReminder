@@ -259,24 +259,93 @@ public class GrowthStandardServiceImpl implements GrowthStandardService {
         }
         
         double p3 = toDouble(data.getP3());
-        double p15 = toDouble(data.getP15());
         double p50 = toDouble(data.getP50());
-        double p85 = toDouble(data.getP85());
         double p97 = toDouble(data.getP97());
         
-        // 根据值落在的区间返回描述
-        if (value < p3) {
-            return "<3%";
-        } else if (value < p15) {
-            return "3-15%";
-        } else if (value < p50) {
-            return "15-50%";
-        } else if (value < p85) {
-            return "50-85%";
-        } else if (value < p97) {
-            return "85-97%";
+        // 检查是否有 P10/P90（WS/T 423 标准，用于头围等）
+        BigDecimal p10Raw = data.getP10();
+        BigDecimal p90Raw = data.getP90();
+        
+        // 检查是否有 P15/P85（卷健委2025 标准）
+        BigDecimal p15Raw = data.getP15();
+        BigDecimal p85Raw = data.getP85();
+        
+        // 优先使用 P10/P90（如果存在）
+        if (p10Raw != null && p90Raw != null) {
+            double p10 = toDouble(p10Raw);
+            double p90 = toDouble(p90Raw);
+            
+            // 尝试获取 P25/P75
+            BigDecimal p25Raw = data.getP25();
+            BigDecimal p75Raw = data.getP75();
+            
+            if (p25Raw != null && p75Raw != null) {
+                double p25 = toDouble(p25Raw);
+                double p75 = toDouble(p75Raw);
+                
+                // 使用完整的 P3/P10/P25/P50/P75/P90/P97
+                if (value < p3) {
+                    return "<3%";
+                } else if (value < p10) {
+                    return "3-10%";
+                } else if (value < p25) {
+                    return "10-25%";
+                } else if (value < p50) {
+                    return "25-50%";
+                } else if (value < p75) {
+                    return "50-75%";
+                } else if (value < p90) {
+                    return "75-90%";
+                } else if (value < p97) {
+                    return "90-97%";
+                } else {
+                    return ">97%";
+                }
+            } else {
+                // 只有 P3/P10/P50/P90/P97
+                if (value < p3) {
+                    return "<3%";
+                } else if (value < p10) {
+                    return "3-10%";
+                } else if (value < p50) {
+                    return "10-50%";
+                } else if (value < p90) {
+                    return "50-90%";
+                } else if (value < p97) {
+                    return "90-97%";
+                } else {
+                    return ">97%";
+                }
+            }
+        } else if (p15Raw != null && p85Raw != null) {
+            // 使用 P15/P85（卷健委2025 标准）
+            double p15 = toDouble(p15Raw);
+            double p85 = toDouble(p85Raw);
+            
+            if (value < p3) {
+                return "<3%";
+            } else if (value < p15) {
+                return "3-15%";
+            } else if (value < p50) {
+                return "15-50%";
+            } else if (value < p85) {
+                return "50-85%";
+            } else if (value < p97) {
+                return "85-97%";
+            } else {
+                return ">97%";
+            }
         } else {
-            return ">97%";
+            // 只有 P3/P50/P97
+            if (value < p3) {
+                return "<3%";
+            } else if (value < p50) {
+                return "3-50%";
+            } else if (value < p97) {
+                return "50-97%";
+            } else {
+                return ">97%";
+            }
         }
     }
     
