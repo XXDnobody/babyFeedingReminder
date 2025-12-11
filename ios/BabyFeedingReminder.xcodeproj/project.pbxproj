@@ -35,8 +35,6 @@
 		F9EXCRET02 /* ExcretionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EXCRETR02 /* ExcretionViewModel.swift */; };
 		F9GROWTH01 /* GrowthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9GROWTHR01 /* GrowthView.swift */; };
 		F9GROWTH02 /* GrowthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9GROWTHR02 /* GrowthViewModel.swift */; };
-		F9VACCIN01 /* VaccinationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VACCINR01 /* VaccinationView.swift */; };
-		F9VACCIN02 /* VaccinationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9VACCINR02 /* VaccinationViewModel.swift */; };
 		F9RECORD01 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9RECORDR01 /* RecordView.swift */; };
 /* End PBXBuildFile section */
 
@@ -71,8 +69,6 @@
 		F9EXCRETR02 /* ExcretionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcretionViewModel.swift; sourceTree = "<group>"; };
 		F9GROWTHR01 /* GrowthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthView.swift; sourceTree = "<group>"; };
 		F9GROWTHR02 /* GrowthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthViewModel.swift; sourceTree = "<group>"; };
-		F9VACCINR01 /* VaccinationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaccinationView.swift; sourceTree = "<group>"; };
-		F9VACCINR02 /* VaccinationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaccinationViewModel.swift; sourceTree = "<group>"; };
 		F9RECORDR01 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -134,7 +130,6 @@
 				F9VIEWSR03 /* ForgotPasswordView.swift */,
 				F9VIEWSR04 /* LegalViews.swift */,
 				F9VIEWSR05 /* PhoneRegisterView.swift */,
-				F9VACCINR01 /* VaccinationView.swift */,
 				F9RECORDR01 /* RecordView.swift */,
 			);
 			path = Views;
@@ -149,7 +144,6 @@
 				1A000001D /* SleepViewModel.swift */,
 				F9EXCRETR02 /* ExcretionViewModel.swift */,
 				F9GROWTHR02 /* GrowthViewModel.swift */,
-				F9VACCINR02 /* VaccinationViewModel.swift */,
 				1A000001E /* StatisticsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -262,8 +256,6 @@
 				F9EXCRET02 /* ExcretionViewModel.swift in Sources */,
 				F9GROWTH01 /* GrowthView.swift in Sources */,
 				F9GROWTH02 /* GrowthViewModel.swift in Sources */,
-				F9VACCIN01 /* VaccinationView.swift in Sources */,
-				F9VACCIN02 /* VaccinationViewModel.swift in Sources */,
 				F9RECORD01 /* RecordView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

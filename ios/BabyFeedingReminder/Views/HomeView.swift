@@ -457,7 +457,7 @@ struct ReminderRow: View {
         case 3: return "moon.fill"
         case 4: return "bed.double.fill"
         case 5: return "bell.fill"  // 自定义提醒
-        case 6: return "syringe.fill"  // 疫苗提醒
+        case 6: return "bell.fill"  // 其他提醒
         default: return "bell.fill"
         }
     }
@@ -469,7 +469,7 @@ struct ReminderRow: View {
         case 3: return .purple
         case 4: return .indigo
         case 5: return .pink  // 自定义提醒
-        case 6: return .teal  // 疫苗提醒
+        case 6: return .gray  // 其他提醒
         default: return .gray
         }
     }
@@ -628,11 +628,10 @@ struct QuickActionsSection: View {
     @State private var showFeedingView = false
     @State private var showSleepView = false
     @State private var showExcretionView = false
-    @State private var showVaccinationView = false
     @State private var showGrowthView = false
     
     var body: some View {
-        // 单行紧凑布局，6个按钮横排
+        // 单行紧凑布局，5个按钮横排
         HStack(spacing: 12) {
             CompactActionButton(icon: "drop.fill", title: "喂奶", color: AppTheme.feedingColor) {
                 showFeedingView = true
@@ -650,10 +649,6 @@ struct QuickActionsSection: View {
                 appState.selectedTab = 2
             }
             
-            CompactActionButton(icon: "syringe.fill", title: "疫苗", color: Color.teal) {
-                showVaccinationView = true
-            }
-            
             CompactActionButton(icon: "ruler.fill", title: "生长", color: Color.orange) {
                 showGrowthView = true
             }
@@ -668,10 +663,6 @@ struct QuickActionsSection: View {
         }
         .sheet(isPresented: $showExcretionView) {
             ExcretionView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $showVaccinationView) {
-            VaccinationView()
                 .environmentObject(appState)
         }
         .sheet(isPresented: $showGrowthView) {

@@ -6,7 +6,6 @@ struct RecordView: View {
     @State private var showFeedingView = false
     @State private var showSleepView = false
     @State private var showExcretionView = false
-    @State private var showVaccinationView = false
     @State private var showGrowthView = false
     
     var body: some View {
@@ -71,15 +70,6 @@ struct RecordView: View {
                                 ) {
                                     showGrowthView = true
                                 }
-                                
-                                RecordCard(
-                                    icon: "syringe.fill",
-                                    title: "疫苗接种",
-                                    subtitle: "疫苗接种记录",
-                                    color: .teal
-                                ) {
-                                    showVaccinationView = true
-                                }
                             }
                         }
                         
@@ -102,10 +92,6 @@ struct RecordView: View {
         }
         .sheet(isPresented: $showExcretionView) {
             ExcretionView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $showVaccinationView) {
-            VaccinationView()
                 .environmentObject(appState)
         }
         .sheet(isPresented: $showGrowthView) {
