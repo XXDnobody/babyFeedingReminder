@@ -224,8 +224,8 @@ enum GrowthStandardType: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .china2025: return "中国卫健委2025"
-        case .wst423: return "国家标准(WS/T 423)"
+        case .china2025: return "卫健委2025喂养评估指南(0-3岁)"
+        case .wst423: return "卫健委2022儿童生长标准(0-7岁)"
         }
     }
     
@@ -241,9 +241,9 @@ enum GrowthStandardType: String, CaseIterable {
     var source: String {
         switch self {
         case .china2025:
-            return "《婴幼儿营养喂养评估服务指南（试行）》2025年2月"
+            return "国家卫健委《婴幼儿营养喂养评估服务指南（试行）》2025年2月"
         case .wst423:
-            return "WS/T 423-2022 卫生行业标准"
+            return "国家卫健委 WS/T 423-2022《7岁以下儿童生长标准》"
         }
     }
     

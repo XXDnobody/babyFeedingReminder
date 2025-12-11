@@ -475,8 +475,8 @@ struct GrowthView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("如何使用生长曲线？")
                             .font(.headline)
-                        Text("• 中国卫健委2025：基于中国儿童数据，0-36月龄，支持BMI")
-                        Text("• WS/T 423：国家行业标准，0-84月龄，支持BMI和头围")
+                        Text("• 喂养评估指南：基于中国儿童数据，0-3岁，支持BMI")
+                        Text("• 儿童生长标准：国家行业标准，0-7岁，支持BMI和头围")
                         Text("• 关注生长趋势而非单次数据")
                     }
                     .font(.caption)
