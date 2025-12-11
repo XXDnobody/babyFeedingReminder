@@ -219,47 +219,59 @@ struct GrowthRecord: Codable, Identifiable {
 
 /// 参考标准类型
 enum GrowthStandardType: String, CaseIterable {
-    case who = "WHO"
     case china2025 = "CHINA_2025"
+    case wst423 = "WS_T_423_2022"
     
     var displayName: String {
         switch self {
-        case .who: return "WHO国际标准"
         case .china2025: return "中国卫健委2025"
+        case .wst423: return "国家标准(WS/T 423)"
         }
     }
     
     var description: String {
         switch self {
-        case .who:
-            return "WHO儿童生长标准，国际通用，覆盖0-24月龄"
         case .china2025:
-            return "国家卫健委2025年发布，基于中国儿童数据，覆盖0-36月龄，支持BMI"
+            return "国家卫健委2025年发布，基于中国儿童数据，覆盖0-36月龄"
+        case .wst423:
+            return "《7岁以下儿童生长标准》，覆盖0-84月龄，支持BMI和头围(0-36月)"
         }
     }
     
     var source: String {
         switch self {
-        case .who:
-            return "WHO Child Growth Standards"
         case .china2025:
             return "《婴幼儿营养喂养评估服务指南（试行）》2025年2月"
+        case .wst423:
+            return "WS/T 423-2022 卫生行业标准"
         }
     }
     
     var supportsBmi: Bool {
         switch self {
-        case .who: return false
         case .china2025: return true
+        case .wst423: return true
+        }
+    }
+    
+    var supportsHead: Bool {
+        switch self {
+        case .china2025: return false
+        case .wst423: return true
         }
     }
     
     /// 最大月龄范围
     var maxMonths: Double {
         switch self {
-        case .who: return 24
         case .china2025: return 36
+        case .wst423: return 84
         }
+    }
+    
+    /// 头围最大月龄
+    var headMaxMonths: Double {
+        return 36
     }
 }
 
@@ -273,23 +285,45 @@ struct GrowthPoint: Identifiable {
 /// 生长曲线标准数据
 struct GrowthStandard {
     let p3: [GrowthPoint]
+    let p10: [GrowthPoint]
     let p15: [GrowthPoint]
+    let p25: [GrowthPoint]
     let p50: [GrowthPoint]
+    let p75: [GrowthPoint]
     let p85: [GrowthPoint]
+    let p90: [GrowthPoint]
     let p97: [GrowthPoint]
     
     init(from data: [String: [[Double]]]) {
         p3 = (data["p3"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p10 = (data["p10"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
         p15 = (data["p15"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p25 = (data["p25"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
         p50 = (data["p50"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p75 = (data["p75"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
         p85 = (data["p85"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+        p90 = (data["p90"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
         p97 = (data["p97"] ?? []).map { GrowthPoint(month: $0[0], value: $0[1]) }
+    }
+    
+    /// 获取可用的主要百分位线（用于图表显示）
+    var mainPercentiles: [(name: String, points: [GrowthPoint], color: String)] {
+        var result: [(String, [GrowthPoint], String)] = []
+        result.append(("P3", p3, "red"))
+        if !p10.isEmpty { result.append(("P10", p10, "orange")) }
+        else if !p15.isEmpty { result.append(("P15", p15, "orange")) }
+        if !p25.isEmpty { result.append(("P25", p25, "yellow")) }
+        result.append(("P50", p50, "green"))
+        if !p75.isEmpty { result.append(("P75", p75, "yellow")) }
+        else if !p85.isEmpty { result.append(("P85", p85, "orange")) }
+        if !p90.isEmpty { result.append(("P90", p90, "orange")) }
+        result.append(("P97", p97, "red"))
+        return result
     }
 }
 
 // 别名保持兼容性
-typealias WHOGrowthPoint = GrowthPoint
-typealias WHOGrowthStandard = GrowthStandard
+typealias GrowthStandardPoint = GrowthPoint
 
 /// 生长曲线图表数据响应
 struct GrowthChartDataResponse: Codable {
@@ -297,6 +331,7 @@ struct GrowthChartDataResponse: Codable {
     let heightStandard: [String: [[Double]]]?
     let weightStandard: [String: [[Double]]]?
     let bmiStandard: [String: [[Double]]]?
+    let headStandard: [String: [[Double]]]?
     let standardType: String?
     
     // 兼容旧字段

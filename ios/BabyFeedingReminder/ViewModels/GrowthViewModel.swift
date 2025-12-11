@@ -11,6 +11,7 @@ class GrowthViewModel: ObservableObject {
     @Published var heightStandard: GrowthStandard?
     @Published var weightStandard: GrowthStandard?
     @Published var bmiStandard: GrowthStandard?
+    @Published var headStandard: GrowthStandard?
     @Published var percentile: GrowthPercentile?
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -69,6 +70,14 @@ class GrowthViewModel: ObservableObject {
         }
     }
     
+    /// 宝宝头围数据点（用于图表）
+    var babyHeadPoints: [GrowthPoint] {
+        records.compactMap { record in
+            guard let head = record.headCircumference, let months = record.ageInMonths else { return nil }
+            return GrowthPoint(month: Double(months), value: head)
+        }
+    }
+    
     /// 最新记录
     var latestRecord: GrowthRecord? {
         records.last
@@ -77,6 +86,11 @@ class GrowthViewModel: ObservableObject {
     /// 当前标准是否支持BMI
     var supportsBmi: Bool {
         selectedStandardType.supportsBmi
+    }
+    
+    /// 当前标准是否支持头围
+    var supportsHead: Bool {
+        selectedStandardType.supportsHead
     }
     
     /// 宝宝当前月龄（从最新记录或percentile获取）
@@ -108,6 +122,9 @@ class GrowthViewModel: ObservableObject {
             weightStandard = GrowthStandard(from: response.weightData)
             if let bmiData = response.bmiStandard {
                 bmiStandard = GrowthStandard(from: bmiData)
+            }
+            if let headData = response.headStandard {
+                headStandard = GrowthStandard(from: headData)
             }
             percentile = response.percentile
             gender = response.gender

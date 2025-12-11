@@ -70,6 +70,14 @@ public interface GrowthRecordService extends IService<GrowthRecord> {
     Map<String, List<double[]>> getBmiStandard(int gender, String standardType);
     
     /**
+     * 获取头围标准数据
+     * @param gender 0-女 1-男
+     * @param standardType 标准类型: WS_T_423_2022 (支持头围)
+     * @return 各百分位曲线数据
+     */
+    Map<String, List<double[]>> getHeadStandard(int gender, String standardType);
+    
+    /**
      * 计算宝宝百分位（指定标准）
      */
     Map<String, Object> calculatePercentile(Long babyId, String standardType);

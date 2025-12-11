@@ -85,7 +85,7 @@ struct StatisticsView: View {
                                     icon: "chart.line.uptrend.xyaxis",
                                     title: "生长曲线",
                                     value: "身高/体重",
-                                    subtitle: "WHO标准对比",
+                                    subtitle: "国家标准对比",
                                     color: .green
                                 ) {
                                     showingGrowthDetail = true

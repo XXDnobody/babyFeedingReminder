@@ -12,7 +12,6 @@ import com.baby.service.FeedingRecordService;
 import com.baby.service.ReminderService;
 import com.baby.vo.FeedingStatisticsVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +46,6 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
     
     @Override
     @Transactional
-    @CacheEvict(value = {"todayOverview", "statistics"}, allEntries = true)
     public FeedingRecord createRecord(FeedingRecordDTO dto) {
         FeedingRecord record = new FeedingRecord();
         record.setBabyId(dto.getBabyId());

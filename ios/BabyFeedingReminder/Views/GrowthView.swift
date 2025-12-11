@@ -7,7 +7,7 @@ struct GrowthView: View {
     @AppStorage("selectedBabyId") private var selectedBabyIdString: String = "0"
     @Environment(\.dismiss) private var dismiss
     
-    @State private var selectedTab = 0  // 0-历史记录 1-身高 2-体重 3-BMI
+    @State private var selectedTab = 0  // 0-历史记录 1-身高 2-体重 3-BMI 4-头围
     @State private var showDeleteConfirmAlert = false
     @State private var recordToDelete: GrowthRecord?
     @State private var showErrorAlert = false
@@ -95,6 +95,15 @@ struct GrowthView: View {
                         Label("BMI曲线", systemImage: "figure.stand")
                     }
                     .tag(3)
+            }
+            
+            // 头围曲线Tab（如果支持）
+            if viewModel.supportsHead {
+                headCurveTab
+                    .tabItem {
+                        Label("头围曲线", systemImage: "brain.head.profile")
+                    }
+                    .tag(4)
             }
         }
     }
@@ -197,6 +206,24 @@ struct GrowthView: View {
 
                 // BMI曲线图表
                 bmiChartCard
+            }
+            .padding()
+        }
+        .background(AppTheme.backgroundGradient)
+        .refreshable {
+            await viewModel.loadChartData(babyId: selectedBabyId)
+        }
+    }
+    
+    // MARK: - 头围曲线Tab
+    private var headCurveTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // 标准选择卡片
+                standardSelectorCard
+
+                // 头围曲线图表
+                headChartCard
             }
             .padding()
         }
@@ -425,6 +452,15 @@ struct GrowthView: View {
                                     .font(.caption2)
                                     .foregroundColor(.green)
                                 }
+                                if standard.supportsHead {
+                                    HStack {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.blue)
+                                        Text("支持头围曲线(0-36月)")
+                                    }
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                }
                             }
                             Spacer()
                             if viewModel.selectedStandardType == standard {
@@ -437,17 +473,16 @@ struct GrowthView: View {
                 
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("如何选择参考标准？")
+                        Text("如何使用生长曲线？")
                             .font(.headline)
-                        Text("• 中国宝宝建议使用「中国卫健委2025」标准")
-                        Text("• 海外生活或需国际比较可使用「WHO国际标准」")
-                        Text("• 建议固定使用同一标准，避免频繁切换")
+                        Text("• 中国卫健委2025：基于中国儿童数据，0-36月龄，支持BMI")
+                        Text("• WS/T 423：国家行业标准，0-84月龄，支持BMI和头围")
                         Text("• 关注生长趋势而非单次数据")
                     }
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
                 } header: {
-                    Text("选择建议")
+                    Text("使用说明")
                 }
             }
             .navigationTitle("选择参考标准")
@@ -722,6 +757,8 @@ struct GrowthView: View {
             } else {
                 value = nil
             }
+        case 3:
+            value = record.headCircumference
         default:
             value = nil
         }
@@ -782,6 +819,10 @@ struct GrowthView: View {
                 let hm = h / 100.0
                 let bmi = w / (hm * hm)
                 return String(format: "%.1f", bmi)
+            }
+        case 3:
+            if let head = record.headCircumference {
+                return String(format: "%.1fcm", head)
             }
         default:
             break
@@ -933,6 +974,121 @@ struct GrowthView: View {
         }
     }
     
+    // MARK: - 头围图表
+    private var headChartCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("头围曲线")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                Spacer()
+                Text(viewModel.selectedStandardType.displayName)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            headChart
+            
+            // 图例
+            chartLegend
+            
+            // 操作提示
+            Text("拖动图表查看数据点详情")
+                .font(.caption2)
+                .foregroundColor(AppTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
+    }
+    
+    private var headChart: some View {
+        Chart {
+            headStandardCurves
+            headBabyDataPoints
+            selectionRuleMark
+        }
+        .chartXScale(domain: headVisibleXRange)
+        .chartXAxis {
+            AxisMarks(values: headXAxisValues) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel {
+                    if let month = value.as(Double.self) {
+                        Text(formatMonthLabel(month))
+                    }
+                }
+            }
+        }
+        .chartXAxisLabel("月龄")
+        .chartYAxisLabel("头围(cm)")
+        .chartXSelection(value: $selectedMonth)
+        .frame(height: 320)
+        .chartOverlay { proxy in
+            chartOverlayWithTooltip(proxy: proxy, chartType: 3)
+        }
+        .gesture(chartDragGesture)
+        .gesture(chartMagnificationGesture)
+    }
+    
+    @ChartContentBuilder
+    private var headStandardCurves: some ChartContent {
+        if let standard = viewModel.headStandard {
+            ForEach(standard.p3) { point in
+                LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "P3"))
+                    .foregroundStyle(.gray.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
+            }
+            if !standard.p10.isEmpty {
+                ForEach(standard.p10) { point in
+                    LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "P10"))
+                        .foregroundStyle(.orange.opacity(0.6))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                }
+            }
+            ForEach(standard.p50) { point in
+                LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "P50"))
+                    .foregroundStyle(.green)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+            }
+            if !standard.p90.isEmpty {
+                ForEach(standard.p90) { point in
+                    LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "P90"))
+                        .foregroundStyle(.orange.opacity(0.6))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                }
+            }
+            ForEach(standard.p97) { point in
+                LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "P97"))
+                    .foregroundStyle(.gray.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
+            }
+        }
+    }
+    
+    @ChartContentBuilder
+    private var headBabyDataPoints: some ChartContent {
+        ForEach(viewModel.babyHeadPoints) { point in
+            LineMark(x: .value("月龄", point.month), y: .value("头围", point.value), series: .value("类型", "宝宝"))
+                .foregroundStyle(AppTheme.primaryBlue.opacity(0.8))
+                .lineStyle(StrokeStyle(lineWidth: 2.5))
+            PointMark(x: .value("月龄", point.month), y: .value("头围", point.value))
+                .foregroundStyle(isPointSelected(point.month) ? AppTheme.primaryPink : AppTheme.primaryBlue)
+                .symbolSize(isPointSelected(point.month) ? 150 : 80)
+        }
+    }
+    
+    /// 头围X轴范围（0-36月）
+    private var headVisibleXRange: ClosedRange<Double> {
+        0...36
+    }
+    
+    /// 头围X轴刻度值
+    private var headXAxisValues: [Double] {
+        stride(from: 0, through: 36, by: 6).map { $0 }
+    }
+    
     private var chartLegend: some View {
         HStack(spacing: 16) {
             legendItem(color: AppTheme.primaryBlue, text: "宝宝", style: .solid)
@@ -1023,6 +1179,17 @@ struct GrowthView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Text("kg")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.secondaryText)
+                    }
+                }
+                
+                if let head = record.headCircumference {
+                    VStack(alignment: .trailing) {
+                        Text(String(format: "%.1f", head))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("头围")
                             .font(.caption2)
                             .foregroundColor(AppTheme.secondaryText)
                     }
@@ -1283,7 +1450,7 @@ struct GrowthView: View {
     
     /// 获取选中记录的百分位信息
     private func getPercentileInfo(for record: GrowthRecord, type: Int) -> String {
-        // type: 0-身高, 1-体重, 2-BMI
+        // type: 0-身高, 1-体重, 2-BMI, 3-头围
         switch type {
         case 0:
             guard let height = record.height,
@@ -1312,12 +1479,20 @@ struct GrowthView: View {
             let bmi = weight / (heightM * heightM)
             return estimatePercentile(value: bmi, month: Double(months), standard: standard)
             
+        case 3:
+            guard let head = record.headCircumference,
+                  let months = record.ageInMonths,
+                  let standard = viewModel.headStandard else {
+                return "-"
+            }
+            return estimatePercentileWst(value: head, month: Double(months), standard: standard)
+            
         default:
             return "-"
         }
     }
     
-    /// 估算百分位（根据标准曲线）
+    /// 估算百分位（根据标准曲线，用于CHINA_2025）
     private func estimatePercentile(value: Double, month: Double, standard: GrowthStandard) -> String {
         // 找到对应月龄的标准值
         guard let p3 = standard.p3.first(where: { abs($0.month - month) < 0.5 }),
@@ -1338,6 +1513,41 @@ struct GrowthView: View {
             return "P50-P85"
         } else if value < p97.value {
             return "P85-P97"
+        } else {
+            return ">P97"
+        }
+    }
+    
+    /// 估算百分位（根据WS/T 423标准曲线，使用P10/P90）
+    private func estimatePercentileWst(value: Double, month: Double, standard: GrowthStandard) -> String {
+        // 找到对应月龄的标准值
+        guard let p3 = standard.p3.first(where: { abs($0.month - month) < 0.5 }),
+              let p50 = standard.p50.first(where: { abs($0.month - month) < 0.5 }),
+              let p97 = standard.p97.first(where: { abs($0.month - month) < 0.5 }) else {
+            return "-"
+        }
+        
+        let p10 = standard.p10.first(where: { abs($0.month - month) < 0.5 })
+        let p90 = standard.p90.first(where: { abs($0.month - month) < 0.5 })
+        
+        if value < p3.value {
+            return "<P3"
+        } else if let p10v = p10, value < p10v.value {
+            return "P3-P10"
+        } else if value < p50.value {
+            if p10 != nil {
+                return "P10-P50"
+            } else {
+                return "P3-P50"
+            }
+        } else if let p90v = p90, value < p90v.value {
+            return "P50-P90"
+        } else if value < p97.value {
+            if p90 != nil {
+                return "P90-P97"
+            } else {
+                return "P50-P97"
+            }
         } else {
             return ">P97"
         }
@@ -1437,6 +1647,32 @@ struct GrowthView: View {
                             .font(.caption2)
                             .foregroundColor(AppTheme.secondaryText)
                         Text(getPercentileInfo(for: record, type: 2))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                    }
+                }
+            } else if selectedTab == 4 {
+                // 头围
+                if let head = record.headCircumference {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("头围")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(String(format: "%.1f cm", head))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppTheme.primaryBlue)
+                    }
+                    
+                    Divider()
+                        .frame(height: 30)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("百分位")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.secondaryText)
+                        Text(getPercentileInfo(for: record, type: 3))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.green)

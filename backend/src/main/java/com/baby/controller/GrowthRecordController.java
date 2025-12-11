@@ -95,6 +95,7 @@ public class GrowthRecordController {
         result.put("heightStandard", growthRecordService.getHeightStandard(gender, standardType));
         result.put("weightStandard", growthRecordService.getWeightStandard(gender, standardType));
         result.put("bmiStandard", growthRecordService.getBmiStandard(gender, standardType));
+        result.put("headStandard", growthRecordService.getHeadStandard(gender, standardType));
         
         // 兼容旧版本字段名
         result.put("whoHeight", result.get("heightStandard"));
