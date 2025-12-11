@@ -22,6 +22,7 @@ struct HomeView: View {
                         .padding(.top, 12)
                         .padding(.bottom, 16)
                     
+                    // 中间可滚动区域（今日概览 + 即将提醒）
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 12) {
                             // 今日概览
@@ -34,14 +35,22 @@ struct HomeView: View {
                                 UpcomingRemindersSection(viewModel: viewModel)
                                     .environmentObject(appState)
                             }
-                            
-                            // 快捷操作
-                            if appState.selectedBaby != nil {
-                                QuickActionsSection(appState: appState)
-                                    .padding(.bottom, 20)
-                            }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                    }
+                    
+                    // 快捷操作（固定在底部，不随滚动移动）
+                    if appState.selectedBaby != nil {
+                        VStack(spacing: 0) {
+                            Divider()
+                                .background(AppTheme.secondaryText.opacity(0.2))
+                            
+                            QuickActionsSection(appState: appState)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(AppTheme.backgroundGradient)
+                        }
                     }
                 }
             }
@@ -623,44 +632,30 @@ struct QuickActionsSection: View {
     @State private var showGrowthView = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("快捷操作")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(AppTheme.primaryText)
-            
-            // 第一行
-            HStack(spacing: 8) {
-                QuickActionButton(icon: "drop.fill", title: "记录喂奶", color: AppTheme.feedingColor) {
-                    showFeedingView = true
-                }
-                
-                QuickActionButton(icon: "moon.fill", title: "记录睡眠", color: AppTheme.sleepColor) {
-                    showSleepView = true
-                }
-                
-                QuickActionButton(icon: "toilet.fill", title: "记录排便", color: AppTheme.excretionColor) {
-                    showExcretionView = true
-                }
-                
-                QuickActionButton(icon: "chart.bar.fill", title: "查看分析", color: AppTheme.statsColor) {
-                    appState.selectedTab = 2  // 跳转到分析页
-                }
+        // 单行紧凑布局，6个按钮横排
+        HStack(spacing: 12) {
+            CompactActionButton(icon: "drop.fill", title: "喂奶", color: AppTheme.feedingColor) {
+                showFeedingView = true
             }
             
-            // 第二行
-            HStack(spacing: 8) {
-                QuickActionButton(icon: "syringe.fill", title: "疫苗接种", color: Color.teal) {
-                    showVaccinationView = true
-                }
-                
-                QuickActionButton(icon: "ruler.fill", title: "生长记录", color: Color.orange) {
-                    showGrowthView = true
-                }
-                
-                // 占位
-                Color.clear.frame(maxWidth: .infinity)
-                Color.clear.frame(maxWidth: .infinity)
+            CompactActionButton(icon: "moon.fill", title: "睡眠", color: AppTheme.sleepColor) {
+                showSleepView = true
+            }
+            
+            CompactActionButton(icon: "toilet.fill", title: "尿布", color: AppTheme.excretionColor) {
+                showExcretionView = true
+            }
+            
+            CompactActionButton(icon: "chart.bar.fill", title: "分析", color: AppTheme.statsColor) {
+                appState.selectedTab = 2
+            }
+            
+            CompactActionButton(icon: "syringe.fill", title: "疫苗", color: Color.teal) {
+                showVaccinationView = true
+            }
+            
+            CompactActionButton(icon: "ruler.fill", title: "生长", color: Color.orange) {
+                showGrowthView = true
             }
         }
         .sheet(isPresented: $showFeedingView) {
@@ -686,8 +681,8 @@ struct QuickActionsSection: View {
     }
 }
 
-// MARK: - 快捷操作按钮
-struct QuickActionButton: View {
+// MARK: - 紧凑快捷操作按钮
+struct CompactActionButton: View {
     let icon: String
     let title: String
     let color: Color
@@ -695,33 +690,22 @@ struct QuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [color.opacity(0.3), color.opacity(0.5)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 36, height: 36)
+                        .fill(color.opacity(0.2))
+                        .frame(width: 44, height: 44)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .font(.system(size: 20))
+                        .foregroundColor(color)
                 }
                 
                 Text(title)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundColor(AppTheme.primaryText)
+                    .font(.system(size: 10))
+                    .foregroundColor(AppTheme.secondaryText)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(Color.white)
-            .cornerRadius(AppTheme.cardRadius)
-            .shadow(color: AppTheme.cardShadowColor, radius: 3, x: 0, y: 1)
         }
         .buttonStyle(.plain)
     }
