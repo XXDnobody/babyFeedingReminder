@@ -6,6 +6,9 @@ import Combine
 @MainActor
 class GrowthViewModel: ObservableObject {
     
+    // MARK: - Constants
+    private static let standardTypeKey = "selectedGrowthStandardType"
+    
     // MARK: - Published Properties
     @Published var records: [GrowthRecord] = []
     @Published var heightStandard: GrowthStandard?
@@ -17,8 +20,13 @@ class GrowthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var gender: Int = 1  // 1-男 0-女
     
-    // 标准类型选择
-    @Published var selectedStandardType: GrowthStandardType = .china2025
+    // 标准类型选择（从 UserDefaults 读取上次选择）
+    @Published var selectedStandardType: GrowthStandardType {
+        didSet {
+            // 保存到 UserDefaults
+            UserDefaults.standard.set(selectedStandardType.rawValue, forKey: Self.standardTypeKey)
+        }
+    }
     
     // 添加记录表单
     @Published var showingAddRecord = false
@@ -38,6 +46,17 @@ class GrowthViewModel: ObservableObject {
     
     // MARK: - Private
     private let network = NetworkService.shared
+    
+    // MARK: - Init
+    init() {
+        // 从 UserDefaults 读取上次选择的标准类型
+        if let savedType = UserDefaults.standard.string(forKey: Self.standardTypeKey),
+           let standardType = GrowthStandardType(rawValue: savedType) {
+            self.selectedStandardType = standardType
+        } else {
+            self.selectedStandardType = .china2025
+        }
+    }
     
     // MARK: - Computed Properties
     

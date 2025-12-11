@@ -23,6 +23,9 @@ struct GrowthView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGFloat = 0
     
+    // 防抖动标记
+    @State private var isPositioning = false
+    
     private var selectedBabyId: Int64 {
         Int64(selectedBabyIdString) ?? 0
     }
@@ -57,8 +60,10 @@ struct GrowthView: View {
                 }
                 .task {
                     await viewModel.loadChartData(babyId: selectedBabyId)
-                    // 加载完成后自动定位到宝宝当前月龄
-                    positionToCurrentAge()
+                    // 加载完成后平滑定位到宝宝当前月龄
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        positionToCurrentAge()
+                    }
                 }
         }
     }
@@ -413,10 +418,17 @@ struct GrowthView: View {
             List {
                 ForEach(GrowthStandardType.allCases, id: \.self) { standard in
                     Button {
-                        viewModel.selectedStandardType = standard
+                        // 关闭弹窗
                         showStandardPicker = false
-                        Task {
-                            await viewModel.loadChartData(babyId: selectedBabyId)
+                        
+                        // 延迟更新数据，避免弹窗关闭动画与图表更新冲突
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                viewModel.selectedStandardType = standard
+                            }
+                            Task {
+                                await viewModel.loadChartData(babyId: selectedBabyId)
+                            }
                         }
                     } label: {
                         HStack {
@@ -1079,14 +1091,54 @@ struct GrowthView: View {
         }
     }
     
-    /// 头围X轴范围（0-36月）
+    /// 头围X轴范围（使用动态缩放，最大范围36月）
     private var headVisibleXRange: ClosedRange<Double> {
-        0...36
+        let maxRange = 36.0
+        let visibleRange = maxRange / chartScale
+        
+        var startMonth = chartOffset
+        var endMonth = startMonth + visibleRange
+        
+        if startMonth < 0 {
+            startMonth = 0
+            endMonth = min(visibleRange, maxRange)
+        }
+        if endMonth > maxRange {
+            endMonth = maxRange
+            startMonth = max(0, maxRange - visibleRange)
+        }
+        
+        return startMonth...endMonth
     }
     
-    /// 头围X轴刻度值
+    /// 头围X轴刻度值（动态计算）
     private var headXAxisValues: [Double] {
-        stride(from: 0, through: 36, by: 6).map { $0 }
+        let range = headVisibleXRange
+        let visibleMonths = range.upperBound - range.lowerBound
+        
+        let interval: Double
+        if visibleMonths <= 6 {
+            interval = 1
+        } else if visibleMonths <= 12 {
+            interval = 2
+        } else if visibleMonths <= 18 {
+            interval = 3
+        } else if visibleMonths <= 24 {
+            interval = 4
+        } else {
+            interval = 6
+        }
+        
+        var values: [Double] = []
+        var current = (range.lowerBound / interval).rounded(.up) * interval
+        while current <= range.upperBound {
+            if current >= 0 {
+                values.append(current)
+            }
+            current += interval
+        }
+        
+        return values
     }
     
     private var chartLegend: some View {
@@ -1386,8 +1438,9 @@ struct GrowthView: View {
         MagnifyGesture()
             .onChanged { value in
                 let newScale = lastScale * value.magnification
-                // 限制缩放范围：1倍（全部显示）到6倍（最小显示6个月）
-                chartScale = max(1.0, min(newScale, 6.0))
+                // 限制缩放范围：1倍（全部显示）到最大倍数（最少显示6个月）
+                let maxScaleLimit = maxMonthRange / 6.0
+                chartScale = max(1.0, min(newScale, maxScaleLimit))
                 
                 // 调整偏移以保持在有效范围内
                 let totalRange = maxMonthRange
@@ -1407,25 +1460,74 @@ struct GrowthView: View {
         return formatter.string(from: date)
     }
     
-    /// 定位到宝宝当前月龄
+    /// 定位到宝宝当前月龄，并智能设置初始缩放范围
     private func positionToCurrentAge() {
-        guard let currentMonths = viewModel.babyCurrentMonths else { return }
+        // 防止重复执行
+        guard !isPositioning else { return }
+        isPositioning = true
         
         let maxRange = maxMonthRange
         
-        // 设置选中月龄为当前月龄
-        selectedMonth = min(currentMonths, maxRange)
+        // 最大缩放倍数：确保最少显示6个月
+        let maxScaleLimit = maxRange / 6.0
         
-        // 如果当前月龄超出可见范围，调整偏移使其居中显示
-        let visibleRange = maxRange / chartScale
-        if currentMonths > visibleRange / 2 {
-            let targetOffset = currentMonths - visibleRange / 2
-            chartOffset = max(0, min(targetOffset, maxRange - visibleRange))
-            lastOffset = chartOffset
+        // 获取宝宝数据点的最大月龄
+        let dataMaxMonth: Double = {
+            let heights = viewModel.babyHeightPoints.map { $0.month }
+            let weights = viewModel.babyWeightPoints.map { $0.month }
+            let heads = viewModel.babyHeadPoints.map { $0.month }
+            let allMonths = heights + weights + heads
+            return allMonths.max() ?? 0
+        }()
+        
+        // 智能计算显示范围
+        if dataMaxMonth > 0 {
+            // 有数据点：显示范围为最大月龄+6个月（至少12个月）
+            // 保证数据点在可见范围内且有足够空间显示趋势
+            let targetEndMonth = max(dataMaxMonth + 6, 12)
+            
+            // 计算缩放比例
+            let newScale = maxRange / targetEndMonth
+            chartScale = max(1.0, min(newScale, maxScaleLimit))
+            lastScale = chartScale
+            
+            // 设置偏移为0（从左侧开始显示）
+            chartOffset = 0
+            lastOffset = 0
+            
+            // 选中月龄为最新数据点
+            selectedMonth = dataMaxMonth
+        } else if let currentMonths = viewModel.babyCurrentMonths {
+            // 没有数据点但有当前月龄：显示当前月龄前后范围
+            let targetEndMonth = max(currentMonths + 6, 12)
+            let newScale = maxRange / targetEndMonth
+            chartScale = max(1.0, min(newScale, maxScaleLimit))
+            lastScale = chartScale
+            
+            chartOffset = 0
+            lastOffset = 0
+            selectedMonth = min(currentMonths, maxRange)
+        } else {
+            // 没有任何数据：默认显示0-12个月
+            let targetVisibleRange = min(12.0, maxRange)
+            let newScale = maxRange / targetVisibleRange
+            chartScale = max(1.0, min(newScale, maxScaleLimit))
+            lastScale = chartScale
+            
+            chartOffset = 0
+            lastOffset = 0
+            selectedMonth = nil
         }
         
         // 更新选中记录
-        updateSelectedRecord(forMonth: selectedMonth ?? 0)
+        if let month = selectedMonth {
+            updateSelectedRecord(forMonth: month)
+        }
+        
+        // 延迟重置锁，防止快速切换时的冲突
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            isPositioning = false
+        }
     }
     
     /// 更新选中的记录（根据月龄找最接近的记录）
