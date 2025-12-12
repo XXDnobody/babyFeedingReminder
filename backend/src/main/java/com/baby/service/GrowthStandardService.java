@@ -65,6 +65,17 @@ public interface GrowthStandardService {
     String calculatePercentileDescription(double value, String standardCode, int gender, String indicator, int ageMonths);
     
     /**
+     * 计算百分位描述（支持精确日龄插值）
+     * @param value 实测值
+     * @param standardCode 标准代码
+     * @param gender 性别
+     * @param indicator 指标类型
+     * @param exactAgeMonths 精确月龄（包含小数，如7.3表示7个月9天）
+     * @return 精确百分位（如"96.6%"）
+     */
+    String calculateExactPercentile(double value, String standardCode, int gender, String indicator, double exactAgeMonths);
+    
+    /**
      * 获取指定月龄的标准数据
      */
     GrowthStandardData getStandardDataByMonth(String standardCode, int gender, String indicator, int ageMonths);

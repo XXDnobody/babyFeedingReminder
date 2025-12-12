@@ -382,4 +382,164 @@ public class GrowthStandardServiceImpl implements GrowthStandardService {
     private double toDouble(BigDecimal value) {
         return value != null ? value.doubleValue() : 0.0;
     }
+    
+    @Override
+    public String calculateExactPercentile(double value, String standardCode, int gender, String indicator, double exactAgeMonths) {
+        String code = standardCode != null ? standardCode : DEFAULT_STANDARD;
+        
+        // 获取相邻两个月龄的数据
+        int lowerMonth = (int) Math.floor(exactAgeMonths);
+        int upperMonth = lowerMonth + 1;
+        double fraction = exactAgeMonths - lowerMonth; // 插值因子
+        
+        GrowthStandardData lowerData = getStandardDataByMonth(code, gender, indicator, lowerMonth);
+        GrowthStandardData upperData = getStandardDataByMonth(code, gender, indicator, upperMonth);
+        
+        // 如果找不到两个月龄的数据，尝试查找最近的
+        if (lowerData == null) {
+            lowerData = findNearestData(code, gender, indicator, lowerMonth);
+        }
+        if (upperData == null) {
+            upperData = findNearestData(code, gender, indicator, upperMonth);
+        }
+        
+        // 如果只有一个数据，使用单个数据计算
+        if (lowerData == null && upperData == null) {
+            return "-";
+        }
+        if (lowerData == null) {
+            return calculatePercentileFromSingleData(value, upperData);
+        }
+        if (upperData == null || lowerData.getAgeMonths().equals(upperData.getAgeMonths())) {
+            return calculatePercentileFromSingleData(value, lowerData);
+        }
+        
+        // 计算插值后的百分位值
+        double exactPercentile = calculateInterpolatedPercentile(value, lowerData, upperData, fraction);
+        
+        if (exactPercentile < 0) {
+            return "-";
+        }
+        
+        // 返回精确百分位，保留1位小数
+        return String.format("%.1f%%", exactPercentile);
+    }
+    
+    /**
+     * 在两个月龄的百分位数据之间进行线性插值，计算精确百分位
+     */
+    private double calculateInterpolatedPercentile(double value, GrowthStandardData lower, GrowthStandardData upper, double fraction) {
+        // 获取两个月龄的百分位值
+        double[] lowerPercentiles = extractPercentileValues(lower);
+        double[] upperPercentiles = extractPercentileValues(upper);
+        
+        if (lowerPercentiles == null || upperPercentiles == null) {
+            return -1;
+        }
+        
+        // 插值计算精确月龄的百分位值
+        double[] percentilePoints = {3, 10, 25, 50, 75, 90, 97};
+        double[] interpolatedValues = new double[lowerPercentiles.length];
+        
+        for (int i = 0; i < lowerPercentiles.length; i++) {
+            interpolatedValues[i] = lowerPercentiles[i] + (upperPercentiles[i] - lowerPercentiles[i]) * fraction;
+        }
+        
+        // 根据实测值计算落在哪个区间，并进行线性插值
+        if (value < interpolatedValues[0]) {
+            // 低于 P3，返回 0-3% 之间的估算值
+            return Math.max(0, 3.0 * value / interpolatedValues[0]);
+        }
+        
+        if (value > interpolatedValues[6]) {
+            // 高于 P97，返回 97-100% 之间的估算值
+            double excess = value - interpolatedValues[6];
+            double range = interpolatedValues[6] - interpolatedValues[5]; // P90到P97的范围
+            return Math.min(100, 97.0 + 3.0 * excess / range);
+        }
+        
+        // 在百分位区间内进行线性插值
+        for (int i = 0; i < interpolatedValues.length - 1; i++) {
+            if (value >= interpolatedValues[i] && value <= interpolatedValues[i + 1]) {
+                double lowerP = percentilePoints[i];
+                double upperP = percentilePoints[i + 1];
+                double lowerV = interpolatedValues[i];
+                double upperV = interpolatedValues[i + 1];
+                
+                // 线性插值计算精确百分位
+                return lowerP + (upperP - lowerP) * (value - lowerV) / (upperV - lowerV);
+            }
+        }
+        
+        return -1;
+    }
+    
+    /**
+     * 提取标准数据中的百分位值数组 [P3, P10, P25, P50, P75, P90, P97]
+     */
+    private double[] extractPercentileValues(GrowthStandardData data) {
+        if (data == null) {
+            return null;
+        }
+        
+        double p3 = toDouble(data.getP3());
+        double p10 = toDouble(data.getP10());
+        double p25 = toDouble(data.getP25());
+        double p50 = toDouble(data.getP50());
+        double p75 = toDouble(data.getP75());
+        double p90 = toDouble(data.getP90());
+        double p97 = toDouble(data.getP97());
+        
+        // 如果P10/P90不存在，使用P15/P85近似
+        if (p10 == 0 && data.getP15() != null) {
+            p10 = toDouble(data.getP15()) * 0.9; // 近似估算
+        }
+        if (p90 == 0 && data.getP85() != null) {
+            p90 = toDouble(data.getP85()) * 1.05; // 近似估算
+        }
+        
+        // 如果P25/P75不存在，通过其他值近似计算
+        if (p25 == 0) {
+            p25 = p10 + (p50 - p10) * 0.6;
+        }
+        if (p75 == 0) {
+            p75 = p50 + (p90 - p50) * 0.6;
+        }
+        
+        return new double[]{p3, p10, p25, p50, p75, p90, p97};
+    }
+    
+    /**
+     * 从单个数据计算百分位
+     */
+    private String calculatePercentileFromSingleData(double value, GrowthStandardData data) {
+        double[] percentiles = extractPercentileValues(data);
+        if (percentiles == null) {
+            return "-";
+        }
+        
+        double[] percentilePoints = {3, 10, 25, 50, 75, 90, 97};
+        
+        if (value < percentiles[0]) {
+            return String.format("%.1f%%", Math.max(0, 3.0 * value / percentiles[0]));
+        }
+        
+        if (value > percentiles[6]) {
+            double excess = value - percentiles[6];
+            double range = percentiles[6] - percentiles[5];
+            return String.format("%.1f%%", Math.min(100, 97.0 + 3.0 * excess / range));
+        }
+        
+        for (int i = 0; i < percentiles.length - 1; i++) {
+            if (value >= percentiles[i] && value <= percentiles[i + 1]) {
+                double lowerP = percentilePoints[i];
+                double upperP = percentilePoints[i + 1];
+                double lowerV = percentiles[i];
+                double upperV = percentiles[i + 1];
+                return String.format("%.1f%%", lowerP + (upperP - lowerP) * (value - lowerV) / (upperV - lowerV));
+            }
+        }
+        
+        return "-";
+    }
 }

@@ -127,9 +127,15 @@ class GrowthViewModel: ObservableObject {
     
     // MARK: - Methods
     
-    func loadChartData(babyId: Int64) async {
+    func loadChartData(babyId: Int64, isRefresh: Bool = false) async {
+        // 防止重复加载
+        guard !isLoading else { return }
+        
         isLoading = true
-        errorMessage = nil
+        // 只有非刷新操作时才清除错误信息
+        if !isRefresh {
+            errorMessage = nil
+        }
         
         do {
             let response: GrowthChartDataResponse = try await network.request(
@@ -147,9 +153,16 @@ class GrowthViewModel: ObservableObject {
             }
             percentile = response.percentile
             gender = response.gender
+            // 成功后清除错误状态
+            errorMessage = nil
             
+        } catch is CancellationError {
+            // 请求被取消（如用户快速刷新），不显示错误
         } catch {
-            errorMessage = "加载失败: \(error.localizedDescription)"
+            // 刷新操作失败且已有数据时，静默失败不弹窗
+            if !isRefresh || records.isEmpty {
+                errorMessage = "加载失败: \(error.localizedDescription)"
+            }
         }
         
         isLoading = false

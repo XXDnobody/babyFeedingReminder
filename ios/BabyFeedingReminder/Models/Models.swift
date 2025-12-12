@@ -364,6 +364,7 @@ struct GrowthPercentile: Codable {
     let bmi: Double?
     let headCircumference: Double?
     let ageInMonths: Int?
+    let exactAgeMonths: Double?  // 精确月龄（包含天数）
     let measureDate: Date?
     let standardType: String?
 }

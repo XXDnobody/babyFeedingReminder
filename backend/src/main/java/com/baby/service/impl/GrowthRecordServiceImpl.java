@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -149,11 +150,14 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         int gender = baby.getGender() != null ? baby.getGender() : 1;
         int ageInMonths = latest.getAgeInMonths() != null ? latest.getAgeInMonths() : 0;
         
-        // 计算身高百分位（使用 GrowthStandardService）
+        // 计算精确月龄（包含天数）
+        double exactAgeMonths = calculateExactAgeMonths(baby.getBirthDate(), latest.getMeasureDate());
+        
+        // 计算身高百分位（使用精确日龄插值）
         if (latest.getHeight() != null) {
             double heightValue = latest.getHeight().doubleValue();
-            String heightPercentile = growthStandardService.calculatePercentileDescription(
-                heightValue, standardType, gender, "HEIGHT", ageInMonths);
+            String heightPercentile = growthStandardService.calculateExactPercentile(
+                heightValue, standardType, gender, "HEIGHT", exactAgeMonths);
             result.put("heightPercentile", heightPercentile);
             result.put("height", heightValue);
         }
@@ -161,8 +165,8 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         // 计算体重百分位
         if (latest.getWeight() != null) {
             double weightValue = latest.getWeight().doubleValue();
-            String weightPercentile = growthStandardService.calculatePercentileDescription(
-                weightValue, standardType, gender, "WEIGHT", ageInMonths);
+            String weightPercentile = growthStandardService.calculateExactPercentile(
+                weightValue, standardType, gender, "WEIGHT", exactAgeMonths);
             result.put("weightPercentile", weightPercentile);
             result.put("weight", weightValue);
         }
@@ -171,22 +175,23 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         if (latest.getHeight() != null && latest.getWeight() != null && latest.getHeight().doubleValue() > 0) {
             double heightM = latest.getHeight().doubleValue() / 100.0; // cm转m
             double bmi = latest.getWeight().doubleValue() / (heightM * heightM);
-            String bmiPercentile = growthStandardService.calculatePercentileDescription(
-                bmi, standardType, gender, "BMI", ageInMonths);
+            String bmiPercentile = growthStandardService.calculateExactPercentile(
+                bmi, standardType, gender, "BMI", exactAgeMonths);
             result.put("bmiPercentile", bmiPercentile);
-            result.put("bmi", Math.round(bmi * 10.0) / 10.0); // 保疙1位小数
+            result.put("bmi", Math.round(bmi * 10.0) / 10.0); // 保留1位小数
         }
                 
         // 计算头围百分位
         if (latest.getHeadCircumference() != null) {
             double headValue = latest.getHeadCircumference().doubleValue();
-            String headPercentile = growthStandardService.calculatePercentileDescription(
-                headValue, standardType, gender, "HEAD", ageInMonths);
+            String headPercentile = growthStandardService.calculateExactPercentile(
+                headValue, standardType, gender, "HEAD", exactAgeMonths);
             result.put("headPercentile", headPercentile);
             result.put("headCircumference", headValue);
         }
         
         result.put("ageInMonths", ageInMonths);
+        result.put("exactAgeMonths", exactAgeMonths);
         result.put("measureDate", latest.getMeasureDate());
         result.put("standardType", standardType != null ? standardType : "CHINA_2025");
         
@@ -209,5 +214,23 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
             map.put("isDefault", s.getIsDefault() != null && s.getIsDefault() == 1);
             return map;
         }).collect(Collectors.toList());
+    }
+    
+    /**
+     * 计算精确月龄（包含天数）
+     * 例如：7个月9天 = 7.3月龄
+     */
+    private double calculateExactAgeMonths(LocalDate birthDate, LocalDate measureDate) {
+        if (birthDate == null || measureDate == null) {
+            return 0;
+        }
+        
+        // 计算完整月数
+        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(birthDate, measureDate);
+        
+        // 使用平均每月30.44天计算精确月龄
+        double exactMonths = totalDays / 30.44;
+        
+        return Math.round(exactMonths * 10.0) / 10.0; // 保留1位小数
     }
 }

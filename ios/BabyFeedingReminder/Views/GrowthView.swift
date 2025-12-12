@@ -170,7 +170,7 @@ struct GrowthView: View {
         }
         .background(AppTheme.backgroundGradient)
         .refreshable {
-            await viewModel.loadChartData(babyId: selectedBabyId)
+            await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
         }
     }
 
@@ -188,7 +188,7 @@ struct GrowthView: View {
         }
         .background(AppTheme.backgroundGradient)
         .refreshable {
-            await viewModel.loadChartData(babyId: selectedBabyId)
+            await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
         }
     }
 
@@ -206,7 +206,7 @@ struct GrowthView: View {
         }
         .background(AppTheme.backgroundGradient)
         .refreshable {
-            await viewModel.loadChartData(babyId: selectedBabyId)
+            await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
         }
     }
 
@@ -224,7 +224,7 @@ struct GrowthView: View {
         }
         .background(AppTheme.backgroundGradient)
         .refreshable {
-            await viewModel.loadChartData(babyId: selectedBabyId)
+            await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
         }
     }
     
@@ -242,7 +242,7 @@ struct GrowthView: View {
         }
         .background(AppTheme.backgroundGradient)
         .refreshable {
-            await viewModel.loadChartData(babyId: selectedBabyId)
+            await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
         }
     }
 

@@ -645,10 +645,6 @@ struct QuickActionsSection: View {
                 showExcretionView = true
             }
             
-            CompactActionButton(icon: "chart.bar.fill", title: "分析", color: AppTheme.statsColor) {
-                appState.selectedTab = 2
-            }
-            
             CompactActionButton(icon: "ruler.fill", title: "生长", color: Color.orange) {
                 showGrowthView = true
             }
