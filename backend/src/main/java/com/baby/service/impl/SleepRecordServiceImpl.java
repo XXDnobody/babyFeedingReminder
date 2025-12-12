@@ -66,9 +66,20 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         int ageInMonths = babyService.calculateAgeInMonths(dto.getBabyId());
         record.setPlannedDuration(getRecommendedNapDuration(ageInMonths));
         
-        // 如果是小睡，计算下次小睡时间
+        // 检查是否需要创建提醒：优先使用前端传入的 reminderInterval
+        Integer reminderInterval = dto.getReminderInterval();
+        boolean shouldCreateReminder = reminderInterval != null && reminderInterval > 0;
+        
+        // 如果是小睡且有结束时间，计算下次小睡时间
         if (dto.getSleepType() == 1 && dto.getEndTime() != null) {
-            LocalDateTime nextNapTime = calculateNextNapTime(dto.getBabyId(), dto.getEndTime());
+            LocalDateTime nextNapTime;
+            if (shouldCreateReminder) {
+                // 使用前端传入的提醒间隔
+                nextNapTime = dto.getEndTime().plusMinutes(reminderInterval);
+            } else {
+                // 使用默认计算
+                nextNapTime = calculateNextNapTime(dto.getBabyId(), dto.getEndTime());
+            }
             record.setNextNapTime(nextNapTime);
             
             // 设置哄睡提醒时间
@@ -79,14 +90,8 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         
         save(record);
         
-        // 检查睡眠设置中的下次小睡提醒开关
-        SleepSetting setting = getSleepSetting(dto.getBabyId());
-        boolean nextNapReminderEnabled = setting != null && 
-                setting.getNextNapReminderEnabled() != null && 
-                setting.getNextNapReminderEnabled() == 1;
-        
-        // 如果有下次小睡时间且开启了提醒，创建提醒
-        if (record.getNextNapTime() != null && nextNapReminderEnabled) {
+        // 如果有下次小睡时间且需要创建提醒
+        if (record.getNextNapTime() != null && shouldCreateReminder) {
             reminderService.createNapReminder(record);
         }
         

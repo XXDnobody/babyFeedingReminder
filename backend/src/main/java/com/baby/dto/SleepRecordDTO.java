@@ -43,4 +43,9 @@ public class SleepRecordDTO {
      * 备注
      */
     private String remark;
+    
+    /**
+     * 提醒间隔（分钟），null或0表示不创建提醒
+     */
+    private Integer reminderInterval;
 }

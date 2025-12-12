@@ -250,34 +250,6 @@ struct CurrentSleepStatusCard: View {
                     Spacer()
                 }
 
-                // 提醒选项
-                HStack {
-                    Image(systemName: viewModel.shouldRemindNextNap ? "bell.fill" : "bell.slash.fill")
-                        .foregroundColor(viewModel.shouldRemindNextNap ? .orange : .gray)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("下次睡眠提醒")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(AppTheme.primaryText)
-
-                        Text(viewModel.shouldRemindNextNap ? "开启后自动生成下次睡眠提醒" : "不会发送睡眠提醒")
-                            .font(.caption)
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-
-                    Spacer()
-
-                    Toggle("", isOn: $viewModel.shouldRemindNextNap)
-                        .labelsHidden()
-                        .onChange(of: viewModel.shouldRemindNextNap) { _, newValue in
-                            // 当开关变化时保存到后端
-                            Task {
-                                await viewModel.saveNextNapReminderEnabled(newValue)
-                            }
-                        }
-                }
-                .padding(.vertical, 8)
 
                 // 大按钮 - 开始小睡
                 Button(action: {
@@ -424,6 +396,10 @@ struct EditSleepRecordView: View {
     @State private var quality = 1  // 1: 好, 2: 一般, 3: 差
     @State private var remark = ""
     @State private var showDeleteAlert = false
+    @State private var enableReminder = true  // 是否开启提醒
+    @State private var intervalHours = 2      // 提醒间隔小时
+    @State private var intervalMinutes = 0    // 提醒间隔分钟
+    @State private var isInitialized = false  // 标记是否已初始化
     
     private var isEditMode: Bool { record != nil }
     private var title: String { isEditMode ? "编辑睡眠记录" : "添加睡眠记录" }
@@ -464,6 +440,62 @@ struct EditSleepRecordView: View {
                     SleepQualitySelector(selectedQuality: $quality)
                 }
                 
+                if !isEditMode {
+                    Section("下次睡眠提醒") {
+                        Toggle("开启提醒", isOn: $enableReminder)
+                        
+                        if enableReminder {
+                            // 提醒间隔选择
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("提醒间隔")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                HStack(spacing: 16) {
+                                    // 小时选择器
+                                    HStack {
+                                        Picker("", selection: $intervalHours) {
+                                            ForEach(0...8, id: \.self) { hour in
+                                                Text("\(hour)").tag(hour)
+                                            }
+                                        }
+                                        .pickerStyle(.wheel)
+                                        .frame(width: 60, height: 100)
+                                        .clipped()
+                                        
+                                        Text("小时")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    // 分钟选择器
+                                    HStack {
+                                        Picker("", selection: $intervalMinutes) {
+                                            ForEach([0, 15, 30, 45], id: \.self) { min in
+                                                Text("\(min)").tag(min)
+                                            }
+                                        }
+                                        .pickerStyle(.wheel)
+                                        .frame(width: 60, height: 100)
+                                        .clipped()
+                                        
+                                        Text("分钟")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            
+                            Text("系统将在 \(intervalHours)小时\(intervalMinutes > 0 ? "\(intervalMinutes)分钟" : "") 后提醒你哄宝宝睡觉")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("不会创建下次睡眠提醒")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
                 Section("备注") {
                     TextField("添加备注...", text: $remark, axis: .vertical)
                         .lineLimit(3...6)
@@ -495,6 +527,9 @@ struct EditSleepRecordView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
                         Task {
+                            // 计算提醒间隔（分钟）
+                            let reminderInterval = enableReminder ? (intervalHours * 60 + intervalMinutes) : 0
+                            
                             if let record = record {
                                 await viewModel.updateSleepRecord(
                                     id: record.id,
@@ -511,7 +546,8 @@ struct EditSleepRecordView: View {
                                     startTime: startTime,
                                     endTime: endTime,
                                     quality: quality,
-                                    remark: remark
+                                    remark: remark,
+                                    reminderInterval: reminderInterval
                                 )
                             }
                             dismiss()
@@ -521,12 +557,36 @@ struct EditSleepRecordView: View {
                 }
             }
             .onAppear {
-                if let record = record {
-                    sleepType = record.sleepType
-                    startTime = record.startTime
-                    endTime = record.endTime ?? Date()
-                    quality = record.quality ?? 1
-                    remark = record.remark ?? ""
+                Task {
+                    // 确保睡眠设置已加载
+                    if viewModel.sleepSetting == nil, let babyId = appState.selectedBaby?.id {
+                        await viewModel.loadSleepSetting(babyId: babyId)
+                    }
+                    
+                    // 初始化表单值
+                    await MainActor.run {
+                        if !isInitialized {
+                            if let record = record {
+                                // 编辑模式：使用记录中的值
+                                sleepType = record.sleepType
+                                startTime = record.startTime
+                                endTime = record.endTime ?? Date()
+                                quality = record.quality ?? 1
+                                remark = record.remark ?? ""
+                            } else {
+                                // 新增模式：使用睡眠设置的默认值
+                                if let setting = viewModel.sleepSetting {
+                                    // 使用上次保存的提醒开关状态
+                                    enableReminder = (setting.nextNapReminderEnabled ?? 1) == 1
+                                    // 使用默认的清醒间隔作为提醒间隔
+                                    let interval = setting.defaultNapInterval ?? 120
+                                    intervalHours = interval / 60
+                                    intervalMinutes = interval % 60
+                                }
+                            }
+                            isInitialized = true
+                        }
+                    }
                 }
             }
             .alert("确认删除", isPresented: $showDeleteAlert) {

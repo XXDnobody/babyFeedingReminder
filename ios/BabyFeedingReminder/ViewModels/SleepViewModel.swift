@@ -11,6 +11,7 @@ class SleepViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var shouldRemindNextNap = true  // 持久化提醒设置
+    @Published var sleepSetting: SleepSetting?  // 睡眠设置
 
     private let network = NetworkService.shared
     private var babyId: Int64?
@@ -203,7 +204,8 @@ class SleepViewModel: ObservableObject {
         startTime: Date,
         endTime: Date,
         quality: Int,
-        remark: String
+        remark: String,
+        reminderInterval: Int = 0
     ) async {
         guard let babyId = babyId else { return }
         self.babyId = babyId
@@ -217,7 +219,8 @@ class SleepViewModel: ObservableObject {
             endTime: endTime,
             duration: duration,
             quality: quality,
-            remark: remark.isEmpty ? nil : remark
+            remark: remark.isEmpty ? nil : remark,
+            reminderInterval: reminderInterval == 0 ? nil : reminderInterval
         )
         
         do {
@@ -321,6 +324,20 @@ class SleepViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+    
+    /// 加载睡眠设置
+    func loadSleepSetting(babyId: Int64) async {
+        do {
+            let setting: SleepSetting = try await network.request(
+                endpoint: "/setting/sleep/\(babyId)"
+            )
+            sleepSetting = setting
+            shouldRemindNextNap = (setting.nextNapReminderEnabled ?? 1) == 1
+        } catch {
+            // 网络失败，不使用默认设置
+            sleepSetting = nil
+        }
+    }
 }
 
 /// 开始睡眠请求
@@ -339,6 +356,7 @@ struct AddSleepRecordRequest: Encodable {
     let duration: Int
     let quality: Int
     let remark: String?
+    let reminderInterval: Int?  // 提醒间隔（分钟），nil或0表示不提醒
 }
 
 /// 更新睡眠记录请求
