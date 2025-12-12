@@ -46,7 +46,12 @@ struct HomeView: View {
                             Divider()
                                 .background(AppTheme.secondaryText.opacity(0.2))
                             
-                            QuickActionsSection(appState: appState)
+                            QuickActionsSection(appState: appState, onDismiss: {
+                                // 关闭弹窗时刷新数据
+                                Task {
+                                    await viewModel.loadData(babyId: appState.selectedBaby?.id)
+                                }
+                            })
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
                                 .background(AppTheme.backgroundGradient)
@@ -625,6 +630,7 @@ struct ReminderFormView: View {
 // MARK: - 快捷操作
 struct QuickActionsSection: View {
     @ObservedObject var appState: AppState
+    var onDismiss: (() -> Void)? = nil  // 关闭回调，用于刷新数据
     @State private var showFeedingView = false
     @State private var showSleepView = false
     @State private var showExcretionView = false
@@ -649,19 +655,19 @@ struct QuickActionsSection: View {
                 showGrowthView = true
             }
         }
-        .sheet(isPresented: $showFeedingView) {
+        .sheet(isPresented: $showFeedingView, onDismiss: onDismiss) {
             FeedingView()
                 .environmentObject(appState)
         }
-        .sheet(isPresented: $showSleepView) {
+        .sheet(isPresented: $showSleepView, onDismiss: onDismiss) {
             SleepView()
                 .environmentObject(appState)
         }
-        .sheet(isPresented: $showExcretionView) {
+        .sheet(isPresented: $showExcretionView, onDismiss: onDismiss) {
             ExcretionView()
                 .environmentObject(appState)
         }
-        .sheet(isPresented: $showGrowthView) {
+        .sheet(isPresented: $showGrowthView, onDismiss: onDismiss) {
             GrowthView()
                 .environmentObject(appState)
         }
