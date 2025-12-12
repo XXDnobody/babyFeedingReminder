@@ -40,8 +40,14 @@ public class FeedingRecordDTO {
     private Integer duration;
     
     /**
-     * 下一顿是否使用冷藏/冷冻母乳
+     * 下一顿提醒间隔（分钟），null或0表示不提醒
      */
+    private Integer reminderInterval;
+    
+    /**
+     * 下一顿是否使用冷藏/冷冻母乳（已废弃，兼容旧版本）
+     */
+    @Deprecated
     private Integer nextMilkSource;
     
     /**

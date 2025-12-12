@@ -114,17 +114,6 @@ struct SettingsView: View {
                 // 喂养设置
                 Section("喂养设置") {
                     NavigationLink {
-                        FeedingSettingsView()
-                    } label: {
-                        HStack {
-                            Image(systemName: "drop.fill")
-                                .foregroundColor(AppTheme.feedingColor)
-                            Text("喂养偏好")
-                                .foregroundColor(AppTheme.primaryText)
-                        }
-                    }
-                    
-                    NavigationLink {
                         ReminderSettingsView(type: .feeding)
                     } label: {
                         HStack {

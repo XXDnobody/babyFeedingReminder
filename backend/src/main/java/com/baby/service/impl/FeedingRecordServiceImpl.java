@@ -64,34 +64,50 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
             record.setDuration(dto.getDuration());
         }
         
-        // 只有当用户选择了提醒时，才计算并设置下次喂奶时间
-        if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
+        // 处理提醒逻辑：优先使用reminderInterval，如果为null则兼容旧版nextMilkSource
+        Integer reminderInterval = dto.getReminderInterval();
+        boolean shouldCreateReminder = false;
+        
+        if (reminderInterval != null && reminderInterval > 0) {
+            // 新版本：使用用户指定的提醒间隔
+            LocalDateTime nextFeedingTime = dto.getStartTime().plusMinutes(reminderInterval);
+            record.setNextFeedingTime(nextFeedingTime);
+            shouldCreateReminder = true;
+            
+            // 保存用户选择的设置到配置中，下次回显
+            updateFeedingDefaults(dto.getBabyId(), dto.getFeedingType(), dto.getAmount(), reminderInterval, true);
+        } else if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
+            // 旧版本兼容：使用设置中的默认间隔
             LocalDateTime nextFeedingTime = calculateNextFeedingTime(dto.getBabyId(), dto.getStartTime());
             record.setNextFeedingTime(nextFeedingTime);
+            shouldCreateReminder = true;
             
             // 检查是否需要提前解冻
             if (dto.getNextMilkSource() >= 2) {
                 record.setNeedThaw(1);
                 FeedingSetting setting = getFeedingSetting(dto.getBabyId());
                 if (dto.getNextMilkSource() == 2) {
-                    // 冷藏母乳，默认提前15分钟
                     record.setThawReminderMinutes(setting != null ? setting.getRefrigeratedThawMinutes() : 15);
                 } else {
-                    // 冷冻母乳，默认提前30分钟
                     record.setThawReminderMinutes(setting != null ? setting.getFrozenThawMinutes() : 30);
                 }
             }
+            
+            // 保存用户选择的下一顿奶源到设置中
+            updateDefaultNextMilkSource(dto.getBabyId(), dto.getNextMilkSource());
+            // 同时更新喂养类型和奶量
+            updateFeedingDefaults(dto.getBabyId(), dto.getFeedingType(), dto.getAmount(), null, true);
+        }
+        
+        // 如果用户关闭提醒，也保存喂养类型和奶量
+        if (!shouldCreateReminder) {
+            updateFeedingDefaults(dto.getBabyId(), dto.getFeedingType(), dto.getAmount(), 0, false);
         }
         
         save(record);
         
-        // 保存用户选择的下一顿奶源到设置中
-        if (dto.getNextMilkSource() != null) {
-            updateDefaultNextMilkSource(dto.getBabyId(), dto.getNextMilkSource());
-        }
-        
-        // 创建喂奶提醒（仅当nextMilkSource不为null且大于0时）
-        if (dto.getNextMilkSource() != null && dto.getNextMilkSource() > 0) {
+        // 创建喂奶提醒
+        if (shouldCreateReminder) {
             reminderService.createFeedingReminder(record);
         }
         
@@ -299,6 +315,37 @@ public class FeedingRecordServiceImpl extends ServiceImpl<FeedingRecordMapper, F
         FeedingSetting setting = getFeedingSetting(babyId);
         if (setting != null) {
             setting.setDefaultNextMilkSource(nextMilkSource);
+            feedingSettingMapper.updateById(setting);
+        }
+    }
+    
+    /**
+     * 更新默认提醒间隔设置
+     */
+    private void updateDefaultInterval(Long babyId, Integer interval) {
+        FeedingSetting setting = getFeedingSetting(babyId);
+        if (setting != null) {
+            setting.setDefaultInterval(interval);
+            feedingSettingMapper.updateById(setting);
+        }
+    }
+    
+    /**
+     * 更新喂养默认设置（喂养类型、奶量、提醒间隔、是否开启提醒）
+     */
+    private void updateFeedingDefaults(Long babyId, Integer feedingType, Integer amount, Integer interval, boolean reminderEnabled) {
+        FeedingSetting setting = getFeedingSetting(babyId);
+        if (setting != null) {
+            if (feedingType != null) {
+                setting.setDefaultFeedingType(feedingType);
+            }
+            if (amount != null) {
+                setting.setDefaultAmount(amount);
+            }
+            if (interval != null) {
+                setting.setDefaultInterval(interval);
+            }
+            setting.setReminderEnabled(reminderEnabled ? 1 : 0);
             feedingSettingMapper.updateById(setting);
         }
     }

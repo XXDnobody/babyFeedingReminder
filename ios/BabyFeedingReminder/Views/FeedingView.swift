@@ -204,11 +204,7 @@ struct FeedingRecordRow: View {
                         .fontWeight(.medium)
                         .foregroundColor(AppTheme.primaryText)
                     
-                    if let source = record.milkSourceDescription {
-                        Text("(\(source))")
-                            .font(.caption)
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
+
                 }
                 
                 Text(timeString(record.startTime))
@@ -222,12 +218,6 @@ struct FeedingRecordRow: View {
                 Text("\(amount)ml")
                     .font(.headline)
                     .foregroundColor(AppTheme.feedingColor)
-            }
-            
-            if let duration = record.duration {
-                Text("\(duration)分钟")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
             }
             
             Image(systemName: "chevron.right")
@@ -256,11 +246,12 @@ struct EditFeedingRecordView: View {
     let record: FeedingRecord?  // nil 表示新增，否则是编辑
     
     @State private var feedingType = 1
-    @State private var milkSource = 1
+
     @State private var startTime = Date()
     @State private var amount = 120
-    @State private var duration = 20
-    @State private var nextMilkSource = 0  // 0-不提醒 1-亲喂/现冲 2-冷藏母乳 3-冷冻母乳
+    @State private var enableReminder = true  // 是否开启提醒
+    @State private var intervalHours = 3      // 提醒间隔小时
+    @State private var intervalMinutes = 0    // 提醒间隔分钟
     @State private var remark = ""
     @State private var showDeleteAlert = false
     @State private var isInitialized = false  // 标记是否已初始化
@@ -275,14 +266,6 @@ struct EditFeedingRecordView: View {
                     Picker("喂养类型", selection: $feedingType) {
                         Text("母乳").tag(1)
                         Text("奶粉").tag(2)
-                    }
-                    
-                    if feedingType == 1 {
-                        Picker("母乳来源", selection: $milkSource) {
-                            Text("亲喂").tag(1)
-                            Text("冷藏母乳").tag(2)
-                            Text("冷冻母乳").tag(3)
-                        }
                     }
                     
                     DatePicker("开始时间", selection: $startTime, displayedComponents: [.date, .hourAndMinute])
@@ -340,73 +323,58 @@ struct EditFeedingRecordView: View {
                         .padding(.vertical, 8)
                     }
                     
-                    // 时长调节
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("时长")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        HStack {
-                            Button {
-                                if duration > 5 { duration -= 5 }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundColor(.purple)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                                TextField("", value: $duration, format: .number)
-                                    .font(.system(size: 32, weight: .bold))
-                                    .multilineTextAlignment(.center)
-                                    .keyboardType(.numberPad)
-                                    .frame(width: 80, height: 50)
-                                    .monospacedDigit()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(.systemGray6))
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.purple.opacity(0.3), lineWidth: 1)
-                                    )
-                                Text("分钟")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            Button {
-                                if duration < 120 { duration += 5 }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundColor(.purple)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, 8)
-                    }
                 }
                 
                 if !isEditMode {
-                    Section("下一顿安排") {
-                        Picker("下一顿奶源", selection: $nextMilkSource) {
-                            Text("不提醒").tag(0)
-                            Text("亲喂/现冲").tag(1)
-                            Text("冷藏母乳").tag(2)
-                            Text("冷冻母乳").tag(3)
-                        }
+                    Section("下一顿提醒") {
+                        Toggle("开启提醒", isOn: $enableReminder)
                         
-                        if nextMilkSource == 0 {
-                            Text("不会创建下一顿喂奶提醒")
+                        if enableReminder {
+                            // 提醒间隔选择
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("提醒间隔")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                HStack(spacing: 16) {
+                                    // 小时选择器
+                                    HStack {
+                                        Picker("", selection: $intervalHours) {
+                                            ForEach(0...8, id: \.self) { hour in
+                                                Text("\(hour)").tag(hour)
+                                            }
+                                        }
+                                        .pickerStyle(.wheel)
+                                        .frame(width: 60, height: 100)
+                                        .clipped()
+                                        
+                                        Text("小时")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    // 分钟选择器
+                                    HStack {
+                                        Picker("", selection: $intervalMinutes) {
+                                            ForEach([0, 15, 30, 45], id: \.self) { min in
+                                                Text("\(min)").tag(min)
+                                            }
+                                        }
+                                        .pickerStyle(.wheel)
+                                        .frame(width: 60, height: 100)
+                                        .clipped()
+                                        
+                                        Text("分钟")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            
+                            Text("系统将在 \(intervalHours)小时\(intervalMinutes > 0 ? "\(intervalMinutes)分钟" : "") 后提醒你喂奶")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        } else if nextMilkSource >= 2 {
-                            Text("系统将在下次喂奶前提醒您解冻加热")
+                        } else {
+                            Text("不会创建下一顿喂奶提醒")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -444,24 +412,23 @@ struct EditFeedingRecordView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
                         Task {
+                            // 计算提醒间隔（分钟）
+                            let reminderInterval = enableReminder ? (intervalHours * 60 + intervalMinutes) : 0
+                            
                             if let record = record {
                                 await viewModel.updateRecord(
                                     id: record.id,
                                     feedingType: feedingType,
-                                    milkSource: milkSource,
                                     startTime: startTime,
                                     amount: amount,
-                                    duration: duration,
                                     remark: remark
                                 )
                             } else {
                                 await viewModel.addRecord(
                                     feedingType: feedingType,
-                                    milkSource: milkSource,
                                     startTime: startTime,
                                     amount: amount,
-                                    duration: duration,
-                                    nextMilkSource: nextMilkSource,
+                                    reminderInterval: reminderInterval,
                                     remark: remark
                                 )
                             }
@@ -483,21 +450,20 @@ struct EditFeedingRecordView: View {
                             if let record = record {
                                 // 编辑模式：使用记录中的值
                                 feedingType = record.feedingType
-                                milkSource = record.milkSource ?? 1
                                 startTime = record.startTime
                                 amount = record.amount ?? 120
-                                duration = record.duration ?? 20
                                 remark = record.remark ?? ""
                             } else {
                                 // 新增模式：使用喂养设置的默认值
                                 if let setting = viewModel.feedingSetting {
                                     feedingType = setting.defaultFeedingType
                                     amount = setting.defaultAmount
-                                    duration = setting.defaultDuration
-                                    // 使用上次选择的下一顿奶源
-                                    if let defaultNext = setting.defaultNextMilkSource {
-                                        nextMilkSource = defaultNext
-                                    }
+                                    // 使用上次保存的提醒开关状态
+                                    enableReminder = setting.reminderEnabled == 1
+                                    // 使用上次选择的提醒间隔
+                                    let interval = setting.defaultInterval
+                                    intervalHours = interval / 60
+                                    intervalMinutes = interval % 60
                                 }
                             }
                             isInitialized = true

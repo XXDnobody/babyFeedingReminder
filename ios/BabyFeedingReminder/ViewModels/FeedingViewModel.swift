@@ -4,11 +4,9 @@ import Foundation
 struct AddFeedingRequest: Encodable {
     let babyId: Int64
     let feedingType: Int
-    let milkSource: Int?
     let startTime: String
     let amount: Int
-    let duration: Int
-    let nextMilkSource: Int?  // nil或0表示不提醒
+    let reminderInterval: Int?  // 提醒间隔（分钟），nil或0表示不提醒
     let remark: String?
 }
 
@@ -16,10 +14,8 @@ struct AddFeedingRequest: Encodable {
 struct UpdateFeedingRequest: Encodable {
     let babyId: Int64  // 后端DTO需要
     let feedingType: Int
-    let milkSource: Int?
     let startTime: String
     let amount: Int
-    let duration: Int
     let remark: String?
 }
 
@@ -86,11 +82,9 @@ class FeedingViewModel: ObservableObject {
     
     func addRecord(
         feedingType: Int,
-        milkSource: Int,
         startTime: Date,
         amount: Int,
-        duration: Int,
-        nextMilkSource: Int,
+        reminderInterval: Int,
         remark: String
     ) async {
         guard let babyId = babyId else { return }
@@ -98,11 +92,9 @@ class FeedingViewModel: ObservableObject {
         let request = AddFeedingRequest(
             babyId: babyId,
             feedingType: feedingType,
-            milkSource: feedingType == 2 ? nil : milkSource,
             startTime: dateFormatter.string(from: startTime),
             amount: amount,
-            duration: duration,
-            nextMilkSource: nextMilkSource == 0 ? nil : nextMilkSource,  // 0表示不提醒，传nil
+            reminderInterval: reminderInterval == 0 ? nil : reminderInterval,  // 0表示不提醒，传nil
             remark: remark.isEmpty ? nil : remark
         )
         
@@ -122,10 +114,8 @@ class FeedingViewModel: ObservableObject {
     func updateRecord(
         id: Int64,
         feedingType: Int,
-        milkSource: Int,
         startTime: Date,
         amount: Int,
-        duration: Int,
         remark: String
     ) async {
         guard let babyId = babyId else { return }
@@ -133,10 +123,8 @@ class FeedingViewModel: ObservableObject {
         let request = UpdateFeedingRequest(
             babyId: babyId,
             feedingType: feedingType,
-            milkSource: feedingType == 2 ? nil : milkSource,
             startTime: dateFormatter.string(from: startTime),
             amount: amount,
-            duration: duration,
             remark: remark.isEmpty ? nil : remark
         )
         
