@@ -68,4 +68,5 @@
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/service/impl/SleepRecordServiceImpl.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/vo/ExcretionStatisticsVO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/vo/FeedingStatisticsVO.java
+/Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/vo/GrowthRecordVO.java
 /Users/xxd/dev/workspace/babyFeedingReminder/backend/src/main/java/com/baby/vo/SleepStatisticsVO.java

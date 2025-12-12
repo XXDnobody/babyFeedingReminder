@@ -12,6 +12,7 @@ struct GrowthView: View {
     @State private var recordToDelete: GrowthRecord?
     @State private var showErrorAlert = false
     @State private var showStandardPicker = false
+    @State private var showEvaluationInfo = false
     
     // 图表交互状态
     @State private var selectedMonth: Double? = nil
@@ -54,6 +55,11 @@ struct GrowthView: View {
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
                     }
+                }
+                .alert("评价说明", isPresented: $showEvaluationInfo) {
+                    Button("我知道了", role: .cancel) {}
+                } message: {
+                    Text("根据百分位评价标准：\n\n<3% → 偏低\n3%-10% → 略低\n10%-90% → 正常\n90%-97% → 增长偏快\n>97% → 偏高")
                 }
                 .onChange(of: viewModel.errorMessage) { _, error in
                     showErrorAlert = error != nil
@@ -160,9 +166,6 @@ struct GrowthView: View {
     private var historyRecordsTab: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // 最新数据卡片
-                latestDataCard
-
                 // 历史记录列表
                 recordsListCard
             }
@@ -243,140 +246,6 @@ struct GrowthView: View {
         .background(AppTheme.backgroundGradient)
         .refreshable {
             await viewModel.loadChartData(babyId: selectedBabyId, isRefresh: true)
-        }
-    }
-
-    // MARK: - 最新数据卡片
-    private var latestDataCard: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("最新测量")
-                    .font(.headline)
-                    .foregroundColor(AppTheme.primaryText)
-                Spacer()
-                if let record = viewModel.latestRecord {
-                    Text(formatDate(record.measureDate))
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-            }
-            
-            if let record = viewModel.latestRecord {
-                // 第一行：身高、体重、头围
-                HStack(spacing: 12) {
-                    // 身高
-                    measurementItem(
-                        icon: "arrow.up",
-                        title: "身高",
-                        value: record.height != nil ? String(format: "%.1f", record.height!) : "-",
-                        unit: "cm",
-                        percentile: viewModel.percentile?.heightPercentile
-                    )
-                    
-                    Divider()
-                        .frame(height: 60)
-                    
-                    // 体重
-                    measurementItem(
-                        icon: "scalemass",
-                        title: "体重",
-                        value: record.weight != nil ? String(format: "%.2f", record.weight!) : "-",
-                        unit: "kg",
-                        percentile: viewModel.percentile?.weightPercentile
-                    )
-                    
-                    if let head = record.headCircumference {
-                        Divider()
-                            .frame(height: 60)
-                        
-                        // 头围（添加百分位）
-                        measurementItem(
-                            icon: "circle",
-                            title: "头围",
-                            value: String(format: "%.1f", head),
-                            unit: "cm",
-                            percentile: viewModel.percentile?.headPercentile
-                        )
-                    }
-                }
-                
-                // 第二行：BMI（仅当支持时）
-                if viewModel.supportsBmi, let bmi = viewModel.percentile?.bmi {
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    HStack {
-                        measurementItem(
-                            icon: "figure.stand",
-                            title: "BMI",
-                            value: String(format: "%.1f", bmi),
-                            unit: "kg/m²",
-                            percentile: viewModel.percentile?.bmiPercentile
-                        )
-                        Spacer()
-                    }
-                }
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 40))
-                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                    Text("暂无测量记录")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                    Button("添加记录") {
-                        viewModel.prepareAddRecord()
-                    }
-                    .font(.footnote)
-                    .foregroundColor(AppTheme.primaryBlue)
-                }
-                .padding(.vertical, 20)
-            }
-        }
-        .padding()
-        .background(AppTheme.cardBackground)
-        .cornerRadius(16)
-    }
-    
-    private func measurementItem(icon: String, title: String, value: String, unit: String, percentile: String?) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption)
-                Text(title)
-                    .font(.caption)
-            }
-            .foregroundColor(AppTheme.secondaryText)
-            
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Text(unit)
-                    .font(.caption)
-            }
-            .foregroundColor(AppTheme.primaryText)
-            
-            if let p = percentile {
-                Text(p)
-                    .font(.caption2)
-                    .foregroundColor(percentileColor(p))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(percentileColor(p).opacity(0.1))
-                    .cornerRadius(4)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private func percentileColor(_ percentile: String) -> Color {
-        if percentile.contains("<3") || percentile.contains(">97") {
-            return .red
-        } else if percentile.contains("3%-15%") || percentile.contains("85%-97%") {
-            return .orange
-        } else {
-            return .green
         }
     }
 
@@ -1193,10 +1062,22 @@ struct GrowthView: View {
     
     // MARK: - 历史记录列表
     private var recordsListCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("历史记录")
-                .font(.headline)
-                .foregroundColor(AppTheme.primaryText)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("历史记录")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                
+                Button {
+                    showEvaluationInfo = true
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                Spacer()
+            }
             
             if viewModel.records.isEmpty {
                 Text("暂无记录")
@@ -1206,7 +1087,7 @@ struct GrowthView: View {
                     .padding(.vertical, 20)
             } else {
                 ForEach(viewModel.records.reversed()) { record in
-                    recordRow(record)
+                    recordCard(record)
                 }
             }
         }
@@ -1215,78 +1096,141 @@ struct GrowthView: View {
         .cornerRadius(16)
     }
     
-    private func recordRow(_ record: GrowthRecord) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(formatDate(record.measureDate))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+    /// 单条记录卡片（美柚风格）
+    private func recordCard(_ record: GrowthRecord) -> some View {
+        VStack(spacing: 12) {
+            // 头部：日期 + 月龄 + 菜单
+            HStack {
+                Text(formatShortDate(record.measureDate))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 
                 if let months = record.ageInMonths {
-                    Text("\(months)月龄")
-                        .font(.caption)
+                    Text("(\(formatAge(months: months, days: record.ageDays)))")
+                        .font(.system(size: 14))
                         .foregroundColor(AppTheme.secondaryText)
                 }
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 16) {
-                if let height = record.height {
-                    VStack(alignment: .trailing) {
-                        Text(String(format: "%.1f", height))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("cm")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                }
                 
-                if let weight = record.weight {
-                    VStack(alignment: .trailing) {
-                        Text(String(format: "%.2f", weight))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("kg")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                }
+                Spacer()
                 
-                if let head = record.headCircumference {
-                    VStack(alignment: .trailing) {
-                        Text(String(format: "%.1f", head))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("头围")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.secondaryText)
+                Menu {
+                    Button {
+                        viewModel.prepareEditRecord(record)
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
                     }
+                    
+                    Button(role: .destructive) {
+                        recordToDelete = record
+                        showDeleteConfirmAlert = true
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(AppTheme.secondaryText)
+                        .padding(8)
                 }
             }
             
-            Menu {
-                Button {
-                    viewModel.prepareEditRecord(record)
-                } label: {
-                    Label("编辑", systemImage: "pencil")
-                }
+            // 数据区域：身高、体重、头围、BMI 四列
+            HStack(spacing: 0) {
+                // 身高
+                measurementColumn(
+                    label: "身高cm",
+                    value: record.height != nil ? String(format: "%.1f", record.height!) : "-",
+                    percentile: record.heightPercentile,
+                    evaluation: record.heightEvaluation
+                )
                 
-                Button(role: .destructive) {
-                    recordToDelete = record
-                    showDeleteConfirmAlert = true
-                } label: {
-                    Label("删除", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .foregroundColor(AppTheme.secondaryText)
-                    .padding(8)
+                // 体重
+                measurementColumn(
+                    label: "体重kg",
+                    value: record.weight != nil ? String(format: "%.2f", record.weight!) : "-",
+                    percentile: record.weightPercentile,
+                    evaluation: record.weightEvaluation
+                )
+                
+                // 头围
+                measurementColumn(
+                    label: "头围cm",
+                    value: record.headCircumference != nil ? String(format: "%.1f", record.headCircumference!) : "-",
+                    percentile: record.headPercentile,
+                    evaluation: record.headEvaluation
+                )
+                
+                // BMI
+                measurementColumn(
+                    label: "BMI",
+                    value: record.bmi != nil ? String(format: "%.1f", record.bmi!) : "-",
+                    percentile: record.bmiPercentile,
+                    evaluation: record.bmiEvaluation
+                )
             }
         }
-        .padding(.vertical, 8)
+        .padding(12)
+        .background(Color(UIColor.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    /// 测量项列（单列显示）
+    private func measurementColumn(label: String, value: String, percentile: String?, evaluation: String?) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(AppTheme.secondaryText)
+            
+            Text(value)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(value == "-" ? AppTheme.secondaryText : AppTheme.primaryText)
+            
+            if let percentile = percentile, percentile != "-" {
+                Text(percentile)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(evaluationColor(evaluation))
+                
+                if let eval = evaluation {
+                    Text(eval)
+                        .font(.system(size: 10))
+                        .foregroundColor(evaluationColor(evaluation))
+                }
+            } else {
+                Text(" ")
+                    .font(.system(size: 11))
+                Text(" ")
+                    .font(.system(size: 10))
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    /// 根据评价获取颜色
+    private func evaluationColor(_ evaluation: String?) -> Color {
+        switch evaluation {
+        case "正常":
+            return .green
+        case "增长偏快", "偏高":
+            return .orange
+        case "略低", "偏低":
+            return .red
+        default:
+            return AppTheme.secondaryText
+        }
+    }
+    
+    /// 格式化月龄（X个月Y天）
+    private func formatAge(months: Int, days: Int?) -> String {
+        if let d = days, d > 0 {
+            return "\(months)个月\(d)天"
+        }
+        return "\(months)个月"
+    }
+    
+    /// 格式化短日期（M月D日）
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M月d日"
+        return formatter.string(from: date)
     }
     
     // MARK: - 添加记录表单

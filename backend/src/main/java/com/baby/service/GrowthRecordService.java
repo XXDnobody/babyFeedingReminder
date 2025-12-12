@@ -3,6 +3,7 @@ package com.baby.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baby.dto.GrowthRecordDTO;
 import com.baby.entity.GrowthRecord;
+import com.baby.vo.GrowthRecordVO;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,14 @@ public interface GrowthRecordService extends IService<GrowthRecord> {
      * 获取宝宝所有测量记录
      */
     List<GrowthRecord> getAllRecords(Long babyId);
+    
+    /**
+     * 获取宝宝所有测量记录（带百分位数据）
+     * @param babyId 宝宝ID
+     * @param standardType 标准类型
+     * @return 包含百分位数据的记录列表
+     */
+    List<GrowthRecordVO> getAllRecordsWithPercentile(Long babyId, String standardType);
     
     /**
      * 获取WHO标准生长曲线数据（身高）

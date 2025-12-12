@@ -10,6 +10,7 @@ import com.baby.mapper.GrowthRecordMapper;
 import com.baby.service.BabyService;
 import com.baby.service.GrowthRecordService;
 import com.baby.service.GrowthStandardService;
+import com.baby.vo.GrowthRecordVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -232,5 +233,127 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         double exactMonths = totalDays / 30.44;
         
         return Math.round(exactMonths * 10.0) / 10.0; // 保留1位小数
+    }
+    
+    /**
+     * 计算剩余天数（X个月Y天中的Y）
+     */
+    private int calculateAgeDays(LocalDate birthDate, LocalDate measureDate) {
+        if (birthDate == null || measureDate == null) {
+            return 0;
+        }
+        long totalDays = ChronoUnit.DAYS.between(birthDate, measureDate);
+        int months = (int) ChronoUnit.MONTHS.between(birthDate, measureDate);
+        LocalDate monthStart = birthDate.plusMonths(months);
+        return (int) ChronoUnit.DAYS.between(monthStart, measureDate);
+    }
+    
+    @Override
+    public List<GrowthRecordVO> getAllRecordsWithPercentile(Long babyId, String standardType) {
+        Baby baby = babyService.getById(babyId);
+        if (baby == null) {
+            return new ArrayList<>();
+        }
+        
+        int gender = baby.getGender() != null ? baby.getGender() : 1;
+        LocalDate birthDate = baby.getBirthDate();
+        
+        List<GrowthRecord> records = getAllRecords(babyId);
+        
+        return records.stream().map(record -> {
+            GrowthRecordVO vo = new GrowthRecordVO();
+            vo.setId(record.getId());
+            vo.setBabyId(record.getBabyId());
+            vo.setMeasureDate(record.getMeasureDate());
+            vo.setHeight(record.getHeight());
+            vo.setWeight(record.getWeight());
+            vo.setHeadCircumference(record.getHeadCircumference());
+            vo.setRemark(record.getRemark());
+            vo.setCreateTime(record.getCreateTime());
+            vo.setUpdateTime(record.getUpdateTime());
+            
+            // 计算月龄信息
+            if (birthDate != null && record.getMeasureDate() != null) {
+                int ageMonths = (int) ChronoUnit.MONTHS.between(birthDate, record.getMeasureDate());
+                vo.setAgeInMonths(ageMonths);
+                vo.setAgeDays(calculateAgeDays(birthDate, record.getMeasureDate()));
+                vo.setExactAgeMonths(calculateExactAgeMonths(birthDate, record.getMeasureDate()));
+                
+                double exactAge = vo.getExactAgeMonths();
+                
+                // 计算身高百分位
+                if (record.getHeight() != null) {
+                    double height = record.getHeight().doubleValue();
+                    String heightP = growthStandardService.calculateExactPercentile(
+                        height, standardType, gender, "HEIGHT", exactAge);
+                    vo.setHeightPercentile(heightP);
+                    vo.setHeightEvaluation(getEvaluation(heightP));
+                }
+                
+                // 计算体重百分位
+                if (record.getWeight() != null) {
+                    double weight = record.getWeight().doubleValue();
+                    String weightP = growthStandardService.calculateExactPercentile(
+                        weight, standardType, gender, "WEIGHT", exactAge);
+                    vo.setWeightPercentile(weightP);
+                    vo.setWeightEvaluation(getEvaluation(weightP));
+                }
+                
+                // 计算BMI百分位
+                if (record.getHeight() != null && record.getWeight() != null && 
+                    record.getHeight().doubleValue() > 0) {
+                    double heightM = record.getHeight().doubleValue() / 100.0;
+                    double bmi = record.getWeight().doubleValue() / (heightM * heightM);
+                    vo.setBmi(Math.round(bmi * 10.0) / 10.0);
+                    
+                    String bmiP = growthStandardService.calculateExactPercentile(
+                        bmi, standardType, gender, "BMI", exactAge);
+                    vo.setBmiPercentile(bmiP);
+                    vo.setBmiEvaluation(getEvaluation(bmiP));
+                }
+                
+                // 计算头围百分位
+                if (record.getHeadCircumference() != null) {
+                    double head = record.getHeadCircumference().doubleValue();
+                    String headP = growthStandardService.calculateExactPercentile(
+                        head, standardType, gender, "HEAD", exactAge);
+                    vo.setHeadPercentile(headP);
+                    vo.setHeadEvaluation(getEvaluation(headP));
+                }
+            } else {
+                vo.setAgeInMonths(record.getAgeInMonths());
+            }
+            
+            return vo;
+        }).collect(Collectors.toList());
+    }
+    
+    /**
+     * 根据百分位获取评价
+     */
+    private String getEvaluation(String percentile) {
+        if (percentile == null || percentile.equals("-")) {
+            return null;
+        }
+        
+        try {
+            // 解析百分位数值，如 "96.6%" -> 96.6
+            String numStr = percentile.replace("%", "").replace("<", "").replace(">", "");
+            double value = Double.parseDouble(numStr);
+            
+            if (value < 3) {
+                return "偏低";
+            } else if (value < 10) {
+                return "略低";
+            } else if (value <= 90) {
+                return "正常";
+            } else if (value <= 97) {
+                return "增长偏快";
+            } else {
+                return "偏高";
+            }
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

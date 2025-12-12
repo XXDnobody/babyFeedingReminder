@@ -101,9 +101,8 @@ public class GrowthRecordController {
         result.put("whoHeight", result.get("heightStandard"));
         result.put("whoWeight", result.get("weightStandard"));
         
-        // 宝宝实际记录
-        List<GrowthRecord> records = growthRecordService.getAllRecords(babyId);
-        result.put("records", records);
+        // 宝宝实际记录（带百分位数据）
+        result.put("records", growthRecordService.getAllRecordsWithPercentile(babyId, standardType));
         
         // 百分位分析（使用指定标准）
         result.put("percentile", growthRecordService.calculatePercentile(babyId, standardType));

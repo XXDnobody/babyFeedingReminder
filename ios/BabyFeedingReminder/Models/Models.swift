@@ -209,7 +209,25 @@ struct GrowthRecord: Codable, Identifiable {
     var height: Double?      // 身高（cm）
     var weight: Double?      // 体重（kg）
     var headCircumference: Double?  // 头围（cm）
+    var bmi: Double?         // BMI值
+    
+    // 月龄信息
     var ageInMonths: Int?    // 测量时月龄
+    var ageDays: Int?        // 剩余天数（如7个月9天中的9）
+    var exactAgeMonths: Double? // 精确月龄
+    
+    // 百分位数据
+    var heightPercentile: String?    // 身高百分位（如"96.6%"）
+    var weightPercentile: String?    // 体重百分位
+    var headPercentile: String?      // 头围百分位
+    var bmiPercentile: String?       // BMI百分位
+    
+    // 评价
+    var heightEvaluation: String?    // 身高评价：正常/增长偏快等
+    var weightEvaluation: String?    // 体重评价
+    var headEvaluation: String?      // 头围评价
+    var bmiEvaluation: String?       // BMI评价
+    
     var remark: String?
     var createTime: Date?
     var updateTime: Date?
