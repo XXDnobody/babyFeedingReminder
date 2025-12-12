@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 排便排尿记录管理控制器
+ * 换尿布记录管理控制器
  */
-@Tag(name = "排便排尿记录管理")
+@Tag(name = "换尿布记录管理")
 @RestController
 @RequestMapping("/excretion")
 @RequiredArgsConstructor

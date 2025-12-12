@@ -45,8 +45,8 @@ struct RecordView: View {
                                 
                                 RecordCard(
                                     icon: "toilet.fill",
-                                    title: "排便记录",
-                                    subtitle: "记录大小便",
+                                    title: "换尿布记录",
+                                    subtitle: "记录换尿布",
                                     color: AppTheme.excretionColor
                                 ) {
                                     showExcretionView = true

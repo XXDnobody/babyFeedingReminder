@@ -245,7 +245,7 @@ struct TodayOverviewSection: View {
                 )
             }
             
-            // 第二行：排便统计
+            // 第二行：换尿布统计
             HStack(spacing: 8) {
                 // 大便统计
                 OverviewCard(

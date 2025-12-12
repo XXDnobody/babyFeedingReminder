@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 排便排尿记录实体类
+ * 换尿布记录实体类
  */
 @Data
 @TableName("excretion_record")

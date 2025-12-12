@@ -25,7 +25,7 @@ ON sleep_record(baby_id, sleep_type, start_time, deleted);
 CREATE INDEX IF NOT EXISTS idx_sleep_time_range 
 ON sleep_record(baby_id, start_time, end_time, deleted);
 
--- 3. 排便排尿记录表优化索引
+-- 3. 换尿布记录表优化索引
 -- 已有索引：idx_baby_id, idx_record_time, idx_baby_time
 -- 新增复合索引用于类型统计
 CREATE INDEX IF NOT EXISTS idx_excretion_baby_type_time 

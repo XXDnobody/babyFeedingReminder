@@ -29,7 +29,7 @@ struct ExcretionOverview: Codable {
     let peeCount: Int?
 }
 
-/// 排便统计响应
+/// 换尿布统计响应
 struct ExcretionStatsResponse: Codable {
     let poopCount: Int?
     let peeCount: Int?
@@ -141,7 +141,7 @@ class HomeViewModel: ObservableObject {
         }
     }
     
-    /// 加载排便统计
+    /// 加载换尿布统计
     private func loadExcretionStats(babyId: Int64) async {
         do {
             let stats: ExcretionStatsResponse = try await network.request(
@@ -152,7 +152,7 @@ class HomeViewModel: ObservableObject {
         } catch {
             todayPoopCount = 0
             todayPeeCount = 0
-            print("⚠️ 加载排便统计失败: \(error.localizedDescription)")
+            print("⚠️ 加载换尿布统计失败: \(error.localizedDescription)")
         }
     }
     

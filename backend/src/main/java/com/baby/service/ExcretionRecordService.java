@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 排便排尿记录服务接口
+ * 换尿布记录服务接口
  */
 public interface ExcretionRecordService extends IService<ExcretionRecord> {
     
@@ -43,7 +43,7 @@ public interface ExcretionRecordService extends IService<ExcretionRecord> {
     int getTodayPeeCount(Long babyId);
     
     /**
-     * 获取排便统计数据
+     * 获取换尿布统计数据
      */
     ExcretionStatisticsVO getStatistics(Long babyId, LocalDate startDate, LocalDate endDate);
     

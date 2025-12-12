@@ -172,7 +172,7 @@ struct SleepSetting: Codable {
     var nextNapReminderEnabled: Int?
 }
 
-/// 排便排尿记录模型
+/// 换尿布记录模型
 struct ExcretionRecord: Codable, Identifiable {
     let id: Int64
     var babyId: Int64

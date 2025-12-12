@@ -1,4 +1,4 @@
--- 排便排尿记录表
+-- 换尿布记录表
 CREATE TABLE IF NOT EXISTS `excretion_record` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `baby_id` BIGINT NOT NULL COMMENT '宝宝ID',
@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS `excretion_record` (
     INDEX `idx_baby_id` (`baby_id`),
     INDEX `idx_record_time` (`record_time`),
     INDEX `idx_baby_time` (`baby_id`, `record_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='排便排尿记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='换尿布记录表';
 

@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 排便排尿记录DTO
+ * 换尿布记录DTO
  */
 @Data
 public class ExcretionRecordDTO {

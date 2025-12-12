@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 排便排尿统计VO
+ * 换尿布统计VO
  */
 @Data
 public class ExcretionStatisticsVO {

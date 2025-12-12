@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS `reminder` (
 INSERT INTO `user` (`username`, `password`, `phone`, `nickname`, `status`) 
 VALUES ('test', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBpwTTyU3VxqW.', '13800138000', '测试用户', 1);
 
--- 排便排尿记录表
+-- 换尿布记录表
 CREATE TABLE IF NOT EXISTS `excretion_record` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `baby_id` BIGINT NOT NULL COMMENT '宝宝ID',
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS `excretion_record` (
     INDEX `idx_baby_id` (`baby_id`),
     INDEX `idx_record_time` (`record_time`),
     INDEX `idx_baby_time` (`baby_id`, `record_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='排便排尿记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='换尿布记录表';
 
 -- 身高体重测量记录表
 CREATE TABLE IF NOT EXISTS `growth_record` (

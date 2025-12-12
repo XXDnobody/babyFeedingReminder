@@ -17,7 +17,7 @@ struct ExcretionView: View {
                 VStack(spacing: 0) {
                     // 固定标题区域
                     HStack {
-                        Text("排便记录")
+                        Text("换尿布记录")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(AppTheme.primaryText)
                         Spacer()
@@ -94,7 +94,7 @@ struct ExcretionView: View {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                            Text("添加排便记录")
+                            Text("添加换尿布记录")
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.white)

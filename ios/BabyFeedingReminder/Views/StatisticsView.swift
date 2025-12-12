@@ -69,10 +69,10 @@ struct StatisticsView: View {
                                     showingSleepDetail = true
                                 }
                                 
-                                // 排便分析模块
+                                // 换尿布分析模块
                                 StatModuleCard(
                                     icon: "leaf.fill",
-                                    title: "排便分析",
+                                    title: "换尿布分析",
                                     value: String(format: "%.1f次", viewModel.dailyAveragePoopCount),
                                     subtitle: "日均大便",
                                     color: AppTheme.excretionColor
@@ -1583,7 +1583,7 @@ struct QualityIndicator: View {
 }
 
 
-// MARK: - 排便统计详情页
+// MARK: - 换尿布统计详情页
 struct ExcretionStatsDetailView: View {
     @ObservedObject var viewModel: StatisticsViewModel
     var appState: AppState
@@ -1609,13 +1609,13 @@ struct ExcretionStatsDetailView: View {
                     }
                     .pickerStyle(.segmented)
                     
-                    // 排便统计详情
+                    // 换尿布统计详情
                     ExcretionStatsSection(viewModel: viewModel)
                 }
                 .padding()
             }
             .background(AppTheme.backgroundGradient)
-            .navigationTitle("排便分析")
+            .navigationTitle("换尿布分析")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -1634,14 +1634,14 @@ struct ExcretionStatsDetailView: View {
     }
 }
 
-// MARK: - 排便统计部分
+// MARK: - 换尿布统计部分
 struct ExcretionStatsSection: View {
     @ObservedObject var viewModel: StatisticsViewModel
     @State private var selectedChartType = 0  // 0: 大便次数, 1: 小便次数, 2: 颜色分布
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("排便分析")
+            Text("换尿布分析")
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
             

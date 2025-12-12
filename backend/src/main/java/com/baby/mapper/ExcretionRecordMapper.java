@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import java.time.LocalDateTime;
 
 /**
- * 排便排尿记录Mapper
+ * 换尿布记录Mapper
  */
 @Mapper
 public interface ExcretionRecordMapper extends BaseMapper<ExcretionRecord> {

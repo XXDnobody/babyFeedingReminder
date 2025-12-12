@@ -53,7 +53,7 @@ struct DailySleepDataResponse: Codable {
     let totalHours: Double?
 }
 
-// MARK: - 排便统计响应模型
+// MARK: - 换尿布统计响应模型
 struct ExcretionStatisticsResponse: Codable {
     let dateRange: String?
     let totalPoopCount: Int?
@@ -106,7 +106,7 @@ struct SleepQualityData: Identifiable {
     let color: String     // 颜色标识
 }
 
-// MARK: - 排便图表数据模型
+// MARK: - 换尿布图表数据模型
 struct DailyExcretionData: Identifiable {
     let id = UUID()
     let date: Date
@@ -136,7 +136,7 @@ class StatisticsViewModel: ObservableObject {
     @Published var feedingTimeData: [FeedingTimeData] = []     // 喂奶时间分布
     @Published var dailySleepData: [DailySleepData] = []       // 每日睡眠数据
     @Published var sleepQualityData: [SleepQualityData] = []   // 睡眠质量分布
-    @Published var dailyExcretionData: [DailyExcretionData] = []  // 每日排便数据
+    @Published var dailyExcretionData: [DailyExcretionData] = []  // 每日换尿布数据
     
     // 睡眠统计
     @Published var dailyAverageSleepHours: String = "0小时"
@@ -147,7 +147,7 @@ class StatisticsViewModel: ObservableObject {
     @Published var normalSleepPercent: Double = 0
     @Published var poorSleepPercent: Double = 0
     
-    // 排便统计
+    // 换尿布统计
     @Published var dailyAveragePoopCount: Double = 0
     @Published var dailyAveragePeeCount: Double = 0
     @Published var recommendedPoopCount: String = "1-3次"
@@ -166,7 +166,7 @@ class StatisticsViewModel: ObservableObject {
     private var feedingDailyDataResponse: [DailyFeedingDataResponse] = []
     private var feedingTimeDistResponse: [TimeDistributionResponse] = []
     private var sleepDailyDataResponse: [DailySleepDataResponse] = []  // 睡眠每日数据
-    private var excretionDailyDataResponse: [DailyExcretionDataResponse] = []  // 排便每日数据
+    private var excretionDailyDataResponse: [DailyExcretionDataResponse] = []  // 换尿布每日数据
     
     private let network = NetworkService.shared
     
@@ -316,7 +316,7 @@ class StatisticsViewModel: ObservableObject {
         }
     }
     
-    /// 加载排便统计
+    /// 加载换尿布统计
     private func loadExcretionStatistics(babyId: Int64, days: Int) async {
         let endDate = formatDate(Date())
         let startDate = formatDate(Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date())
@@ -338,7 +338,7 @@ class StatisticsViewModel: ObservableObject {
             // 保存每日数据用于图表
             excretionDailyDataResponse = stats.dailyData ?? []
         } catch {
-            print("⚠️ 加载排便统计失败: \(error.localizedDescription)")
+            print("⚠️ 加载换尿布统计失败: \(error.localizedDescription)")
         }
     }
 
@@ -413,7 +413,7 @@ class StatisticsViewModel: ObservableObject {
             SleepQualityData(quality: "差", percent: poorSleepPercent, color: "red")
         ]
         
-        // 使用后端返回的真实每日排便数据
+        // 使用后端返回的真实每日换尿布数据
         if !excretionDailyDataResponse.isEmpty {
             dailyExcretionData = excretionDailyDataResponse.compactMap { item in
                 guard let date = inputFormatter.date(from: item.date) else { return nil }

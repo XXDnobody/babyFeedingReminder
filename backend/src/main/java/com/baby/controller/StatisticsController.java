@@ -56,7 +56,7 @@ public class StatisticsController {
         Integer todaySleepDuration = sleepRecordMapper.getTotalDurationByDateRange(babyId, startOfDay, endOfDay);
         Integer todayNapCount = sleepRecordMapper.getNapCountByDateRange(babyId, startOfDay, endOfDay);
         
-        // 今日排便数据
+        // 今日换尿布数据
         Integer todayPoopCount = excretionRecordMapper.getPoopCountByDateRange(babyId, startOfDay, endOfDay);
         Integer todayPeeCount = excretionRecordMapper.getPeeCountByDateRange(babyId, startOfDay, endOfDay);
         
@@ -108,7 +108,7 @@ public class StatisticsController {
         return Result.success(statistics);
     }
     
-    @Operation(summary = "获取排便分析")
+    @Operation(summary = "获取换尿布分析")
     @GetMapping("/excretion/{babyId}")
     public Result<ExcretionStatisticsVO> getExcretionAnalysis(
             @PathVariable Long babyId,
@@ -137,38 +137,38 @@ public class StatisticsController {
         
         double avgPoop = stats.getDailyAveragePoopCount();
         
-        // 根据月龄判断排便情况
+        // 根据月龄判断换尿布情况
         if (ageInMonths < 1) {
             if (avgPoop >= 3 && avgPoop <= 8) {
-                return "排便频率正常";
+                return "换尿布频率正常";
             } else if (avgPoop < 3) {
-                return "排便频率偏低，建议关注";
+                return "换尿布频率偏低，建议关注";
             } else {
-                return "排便频率较高，属正常范围";
+                return "换尿布频率较高，属正常范围";
             }
         } else if (ageInMonths < 6) {
             if (avgPoop >= 2 && avgPoop <= 5) {
-                return "排便频率正常";
+                return "换尿布频率正常";
             } else if (avgPoop < 2) {
-                return "排便频率偏低，建议关注";
+                return "换尿布频率偏低，建议关注";
             } else {
-                return "排便频率较高，建议观察";
+                return "换尿布频率较高，建议观察";
             }
         } else if (ageInMonths < 12) {
             if (avgPoop >= 1 && avgPoop <= 3) {
-                return "排便频率正常";
+                return "换尿布频率正常";
             } else if (avgPoop < 1) {
-                return "排便频率偏低，注意观察";
+                return "换尿布频率偏低，注意观察";
             } else {
-                return "排便频率偏高，建议观察";
+                return "换尿布频率偏高，建议观察";
             }
         } else {
             if (avgPoop >= 1 && avgPoop <= 2) {
-                return "排便频率正常";
+                return "换尿布频率正常";
             } else if (avgPoop < 1) {
-                return "排便频率偏低，建议多吃纤维";
+                return "换尿布频率偏低，建议多吃纤维";
             } else {
-                return "排便频率偏高，建议观察";
+                return "换尿布频率偏高，建议观察";
             }
         }
     }
