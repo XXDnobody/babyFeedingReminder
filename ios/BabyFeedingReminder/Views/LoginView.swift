@@ -8,15 +8,12 @@ struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     
     @State private var phone = ""
-    @State private var password = ""
-    @State private var isPasswordVisible = false
+    @State private var smsCode = ""
     @State private var agreedTerms = false
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var showAgreementAlert = false
     @State private var showErrorAlert = false
-    @State private var showRegister = false
-    @State private var showForgotPassword = false
     
     var body: some View {
         NavigationView {
@@ -49,13 +46,6 @@ struct LoginView: View {
         }
         .sheet(isPresented: $showPrivacy) {
             PrivacyPolicyView()
-        }
-        .sheet(isPresented: $showRegister) {
-            PhoneRegisterView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $showForgotPassword) {
-            ForgotPasswordView()
         }
         .overlay {
             if viewModel.isLoading {
@@ -116,10 +106,9 @@ struct LoginView: View {
     private var loginFormSection: some View {
         VStack(spacing: 16) {
             phoneInputField
-            passwordInputField
-            forgotPasswordButton
+            smsCodeInputField
             loginButton
-            registerButton
+            autoRegisterHint
             agreementCheckbox
         }
         .padding(.horizontal, 24)
@@ -141,20 +130,15 @@ struct LoginView: View {
         .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
-    private var passwordInputField: some View {
+    private var smsCodeInputField: some View {
         HStack {
-            Image(systemName: "lock.fill")
+            Image(systemName: "number.circle.fill")
                 .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 24)
-            if isPasswordVisible {
-                TextField("请输入密码", text: $password)
-            } else {
-                SecureField("请输入密码", text: $password)
-            }
-            Button(action: { isPasswordVisible.toggle() }) {
-                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                    .foregroundColor(AppTheme.secondaryText)
-            }
+            TextField("请输入验证码", text: $smsCode)
+                .keyboardType(.numberPad)
+            
+            smsCodeButton
         }
         .padding(.horizontal, 16)
         .frame(height: 52)
@@ -163,15 +147,24 @@ struct LoginView: View {
         .shadow(color: AppTheme.cardShadowColor, radius: 4, x: 0, y: 2)
     }
     
-    private var forgotPasswordButton: some View {
-        HStack {
-            Spacer()
-            Button("忘记密码？") {
-                showForgotPassword = true
+    private var smsCodeButton: some View {
+        Button(action: sendSmsCode) {
+            Group {
+                if viewModel.countdown > 0 {
+                    Text("\(viewModel.countdown)s")
+                        .foregroundColor(AppTheme.secondaryText)
+                } else {
+                    Text("获取验证码")
+                        .foregroundColor(canSendSms ? AppTheme.primaryBlue : AppTheme.secondaryText)
+                }
             }
             .font(.subheadline)
-            .foregroundColor(AppTheme.primaryBlue)
         }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .disabled(!canSendSms || viewModel.countdown > 0)
     }
     
     private var loginButton: some View {
@@ -195,18 +188,11 @@ struct LoginView: View {
         )
     }
     
-    private var registerButton: some View {
-        Button(action: { showRegister = true }) {
-            HStack {
-                Text("还没有账号？")
-                    .foregroundColor(AppTheme.secondaryText)
-                Text("立即注册")
-                    .foregroundColor(AppTheme.primaryBlue)
-                    .fontWeight(.medium)
-            }
-            .font(.subheadline)
-        }
-        .padding(.top, 8)
+    private var autoRegisterHint: some View {
+        Text("未注册的手机号验证后自动注册用户")
+            .font(.caption)
+            .foregroundColor(AppTheme.secondaryText)
+            .padding(.top, 4)
     }
     
     private var agreementCheckbox: some View {
@@ -347,13 +333,22 @@ struct LoginView: View {
         return result.filter { $0.isNumber }
     }
     
+    private var canSendSms: Bool {
+        purePhone.count == 11
+    }
+    
     private var canLogin: Bool {
-        !purePhone.isEmpty && purePhone.count == 11 && !password.isEmpty && password.count >= 6 && agreedTerms
+        !purePhone.isEmpty && purePhone.count == 11 && smsCode.count >= 4 && agreedTerms
+    }
+    
+    private func sendSmsCode() {
+        print("📤 发送验证码: \(purePhone)")
+        viewModel.sendSmsCode(phone: purePhone, scene: "login")
     }
     
     private func performLogin() {
-        print("📱 手机号登录: \(purePhone)")
-        viewModel.loginWithPhone(phone: purePhone, password: password)
+        print("📱 验证码登录: \(purePhone)")
+        viewModel.quickLoginWithPhone(phone: purePhone, smsCode: smsCode)
     }
     
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {

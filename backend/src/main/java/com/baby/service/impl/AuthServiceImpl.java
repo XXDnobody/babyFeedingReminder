@@ -423,6 +423,7 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("该手机号未注册");
             }
         }
+        // login场景不检查用户是否存在，支持未注册用户自动注册
         
         // 生成随机6位验证码
         String code = String.format("%06d", new Random().nextInt(1000000));
@@ -497,6 +498,75 @@ public class AuthServiceImpl implements AuthService {
         userMapper.update(null, new LambdaUpdateWrapper<User>()
                 .eq(User::getId, userId)
                 .set(User::getDeviceToken, null));
+    }
+    
+    @Override
+    @Transactional
+    public LoginResponse quickLoginWithPhone(LoginRequest request) {
+        String phone = request.getPhone();
+        String smsCode = request.getSmsCode();
+        
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("手机号不能为空");
+        }
+        if (smsCode == null || smsCode.isEmpty()) {
+            throw new RuntimeException("验证码不能为空");
+        }
+        
+        // 验证短信验证码
+        if (!verifySmsCode(phone, smsCode)) {
+            throw new RuntimeException("验证码错误或已过期");
+        }
+        
+        // 查找用户
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone));
+        
+        boolean isNewUser = false;
+        if (user == null) {
+            // 用户不存在，自动注册
+            user = new User();
+            user.setPhone(phone);
+            // 生成随机密码（用户可以之后通过“忘记密码”来设置）
+            String randomPassword = String.format("%08d", new Random().nextInt(100000000));
+            user.setPassword(passwordEncoder.encode(randomPassword));
+            user.setNickname("用户" + phone.substring(phone.length() - 4));
+            user.setStatus(1);
+            user.setAgreedTerms(1);
+            userMapper.insert(user);
+            isNewUser = true;
+            log.info("手机号快速登录-自动注册: userId={}, phone={}", user.getId(), phone);
+        } else {
+            // 检查用户状态
+            if (user.getStatus() != 1) {
+                throw new RuntimeException("账号已被禁用");
+            }
+            log.info("手机号快速登录: userId={}, phone={}", user.getId(), phone);
+        }
+        
+        // 清除验证码
+        smsCodeCache.remove(phone);
+        
+        // 更新设备Token
+        if (request.getDeviceToken() != null) {
+            userMapper.update(null, new LambdaUpdateWrapper<User>()
+                    .eq(User::getId, user.getId())
+                    .set(User::getDeviceToken, request.getDeviceToken()));
+        }
+        
+        // 生成JWT Token
+        String accessToken = generateToken(user.getId(), jwtExpiration);
+        String refreshToken = generateToken(user.getId(), REFRESH_TOKEN_EXPIRATION);
+        
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtExpiration / 1000)
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .isNewUser(isNewUser)
+                .build();
     }
     
     /**

@@ -59,4 +59,9 @@ public interface AuthService {
      * 退出登录
      */
     void logout(Long userId);
+    
+    /**
+     * 手机号验证码快速登录（未注册自动注册）
+     */
+    LoginResponse quickLoginWithPhone(LoginRequest request);
 }

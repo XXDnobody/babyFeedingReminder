@@ -128,6 +128,23 @@ class LoginViewModel: ObservableObject {
         performLogin(endpoint: "/auth/phone/login", request: request)
     }
     
+    /// 手机号验证码快速登录（未注册自动注册）
+    func quickLoginWithPhone(phone: String, smsCode: String) {
+        isLoading = true
+        errorMessage = nil
+        
+        let deviceToken = UserDefaults.standard.string(forKey: "deviceToken")
+        
+        let request = LoginRequest(
+            deviceToken: deviceToken,
+            agreedTerms: true,
+            phone: phone,
+            smsCode: smsCode
+        )
+        
+        performLogin(endpoint: "/auth/phone/quick-login", request: request)
+    }
+    
     /// 手机号注册
     func registerWithPhone(phone: String, password: String, smsCode: String, nickname: String? = nil) {
         isLoading = true

@@ -112,6 +112,29 @@ public class AuthController {
         }
     }
     
+    @Operation(summary = "手机号验证码快速登录（未注册自动注册）")
+    @PostMapping("/phone/quick-login")
+    public Result<LoginResponse> phoneQuickLogin(@RequestBody LoginRequest request) {
+        if (request.getPhone() == null || request.getPhone().isEmpty()) {
+            return Result.error(400, "手机号不能为空");
+        }
+        if (request.getSmsCode() == null || request.getSmsCode().isEmpty()) {
+            return Result.error(400, "验证码不能为空");
+        }
+        if (request.getAgreedTerms() == null || !request.getAgreedTerms()) {
+            return Result.error(400, "请先同意用户服务协议和隐私政策");
+        }
+        
+        try {
+            LoginResponse response = authService.quickLoginWithPhone(request);
+            log.info("手机号快速登录成功: userId={}, isNewUser={}", response.getUserId(), response.getIsNewUser());
+            return Result.success(response);
+        } catch (Exception e) {
+            log.error("手机号快速登录失败: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
+    }
+    
     @Operation(summary = "发送短信验证码")
     @PostMapping("/sms/send")
     public Result<Void> sendSmsCode(@RequestBody SmsCodeRequest request) {
