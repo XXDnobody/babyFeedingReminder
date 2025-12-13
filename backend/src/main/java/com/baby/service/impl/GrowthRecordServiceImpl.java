@@ -154,11 +154,15 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         // 计算精确月龄（包含天数）
         double exactAgeMonths = calculateExactAgeMonths(baby.getBirthDate(), latest.getMeasureDate());
         
-        // 计算身高百分位（使用精确日龄插值）
+        // 早产儿矫正月龄
+        double correctedAgeMonths = calculateCorrectedAgeMonths(exactAgeMonths, baby.getGestationalAge());
+        boolean isCorrected = correctedAgeMonths != exactAgeMonths;
+        
+        // 计算身高百分位（使用矫正月龄）
         if (latest.getHeight() != null) {
             double heightValue = latest.getHeight().doubleValue();
             String heightPercentile = growthStandardService.calculateExactPercentile(
-                heightValue, standardType, gender, "HEIGHT", exactAgeMonths);
+                heightValue, standardType, gender, "HEIGHT", correctedAgeMonths);
             result.put("heightPercentile", heightPercentile);
             result.put("height", heightValue);
         }
@@ -167,7 +171,7 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         if (latest.getWeight() != null) {
             double weightValue = latest.getWeight().doubleValue();
             String weightPercentile = growthStandardService.calculateExactPercentile(
-                weightValue, standardType, gender, "WEIGHT", exactAgeMonths);
+                weightValue, standardType, gender, "WEIGHT", correctedAgeMonths);
             result.put("weightPercentile", weightPercentile);
             result.put("weight", weightValue);
         }
@@ -177,7 +181,7 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
             double heightM = latest.getHeight().doubleValue() / 100.0; // cm转m
             double bmi = latest.getWeight().doubleValue() / (heightM * heightM);
             String bmiPercentile = growthStandardService.calculateExactPercentile(
-                bmi, standardType, gender, "BMI", exactAgeMonths);
+                bmi, standardType, gender, "BMI", correctedAgeMonths);
             result.put("bmiPercentile", bmiPercentile);
             result.put("bmi", Math.round(bmi * 10.0) / 10.0); // 保留1位小数
         }
@@ -186,13 +190,15 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         if (latest.getHeadCircumference() != null) {
             double headValue = latest.getHeadCircumference().doubleValue();
             String headPercentile = growthStandardService.calculateExactPercentile(
-                headValue, standardType, gender, "HEAD", exactAgeMonths);
+                headValue, standardType, gender, "HEAD", correctedAgeMonths);
             result.put("headPercentile", headPercentile);
             result.put("headCircumference", headValue);
         }
         
         result.put("ageInMonths", ageInMonths);
         result.put("exactAgeMonths", exactAgeMonths);
+        result.put("correctedAgeMonths", correctedAgeMonths);
+        result.put("isCorrected", isCorrected);
         result.put("measureDate", latest.getMeasureDate());
         result.put("standardType", standardType != null ? standardType : "CHINA_2025");
         
@@ -233,6 +239,38 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
         double exactMonths = totalDays / 30.44;
         
         return Math.round(exactMonths * 10.0) / 10.0; // 保留1位小数
+    }
+    
+    /**
+     * 计算早产儿矫正月龄
+     * 矫正月龄 = 实际月龄 - (40周 - 出生胎龄周数)
+     * 仅对早产儿（胎龄<37周）且实际年龄<24个月时进行矫正
+     * 
+     * @param exactAgeMonths 实际精确月龄
+     * @param gestationalAgeDays 出生胎龄（天数）
+     * @return 矫正后的月龄，足月儿返回原值
+     */
+    private double calculateCorrectedAgeMonths(double exactAgeMonths, Integer gestationalAgeDays) {
+        // 胎龄为空或足月（>=37周=259天）不需要矫正
+        if (gestationalAgeDays == null || gestationalAgeDays >= 259) {
+            return exactAgeMonths;
+        }
+        
+        // 超过24个月不再使用矫正月龄
+        if (exactAgeMonths >= 24) {
+            return exactAgeMonths;
+        }
+        
+        // 足月标准为40周=280天
+        int fullTermDays = 280;
+        int pretermDays = fullTermDays - gestationalAgeDays;  // 早产天数
+        double pretermMonths = pretermDays / 30.44;  // 早产月数
+        
+        // 矫正月龄 = 实际月龄 - 早产月数
+        double correctedMonths = exactAgeMonths - pretermMonths;
+        
+        // 矫正月龄不能为负数
+        return Math.max(0, Math.round(correctedMonths * 10.0) / 10.0);
     }
     
     /**
@@ -281,11 +319,14 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
                 
                 double exactAge = vo.getExactAgeMonths();
                 
-                // 计算身高百分位
+                // 早产儿矫正月龄
+                double correctedAge = calculateCorrectedAgeMonths(exactAge, baby.getGestationalAge());
+                
+                // 计算身高百分位（使用矫正月龄）
                 if (record.getHeight() != null) {
                     double height = record.getHeight().doubleValue();
                     String heightP = growthStandardService.calculateExactPercentile(
-                        height, standardType, gender, "HEIGHT", exactAge);
+                        height, standardType, gender, "HEIGHT", correctedAge);
                     vo.setHeightPercentile(heightP);
                     vo.setHeightEvaluation(getEvaluation(heightP));
                 }
@@ -294,12 +335,12 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
                 if (record.getWeight() != null) {
                     double weight = record.getWeight().doubleValue();
                     String weightP = growthStandardService.calculateExactPercentile(
-                        weight, standardType, gender, "WEIGHT", exactAge);
+                        weight, standardType, gender, "WEIGHT", correctedAge);
                     vo.setWeightPercentile(weightP);
                     vo.setWeightEvaluation(getEvaluation(weightP));
                 }
                 
-                // 计算BMI百分位
+                // 计算BMI百分位（使用矫正月龄）
                 if (record.getHeight() != null && record.getWeight() != null && 
                     record.getHeight().doubleValue() > 0) {
                     double heightM = record.getHeight().doubleValue() / 100.0;
@@ -307,16 +348,16 @@ public class GrowthRecordServiceImpl extends ServiceImpl<GrowthRecordMapper, Gro
                     vo.setBmi(Math.round(bmi * 10.0) / 10.0);
                     
                     String bmiP = growthStandardService.calculateExactPercentile(
-                        bmi, standardType, gender, "BMI", exactAge);
+                        bmi, standardType, gender, "BMI", correctedAge);
                     vo.setBmiPercentile(bmiP);
                     vo.setBmiEvaluation(getEvaluation(bmiP));
                 }
                 
-                // 计算头围百分位
+                // 计算头围百分位（使用矫正月龄）
                 if (record.getHeadCircumference() != null) {
                     double head = record.getHeadCircumference().doubleValue();
                     String headP = growthStandardService.calculateExactPercentile(
-                        head, standardType, gender, "HEAD", exactAge);
+                        head, standardType, gender, "HEAD", correctedAge);
                     vo.setHeadPercentile(headP);
                     vo.setHeadEvaluation(getEvaluation(headP));
                 }

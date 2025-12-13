@@ -137,6 +137,25 @@ struct BabyFormView: View {
                             .font(.subheadline)
                             .foregroundColor(AppTheme.secondaryText)
                             .frame(maxWidth: .infinity, alignment: .center)
+                        
+                        // 胎龄设置提示
+                        VStack(alignment: .leading, spacing: 4) {
+                            if gestationalWeeks < 37 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "info.circle.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(AppTheme.primaryPink)
+                                    Text("早产宝宝，生长曲线将使用矫正月龄评估")
+                                        .font(.caption2)
+                                        .foregroundColor(AppTheme.primaryPink)
+                                }
+                            }
+                            Text("胎龄<37周为早产，生长曲线百分位会根据胎龄进行矫正")
+                                .font(.caption2)
+                                .foregroundColor(Color.gray.opacity(0.6))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
                     }
                     
                     Section("生长指标（可选）") {
