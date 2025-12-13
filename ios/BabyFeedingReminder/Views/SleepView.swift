@@ -190,12 +190,6 @@ struct CurrentSleepStatusCard: View {
                     Spacer()
                 }
                 
-                // 建议睡眠时长提示
-                Text("建议本次睡眠时长：\(viewModel.recommendedNapDuration)分钟")
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
                 // 大按钮 - 结束小睡
                 Button(action: {
                     showEndNapConfirmation = true
@@ -284,9 +278,9 @@ struct CurrentSleepStatusCard: View {
             EndNapConfirmationView(
                 viewModel: viewModel,
                 startTime: viewModel.currentNapStartTime ?? Date(),
-                onConfirm: { quality, endTime, remark in
+                onConfirm: { quality, endTime, remark, reminderInterval in
                     Task {
-                        await viewModel.endNap(quality: quality, endTime: endTime, remark: remark)
+                        await viewModel.endNap(quality: quality, endTime: endTime, remark: remark, reminderInterval: reminderInterval)
                     }
                 }
             )
@@ -688,16 +682,23 @@ struct EndNapConfirmationView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: SleepViewModel
     let startTime: Date
-    let onConfirm: (Int, Date, String?) -> Void
+    let onConfirm: (Int, Date, String?, Int) -> Void
 
     @State private var endTime = Date()
     @State private var quality = 1  // 1: 好, 2: 一般, 3: 差
     @State private var remark = ""
+    @State private var enableReminder = true  // 是否开启提醒
+    @State private var intervalHours = 2      // 提醒间隔小时
+    @State private var intervalMinutes = 0    // 提醒间隔分钟
 
     private var duration: Int {
         let calculatedMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
         // 如果开始时间和结束时间相同，按1分钟计算
         return max(1, calculatedMinutes)
+    }
+    
+    private var reminderInterval: Int {
+        return enableReminder ? (intervalHours * 60 + intervalMinutes) : 0
     }
 
     var body: some View {
@@ -727,6 +728,60 @@ struct EndNapConfirmationView: View {
                 Section("睡眠质量") {
                     SleepQualitySelector(selectedQuality: $quality)
                 }
+                
+                Section("下次睡眠提醒") {
+                    Toggle("开启提醒", isOn: $enableReminder)
+                    
+                    if enableReminder {
+                        // 提醒间隔选择
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("提醒间隔")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 16) {
+                                // 小时选择器
+                                HStack {
+                                    Picker("", selection: $intervalHours) {
+                                        ForEach(0...8, id: \.self) { hour in
+                                            Text("\(hour)").tag(hour)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(width: 60, height: 100)
+                                    .clipped()
+                                    
+                                    Text("小时")
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                // 分钟选择器
+                                HStack {
+                                    Picker("", selection: $intervalMinutes) {
+                                        ForEach([0, 15, 30, 45], id: \.self) { min in
+                                            Text("\(min)").tag(min)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(width: 60, height: 100)
+                                    .clipped()
+                                    
+                                    Text("分钟")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        
+                        Text("系统将在 \(intervalHours)小时\(intervalMinutes > 0 ? "\(intervalMinutes)分钟" : "") 后提醒你哄宝宝睡觉")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("不会创建下次睡眠提醒")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
 
                 Section("备注") {
                     TextField("添加备注...", text: $remark, axis: .vertical)
@@ -743,7 +798,7 @@ struct EndNapConfirmationView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
-                        onConfirm(quality, endTime, remark.isEmpty ? nil : remark)
+                        onConfirm(quality, endTime, remark.isEmpty ? nil : remark, reminderInterval)
                         dismiss()
                     }
                     .disabled(endTime < startTime)
@@ -751,6 +806,15 @@ struct EndNapConfirmationView: View {
             }
             .onAppear {
                 endTime = Date()
+                // 初始化提醒开关状态
+                enableReminder = viewModel.shouldRemindNextNap
+                
+                // 初始化提醒间隔（如果有设置）
+                if let setting = viewModel.sleepSetting {
+                    let defaultInterval = setting.defaultNapInterval ?? 120
+                    intervalHours = defaultInterval / 60
+                    intervalMinutes = defaultInterval % 60
+                }
             }
         }
     }

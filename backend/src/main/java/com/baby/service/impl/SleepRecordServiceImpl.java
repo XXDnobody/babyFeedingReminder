@@ -222,14 +222,39 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
             
             // 如果是小睡且是第一次设置结束时间，需要计算下次小睡时间并创建提醒
             if (dto.getSleepType() == 1 && originalEndTime == null) {
-                // 计算下次小睡时间
-                LocalDateTime nextNapTime = calculateNextNapTime(record.getBabyId(), dto.getEndTime());
-                record.setNextNapTime(nextNapTime);
+                // 检查是否需要创建提醒：优先使用前端传入的 reminderInterval
+                Integer reminderInterval = dto.getReminderInterval();
+                boolean shouldCreateReminder;
                 
-                // 获取睡眠设置
-                SleepSetting setting = getSleepSetting(record.getBabyId());
-                record.setSoothingReminderMinutes(setting != null ?
-                        setting.getDefaultSoothingReminderMinutes() : 15);
+                if (reminderInterval != null) {
+                    // 如果前端传入了提醒间隔参数，使用该参数决定是否创建提醒
+                    shouldCreateReminder = reminderInterval > 0;
+                } else {
+                    // 否则使用睡眠设置中的开关
+                    SleepSetting setting = getSleepSetting(record.getBabyId());
+                    shouldCreateReminder = setting != null && 
+                            setting.getNextNapReminderEnabled() != null && 
+                            setting.getNextNapReminderEnabled() == 1;
+                }
+                
+                // 只有当需要创建提醒时，才计算并设置 nextNapTime
+                if (shouldCreateReminder) {
+                    LocalDateTime nextNapTime;
+                    if (reminderInterval != null && reminderInterval > 0) {
+                        // 使用前端传入的提醒间隔
+                        nextNapTime = dto.getEndTime().plusMinutes(reminderInterval);
+                    } else {
+                        // 使用默认逻辑计算下次小睡时间
+                        nextNapTime = calculateNextNapTime(record.getBabyId(), dto.getEndTime());
+                    }
+                    
+                    record.setNextNapTime(nextNapTime);
+                    
+                    // 获取睡眠设置
+                    SleepSetting setting = getSleepSetting(record.getBabyId());
+                    record.setSoothingReminderMinutes(setting != null ?
+                            setting.getDefaultSoothingReminderMinutes() : 15);
+                }
             }
         }
 
@@ -237,12 +262,22 @@ public class SleepRecordServiceImpl extends ServiceImpl<SleepRecordMapper, Sleep
         
         // 如果是小睡且是第一次结束，检查是否需要创建下次小睡提醒
         if (dto.getSleepType() == 1 && originalEndTime == null && dto.getEndTime() != null) {
-            SleepSetting setting = getSleepSetting(record.getBabyId());
-            boolean nextNapReminderEnabled = setting != null && 
-                    setting.getNextNapReminderEnabled() != null && 
-                    setting.getNextNapReminderEnabled() == 1;
+            // 检查提醒间隔参数
+            Integer reminderInterval = dto.getReminderInterval();
+            boolean shouldCreateReminder;
             
-            if (nextNapReminderEnabled && record.getNextNapTime() != null) {
+            if (reminderInterval != null) {
+                // 如果前端传入了提醒间隔参数，使用该参数决定是否创建提醒
+                shouldCreateReminder = reminderInterval > 0;
+            } else {
+                // 否则使用睡眠设置中的开关
+                SleepSetting setting = getSleepSetting(record.getBabyId());
+                shouldCreateReminder = setting != null && 
+                        setting.getNextNapReminderEnabled() != null && 
+                        setting.getNextNapReminderEnabled() == 1;
+            }
+            
+            if (shouldCreateReminder && record.getNextNapTime() != null) {
                 reminderService.createNapReminder(record);
             }
         }

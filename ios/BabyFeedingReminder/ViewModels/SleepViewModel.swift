@@ -80,6 +80,7 @@ class SleepViewModel: ObservableObject {
             let setting: SleepSetting = try await network.request(
                 endpoint: "/setting/sleep/\(babyId)"
             )
+            sleepSetting = setting
             shouldRemindNextNap = (setting.nextNapReminderEnabled ?? 1) == 1
             
             // 检查是否有正在进行的睡眠
@@ -153,7 +154,7 @@ class SleepViewModel: ObservableObject {
         }
     }
     
-    func endNap(quality: Int = 1, endTime: Date? = nil, remark: String? = nil) async {
+    func endNap(quality: Int = 1, endTime: Date? = nil, remark: String? = nil, reminderInterval: Int = 0) async {
         guard currentNapId != nil else { return }
         guard let babyId = babyId else { return }
 
@@ -173,7 +174,8 @@ class SleepViewModel: ObservableObject {
                 endTime: actualEndTime,
                 duration: duration,
                 quality: quality,
-                remark: remark
+                remark: remark,
+                reminderInterval: reminderInterval  // 直接传递，0表示不创建提醒
             )
             
             let _: SleepRecord = try await network.request(
@@ -258,7 +260,8 @@ class SleepViewModel: ObservableObject {
             endTime: endTime,
             duration: duration,
             quality: quality,
-            remark: remark.isEmpty ? nil : remark
+            remark: remark.isEmpty ? nil : remark,
+            reminderInterval: nil  // 编辑记录时不创建提醒
         )
         
         do {
@@ -368,4 +371,5 @@ struct UpdateSleepRecordRequest: Encodable {
     let duration: Int
     let quality: Int
     let remark: String?
+    let reminderInterval: Int?  // 提醒间隔（分钟），nil或0表示不提醒
 }
