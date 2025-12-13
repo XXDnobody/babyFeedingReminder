@@ -6,9 +6,6 @@ struct SaveBabyRequest: Encodable {
     let birthDate: String
     let gender: Int
     let gestationalAge: Int  // 胎龄总天数
-    let height: Double?
-    let weight: Double?
-    let headCircumference: Double?
 }
 
 struct BabyFormView: View {
@@ -22,13 +19,6 @@ struct BabyFormView: View {
     @State private var gender = 1
     @State private var gestationalWeeks = 40  // 胎龄周数
     @State private var gestationalDays = 0    // 胎龄天数 (0-6)
-    @State private var height: Double?
-    @State private var weight: Double?
-    @State private var headCircumference: Double?
-    
-    @State private var heightText = ""
-    @State private var weightText = ""
-    @State private var headCircumferenceText = ""
     
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -158,44 +148,6 @@ struct BabyFormView: View {
                         .padding(.top, 4)
                     }
                     
-                    Section("生长指标（可选）") {
-                        HStack {
-                            Text("身高")
-                                .foregroundColor(AppTheme.primaryText)
-                            Spacer()
-                            TextField("cm", text: $heightText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                            Text("cm")
-                                .foregroundColor(AppTheme.secondaryText)
-                        }
-                        
-                        HStack {
-                            Text("体重")
-                                .foregroundColor(AppTheme.primaryText)
-                            Spacer()
-                            TextField("kg", text: $weightText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                            Text("kg")
-                                .foregroundColor(AppTheme.secondaryText)
-                        }
-                        
-                        HStack {
-                            Text("头围")
-                                .foregroundColor(AppTheme.primaryText)
-                            Spacer()
-                            TextField("cm", text: $headCircumferenceText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                            Text("cm")
-                                .foregroundColor(AppTheme.secondaryText)
-                        }
-                    }
-                    
                     if let error = errorMessage {
                         Section {
                             Text(error)
@@ -235,15 +187,6 @@ struct BabyFormView: View {
                     let totalDays = baby.gestationalAge ?? 280
                     gestationalWeeks = totalDays / 7
                     gestationalDays = totalDays % 7
-                    if let h = baby.height {
-                        heightText = String(format: "%.1f", h)
-                    }
-                    if let w = baby.weight {
-                        weightText = String(format: "%.2f", w)
-                    }
-                    if let hc = baby.headCircumference {
-                        headCircumferenceText = String(format: "%.1f", hc)
-                    }
                 }
             }
         }
@@ -265,10 +208,7 @@ struct BabyFormView: View {
             nickname: nickname,
             birthDate: dateFormatter.string(from: birthDate),
             gender: gender,
-            gestationalAge: gestationalAgeDays,
-            height: Double(heightText),
-            weight: Double(weightText),
-            headCircumference: Double(headCircumferenceText)
+            gestationalAge: gestationalAgeDays
         )
         
         do {

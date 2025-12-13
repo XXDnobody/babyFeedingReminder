@@ -67,34 +67,6 @@ struct SettingsView: View {
                                 }
                                 .foregroundColor(AppTheme.primaryBlue)
                             }
-                        
-                        // 生长指标
-                        if let height = baby.height {
-                            HStack {
-                                Text("身高")
-                                Spacer()
-                                Text("\(String(format: "%.1f", height)) cm")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        if let weight = baby.weight {
-                            HStack {
-                                Text("体重")
-                                Spacer()
-                                Text("\(String(format: "%.2f", weight)) kg")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        if let head = baby.headCircumference {
-                            HStack {
-                                Text("头围")
-                                Spacer()
-                                Text("\(String(format: "%.1f", head)) cm")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
                     } else {
                         Button {
                             showEditBaby = true
